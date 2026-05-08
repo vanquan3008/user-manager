@@ -1,0 +1,185 @@
+<div class="main main-layout main-layout--table-page flex min-h-0 flex-1 flex-col overflow-hidden">
+  @if (canCreateSso()) {
+    <div class="app-toolbar-row flex flex-wrap items-center justify-end gap-2">
+      <app-icon-button
+        icon="person_add"
+        [theme]="theme()"
+        title="Tạo SSO user"
+        (click)="openSsoModal()"
+      />
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <app-stat-card
+      [label]="'Total users'"
+      [value]="totalCount()"
+      [sublabel]="'Across all pages'"
+      icon="group"
+      variant="primary"
+      [theme]="theme()"
+    />
+    <app-stat-card
+      [label]="'Active on this page'"
+      [value]="pageActive()"
+      [sublabel]="'Active & not banned (current page)'"
+      icon="person_check"
+      variant="success"
+      [theme]="theme()"
+    />
+    <app-stat-card
+      [label]="'Banned on this page'"
+      [value]="pageBanned()"
+      [sublabel]="'Quick view of blocked accounts'"
+      icon="block"
+      variant="warning"
+      [theme]="theme()"
+    />
+  </div>
+
+  <div
+    class="rounded-2xl border px-4 py-3"
+    [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/50' : 'border-slate-700/70 bg-slate-800/70'"
+  >
+    <div class="mb-2 flex items-center justify-between text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+      <span>Active vs banned (current page)</span>
+      <span>{{ pageActive() }} active • {{ pageBanned() }} banned / {{ pageTotal() }} users</span>
+    </div>
+    <div class="h-2 w-full overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-200' : 'bg-slate-700'">
+      <div class="h-full bg-emerald-500 transition-[width] duration-300 ease-out" [style.width.%]="activePercent()"></div>
+      <div class="h-full bg-rose-500 transition-[width] duration-300 ease-out" [style.width.%]="bannedPercent()"></div>
+    </div>
+  </div>
+
+  <div class="app-toolbar-row max-w-md">
+    <input
+      type="text"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      (keyup.enter)="onSearch()"
+      placeholder="Search by email or username…"
+      class="app-input-plain min-w-0 flex-1 text-[var(--app-text-primary)]"
+    />
+    <button
+      type="button"
+      class="rounded-lg px-4 py-2 text-sm font-medium transition"
+      [ngClass]="theme() === 'light'
+        ? 'border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
+        : 'border border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+      (click)="onSearch()"
+    >
+      Search
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="app-alert-error">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <app-loading-state message="Loading users…" [theme]="theme()" />
+  } @else if (users().length === 0) {
+    <app-empty-state
+      [message]="'No users found. Try adjusting your search.'"
+      [theme]="theme()"
+    />
+  } @else {
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div class="app-table-shell app-table-shell--fill overflow-x-auto">
+      <table class="min-w-full divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
+        <thead [ngClass]="theme() === 'light' ? 'bg-slate-50' : 'bg-slate-900/80'">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Email</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Username</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Account</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Created</th>
+            <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200 bg-white' : 'divide-slate-700 bg-slate-800/50'">
+          @for (u of users(); track trackByUserId($index, u)) {
+            <tr class="transition" [ngClass]="theme() === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-700/50'">
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">{{ u.email }}</span>
+                  @if (u.emailConfirmed) {
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-800" [ngClass]="theme() === 'dark' ? '!bg-emerald-500/20 !text-emerald-200' : ''" title="Đã xác thực email">✓</span>
+                  } @else {
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800" [ngClass]="theme() === 'dark' ? '!bg-amber-500/20 !text-amber-200' : ''" title="Chưa xác thực email">—</span>
+                  }
+                </div>
+              </td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">{{ u.userName }}</td>
+              <td class="px-4 py-3">
+                @if (u.isSsoAccount) {
+                  <span
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800"
+                    [ngClass]="theme() === 'dark' ? '!bg-indigo-500/20 !text-indigo-200' : ''"
+                    >SSO</span
+                  >
+                } @else {
+                  <span
+                    class="text-xs"
+                    [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'"
+                    >Standard</span
+                  >
+                }
+              </td>
+              <td class="px-4 py-3">
+                <app-status-badge
+                  [status]="u.isBanned ? 'banned' : (u.isActive ? 'active' : 'inactive')"
+                  [theme]="theme()"
+                />
+              </td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ u.createdAt | date:'short' }}</td>
+              <td class="px-4 py-3 text-right">
+                <a
+                  [routerLink]="['/users', u.id]"
+                  class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white bg-sky-500 transition hover:bg-sky-600"
+                >
+                  <span class="material-symbols-outlined text-base">edit</span>
+                  Edit roles
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-pagination
+      [totalItems]="totalCount()"
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="listPageSizeSvc.options"
+      [theme]="theme()"
+      (pageChange)="setListPage($event)"
+      (pageSizeChange)="onListPageSizeChange($event)"
+    />
+    </div>
+  }
+
+@if (showSsoModal()) {
+  <app-drawer
+    title="Tạo SSO user"
+    [closing]="closingSso()"
+    [theme]="theme()"
+    (close)="closeSsoModal()"
+  >
+    <app-sso-create-form
+      [form]="ssoForm"
+      info="Tài khoản Admin hoặc SuperAdmin đều có thể tạo tài khoản SSO tại đây."
+      [theme]="theme()"
+    />
+    <app-drawer-footer-actions
+      [theme]="theme()"
+      cancelLabel="Hủy"
+      saveLabel="Tạo SSO user"
+      loadingLabel="Đang tạo…"
+      [loading]="ssoSaving()"
+      (cancel)="closeSsoModal()"
+      (save)="createSsoUser()"
+    />
+  </app-drawer>
+}
+</div>

@@ -1,0 +1,109 @@
+<div class="main main-layout">
+  <div>
+    <h1 class="text-xl font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-50'">Tạo gói theo Application</h1>
+  </div>
+
+  <div class="rounded-xl border p-5" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'">
+    <h2 class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">Application &amp; global role</h2>
+    @if (loadingApps()) {
+      <app-loading-state class="mt-4 block max-w-[360px]" message="Đang tải danh sách application..." [theme]="theme()" />
+    } @else {
+      <div class="mt-4 max-w-[360px]">
+        <label class="mb-1.5 block text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Chọn application</label>
+        <app-dropdown [options]="appOptions()" [placeholder]="translate.t().selectApplication" [theme]="theme()" [ngModel]="applicationId()" (ngModelChange)="onApplicationChange($event)" />
+      </div>
+    }
+    <div class="mt-6 space-y-1.5">
+      <label class="block text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Global role có sẵn</label>
+      @if (loadingGlobalRoles()) {
+        <app-loading-state message="Đang tải danh sách global role..." [theme]="theme()" />
+      } @else {
+        <app-dropdown
+          [options]="globalRoleOptions()"
+          [theme]="theme()"
+          [ngModel]="selectedGlobalRoleId()"
+          (ngModelChange)="selectedGlobalRoleId.set($event)"
+        />
+      }
+    </div>
+    <button
+      type="button"
+      class="mt-4 rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-70"
+      (click)="addRoleToApplication()"
+      [disabled]="addingRole() || !applicationId() || loadingGlobalRoles()"
+    >
+      {{ addingRole() ? 'Đang thêm role...' : 'Thêm global role vào application' }}
+    </button>
+  </div>
+
+  @if (applicationId()) {
+    <div class="rounded-xl border p-6 shadow-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'">
+      <div class="mb-3 flex items-center justify-between">
+        <h3 class="text-sm font-medium">Danh sách packet</h3>
+        <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg transition" [ngClass]="theme() === 'light' ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-700'" (click)="loadPackages()" [disabled]="loading()">
+          <span class="material-symbols-outlined text-lg">refresh</span>
+        </button>
+      </div>
+      @if (packages().length > 0) {
+        <ul class="space-y-2">
+          @for (p of packages(); track p.id) {
+            <li class="rounded-lg border px-3 py-2 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-100' : 'border-slate-600/50'">
+              <div class="font-medium text-slate-900 dark:text-slate-100">{{ p.name }}</div>
+              <div class="mt-1 text-xs text-slate-500">Gói: {{ planNameForLicense(p) }}</div>
+              <div class="mt-1 text-xs text-slate-500">Role: {{ p.assignedRole }}</div>
+              <div class="mt-1 text-xs text-slate-500">Seat limit: {{ p.seatLimit }}</div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="text-sm text-slate-500">Chưa có packet</p>
+      }
+    </div>
+
+    <div class="rounded-xl border p-6 shadow-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'">
+      <h3 class="text-sm font-medium">Tạo packet mới (trong gói)</h3>
+      <div class="mt-4 space-y-3">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Gói (subplan)</label>
+          <div class="select-wrap w-full">
+            <select
+              [ngModel]="newPackage.subscriptionPlanId"
+              (ngModelChange)="newPackage.subscriptionPlanId = $event"
+              [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-600 bg-slate-800/80 text-slate-100'"
+            >
+              @for (p of plans(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined select-icon" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">expand_more</span>
+          </div>
+        </div>
+        <app-form-field label="Name" [model]="newPackage.name" (modelChange)="newPackage.name = $event" [theme]="theme()" />
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Assigned roles</label>
+          <app-multi-select-dropdown
+            [options]="licenseAssignedRoleOptions()"
+            placeholder="Chọn role"
+            [theme]="theme() === 'light' ? 'light' : 'dark'"
+            [disabled]="licenseAssignedRoleOptions().length === 0"
+            [(ngModel)]="newPackage.assignedRoles"
+          />
+        </div>
+
+        <app-form-field label="Seat limit" type="number" [model]="newPackage.seatLimit" (modelChange)="newPackage.seatLimit = $event" [theme]="theme()" />
+        <app-form-field label="Display order" type="number" [model]="newPackage.displayOrder" (modelChange)="newPackage.displayOrder = $event" [theme]="theme()" />
+
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="flex items-center gap-2 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"><input type="checkbox" class="h-4 w-4" [(ngModel)]="newPackage.featureAnalytics" /> Analytics</label>
+          <label class="flex items-center gap-2 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"><input type="checkbox" class="h-4 w-4" [(ngModel)]="newPackage.featureSupport" /> Support</label>
+          <label class="flex items-center gap-2 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"><input type="checkbox" class="h-4 w-4" [(ngModel)]="newPackage.featureAdvancedSecurity" /> AdvancedSecurity</label>
+          <label class="flex items-center gap-2 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"><input type="checkbox" class="h-4 w-4" [(ngModel)]="newPackage.featureCustomDomain" /> CustomDomain</label>
+        </div>
+
+        <button type="button" class="w-full rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:opacity-70" (click)="createPackage()" [disabled]="loading()">Tạo packet</button>
+      </div>
+    </div>
+  }
+</div>
+

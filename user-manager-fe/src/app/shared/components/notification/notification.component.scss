@@ -1,0 +1,44 @@
+/* Notification toast – vuông 4 cạnh, viền trái xanh/đỏ/vàng */
+.notification-toast {
+  border-left-width: 4px;
+  border-left-style: solid;
+  border-top: 1px solid;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.notification-success {
+  border-left-color: rgb(16 185 129);
+  background: rgba(6, 78, 59, 0.4);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: rgb(167 243 208);
+}
+.notification-success.theme-light {
+  background: rgb(236 253 245);
+  border-color: rgb(167 243 208);
+  color: rgb(5 46 22);
+}
+
+.notification-error {
+  border-left-color: rgb(244 63 94);
+  background: rgba(127, 29, 29, 0.4);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: rgb(254 205 211);
+}
+.notification-error.theme-light {
+  background: rgb(254 242 242);
+  border-color: rgb(254 205 211);
+  color: rgb(127 29 29);
+}
+
+.notification-validation {
+  border-left-color: rgb(245 158 11);
+  background: rgba(120, 53, 15, 0.4);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: rgb(253 230 138);
+}
+.notification-validation.theme-light {
+  background: rgb(254 252 232);
+  border-color: rgb(253 230 138);
+  color: rgb(113 63 18);
+}

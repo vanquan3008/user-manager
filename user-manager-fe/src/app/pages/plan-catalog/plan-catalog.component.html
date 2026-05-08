@@ -1,0 +1,188 @@
+<div class="main main-layout">
+  <app-page-header
+    title="Tạo gói riêng"
+    description="Tạo subplan dùng chung toàn hệ thống (chưa gắn vào application)."
+    [theme]="theme()"
+  >
+    <app-icon-button
+      icon="add"
+      [theme]="theme()"
+      title="Tạo gói mới"
+      (click)="openCreate()"
+    />
+  </app-page-header>
+
+  <div class="flex gap-4">
+    <input
+      type="search"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      placeholder="Tìm theo tên/mô tả/role..."
+      class="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500"
+      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-600 bg-slate-800'"
+    />
+  </div>
+
+  @if (loading()) {
+    <app-loading-state [message]="translate.t().loading" [theme]="theme()" />
+  } @else {
+    <div
+      class="overflow-x-auto rounded-xl border shadow-sm"
+      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'"
+    >
+      <table class="min-w-full divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
+        <thead [ngClass]="theme() === 'light' ? 'bg-slate-50' : 'bg-slate-900/80'">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Name</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Description</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Application</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Price</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Limits</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Role</th>
+            <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200 bg-white' : 'divide-slate-700 bg-slate-800/50'">
+          @for (p of filteredPlans(); track p.id) {
+            <tr class="transition" [ngClass]="theme() === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-700/50'">
+              <td class="px-4 py-3 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ p.name }}</td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ p.description || '—' }}</td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+                {{ getApplicationName(p.applicationId) }}
+              </td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+                {{ p.monthlyPrice | planPriceVnd }} / {{ p.yearlyPrice | planPriceVnd }}
+              </td>
+              <td class="px-4 py-3 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Max users: {{ p.maxUsers }}</td>
+              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ p.assignedRole }}</td>
+              <td class="px-4 py-3 text-right">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition"
+                  [ngClass]="theme() === 'light'
+                    ? 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
+                    : 'border-sky-500/50 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 hover:border-sky-400/60'"
+                  (click)="openEdit(p)"
+                  title="Sửa"
+                >
+                  <span class="material-symbols-outlined text-[18px]">edit</span>
+                  Sửa
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="px-4 py-8 text-center text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                Chưa có gói.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>
+
+@if (showCreateModal()) {
+  <app-drawer
+    [title]="editingPlanId() ? 'Sửa gói' : 'Tạo gói mới'"
+    [closing]="closingCreate()"
+    [theme]="theme()"
+    (close)="closeCreate()"
+  >
+    <div class="space-y-6">
+      <div class="space-y-3">
+        <h4 class="text-xs font-semibold uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Thông tin cơ bản</h4>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-300'">Application</label>
+          @if (loadingApps()) {
+            <app-loading-state message="Đang tải danh sách application..." [theme]="theme()" />
+          } @else {
+            <app-dropdown
+              [options]="appOptions()"
+              [placeholder]="'Chọn application (trống = global)'"
+              [theme]="theme()"
+              [ngModel]="newPlan.applicationId"
+              (ngModelChange)="onPlanApplicationChange($event)"
+            />
+          }
+        </div>
+        <app-form-field label="Name" [model]="newPlan.name" (modelChange)="newPlan.name = $event" [theme]="theme()" [required]="true" />
+        <app-form-field label="Description" [model]="newPlan.description" (modelChange)="newPlan.description = $event" [theme]="theme()" />
+        <div class="space-y-2">
+          <label class="block text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-300'">Assigned roles</label>
+          @if (!newPlan.applicationId) {
+            <div class="rounded-lg border px-3 py-2 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-slate-600 bg-slate-800/70 text-slate-300'">
+              Global plan dùng role mặc định: <span class="font-semibold">Guest</span>
+            </div>
+          } @else if (loadingPlanModalAppRoles()) {
+            <app-loading-state message="Đang tải role theo application..." [theme]="theme()" />
+          } @else {
+            <app-multi-select-dropdown
+              [options]="planAssignedRoleOptions()"
+              placeholder="Chọn role"
+              [theme]="theme() === 'light' ? 'light' : 'dark'"
+              [disabled]="planAssignedRoleOptions().length === 0"
+              [(ngModel)]="newPlan.assignedRoles"
+            />
+          }
+        </div>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-2">
+        <div class="space-y-3">
+          <h4 class="text-xs font-semibold uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Giá gói</h4>
+          <app-form-field label="Monthly price" type="number" suffix="VND/tháng" [model]="newPlan.monthlyPrice" (modelChange)="newPlan.monthlyPrice = $event" [theme]="theme()" />
+          <app-form-field label="Yearly price" type="number" suffix="VND/năm" [model]="newPlan.yearlyPrice" (modelChange)="newPlan.yearlyPrice = $event" [theme]="theme()" />
+          <app-form-field label="Display order" type="number" suffix="thứ tự" [model]="newPlan.displayOrder" (modelChange)="newPlan.displayOrder = $event" [theme]="theme()" />
+        </div>
+
+        <div class="space-y-3">
+          <h4 class="text-xs font-semibold uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Giới hạn</h4>
+          <app-form-field label="Max users" type="number" suffix="người" [unlimitedSentinel]="-1" [model]="newPlan.maxUsers" (modelChange)="newPlan.maxUsers = $event" [theme]="theme()" />
+          <app-form-field label="Max API calls" type="number" suffix="lượt/ngày" [unlimitedSentinel]="-1" [model]="newPlan.maxApiCalls ?? ''" (modelChange)="newPlan.maxApiCalls = $event" [theme]="theme()" />
+        </div>
+      </div>
+
+      <div class="space-y-3 rounded-xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/60' : 'border-slate-700 bg-slate-900/30'">
+        <h4 class="text-xs font-semibold uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Tính năng</h4>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-600 bg-slate-800/70 text-slate-200'">
+            <input type="checkbox" class="h-4 w-4" [(ngModel)]="newPlan.includeAnalytics" />
+            Analytics
+          </label>
+          <label class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-600 bg-slate-800/70 text-slate-200'">
+            <input type="checkbox" class="h-4 w-4" [(ngModel)]="newPlan.includeSupport" />
+            Support
+          </label>
+          <label class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-600 bg-slate-800/70 text-slate-200'">
+            <input type="checkbox" class="h-4 w-4" [(ngModel)]="newPlan.includeAdvancedSecurity" />
+            AdvancedSecurity
+          </label>
+          <label class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-600 bg-slate-800/70 text-slate-200'">
+            <input type="checkbox" class="h-4 w-4" [(ngModel)]="newPlan.includeCustomDomain" />
+            CustomDomain
+          </label>
+        </div>
+        <div class="flex items-center justify-end border-t pt-3" [ngClass]="theme() === 'light' ? 'border-slate-200' : 'border-slate-700'">
+          <label class="inline-flex items-center gap-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+            <input type="checkbox" class="h-4 w-4" [(ngModel)]="newPlan.isActive" />
+            Active
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <app-drawer-footer-actions
+      [theme]="theme()"
+      [cancelLabel]="translate.t().cancel"
+      [saveLabel]="editingPlanId() ? 'Lưu' : 'Tạo gói'"
+      [loadingLabel]="translate.t().subsProcessing"
+      [loading]="savingCreate()"
+      (cancel)="closeCreate()"
+      (save)="createPlan()"
+    />
+  </app-drawer>
+}
+
