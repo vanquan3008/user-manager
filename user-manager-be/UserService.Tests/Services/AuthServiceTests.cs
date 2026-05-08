@@ -45,6 +45,7 @@ public class AuthServiceTests
         _appSettings = new AppSettings
         {
             BaseUrl = "https://test.local",
+            FrontendBaseUrl = "https://test.local",
             Jwt = new JwtConfiguration
             {
                 SecretKey = "test-secret-key-min-32-chars-long",
