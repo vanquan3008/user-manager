@@ -41,7 +41,7 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Local environment configs (commit templates only)
-/src/environments/environment.ts
-/src/environments/environment.prod.ts
-!/src/environments/environment.example.ts
+# Local env vars (consumed by scripts/set-env.cjs)
+.env
+.env.local
+!.env.example
