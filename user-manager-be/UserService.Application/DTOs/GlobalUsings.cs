@@ -1,0 +1,10 @@
+global using UserService.Application.DTOs.Common;
+global using UserService.Application.DTOs.Files;
+global using UserService.Application.DTOs.Applications;
+global using UserService.Application.DTOs.ApplicationRoles;
+global using UserService.Application.DTOs.Subscriptions;
+global using UserService.Application.DTOs.OAuth;
+global using UserService.Application.DTOs.Roles;
+global using UserService.Application.DTOs.Permissions;
+global using UserService.Application.DTOs.Users;
+global using UserService.Application.DTOs.Auth;

@@ -1,0 +1,52 @@
+using UserService.Application.DTOs.Applications;
+using UserService.Application.DTOs.Auth;
+using UserService.Domain.Entities;
+
+namespace UserService.Application.Mapping;
+
+public static class ApplicationEntityMapper
+{
+    public static CreateApplicationResponse ToCreateApplicationResponse(AppApplication app, User? ownerFallback = null)
+    {
+        var owner = app.Owner ?? ownerFallback;
+        return new(
+            app.Id,
+            app.Name.Value,
+            string.IsNullOrEmpty(app.Description.Value) ? null : app.Description.Value,
+            app.OwnerId,
+            app.LogoUrl?.Value,
+            ResolveOwnerDisplayName(owner),
+            string.Join(",", app.AllowedRedirectUris.Select(u => (string)u)),
+            app.BackchannelLogoutUri?.Value);
+    }
+
+    private static string? ResolveOwnerDisplayName(User? owner)
+    {
+        if (owner is null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(owner.Name?.DisplayName))
+        {
+            return owner.Name.DisplayName.Trim();
+        }
+
+        return owner.Email?.Value;
+    }
+
+    public static ApplicationUserDto ToApplicationUserDto(UserApplication membership) =>
+        new(membership.UserId, membership.Role, null, null);
+
+    public static ApplicationInfoDto ToApplicationInfoDto(AppApplication app, UserApplication membership) =>
+        new(
+            app.Id,
+            app.Name.Value,
+            app.Description.Value,
+            membership.Role,
+            membership.CanRead,
+            membership.CanWrite,
+            membership.CanDelete,
+            membership.CanManageUsers,
+            membership.CanManageSubscription);
+}
