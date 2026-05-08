@@ -1,0 +1,364 @@
+<div class="main main-layout main-layout--table-page flex min-h-0 flex-1 flex-col overflow-hidden">
+  <div class="app-toolbar-row flex flex-wrap items-center justify-end gap-2">
+    <app-icon-button
+      icon="add"
+      [theme]="theme()"
+      [title]="'Create application'"
+      (click)="openCreate()"
+    />
+    <app-icon-button
+      [theme]="theme()"
+      [icon]="viewMode() === 'grid' ? 'table_rows' : 'grid_view'"
+      [title]="viewMode() === 'grid' ? 'Switch to list view' : 'Switch to card view'"
+      variant="secondary"
+      (click)="toggleViewMode()"
+    />
+  </div>
+
+  <section class="motion-section motion-delay-1 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <app-stat-card
+      label="Total applications"
+      [value]="totalApps()"
+      sublabel="All catalog entries"
+      icon="apps"
+      variant="primary"
+      [theme]="theme()"
+    />
+    <app-stat-card
+      label="Owned by you"
+      [value]="ownedApps()"
+      sublabel="Apps where you are the owner"
+      icon="person"
+      [theme]="theme()"
+    />
+    <app-stat-card
+      label="Branded"
+      [value]="brandedApps()"
+      sublabel="Logo uploaded and visible"
+      icon="imagesmode"
+      variant="success"
+      [theme]="theme()"
+    />
+    <app-stat-card
+      label="Documented"
+      [value]="describedApps()"
+      sublabel="Has description and context"
+      icon="article"
+      variant="warning"
+      [theme]="theme()"
+    />
+  </section>
+
+  <section
+    class="motion-section motion-delay-2 rounded-lg border p-4 shadow-sm"
+    [ngClass]="theme() === 'light'
+      ? 'border-slate-200 bg-white'
+      : 'border-slate-700/70 bg-slate-800/85'"
+  >
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex-1">
+        <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+          Search catalog
+        </label>
+        <div
+          class="flex items-center gap-3 rounded-md border px-4 py-3 transition focus-within:ring-2 focus-within:ring-sky-500/30"
+          [ngClass]="theme() === 'light'
+            ? 'border-slate-200 bg-slate-50/70'
+            : 'border-slate-700 bg-slate-900/40'"
+        >
+          <span class="material-symbols-outlined text-lg" [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'">search</span>
+          <input
+            type="text"
+            [ngModel]="search()"
+            (ngModelChange)="onCatalogSearchChange($event)"
+            placeholder="Search by name, owner, description or id"
+            class="w-full border-0 bg-transparent p-0 text-sm outline-none"
+            [ngClass]="theme() === 'light'
+              ? 'text-slate-800 placeholder:text-slate-400'
+              : 'text-slate-100 placeholder:text-slate-500'"
+          />
+        </div>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
+        <div>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+            Sort
+          </label>
+          <select
+            class="w-full rounded-md border px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-sky-500/30"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-slate-50/70 text-slate-800'
+              : 'border-slate-700 bg-slate-900/40 text-slate-100'"
+            [ngModel]="sortMode()"
+            (ngModelChange)="onSortModeChange($event)"
+          >
+            <option value="name">Name</option>
+            <option value="owner">Owner</option>
+            <option value="branding">Branding first</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+            Result set
+          </label>
+          <div
+            class="flex h-[50px] items-center justify-between rounded-md border px-4"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-slate-50/70 text-slate-700'
+              : 'border-slate-700 bg-slate-900/40 text-slate-200'"
+          >
+            <span class="text-sm">Visible</span>
+            <span class="text-lg font-semibold tabular-nums">{{ filteredApps().length }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  @if (error()) {
+    <div
+      class="rounded-md border px-4 py-3 text-sm"
+      [ngClass]="theme() === 'light'
+        ? 'border-rose-200 bg-rose-50 text-rose-700'
+        : 'border-rose-500/30 bg-rose-500/10 text-rose-200'"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <span>{{ error() }}</span>
+        <button type="button" class="font-medium underline underline-offset-4" (click)="loadApps()">Retry</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <app-loading-state message="Loading application catalog..." [theme]="theme()" />
+  } @else if (filteredApps().length === 0) {
+    <app-empty-state
+      icon="apps_outage"
+      [message]="search().trim() ? 'No applications match the current search.' : 'No applications yet. Create the first workspace to start managing access.'"
+      [action]="true"
+      [theme]="theme()"
+    >
+      <button
+        action
+        type="button"
+        class="rounded-md px-4 py-2 text-sm font-medium text-white transition"
+        [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
+        (click)="openCreate()"
+      >
+        Create application
+      </button>
+    </app-empty-state>
+  } @else {
+    <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+    @if (viewMode() === 'grid') {
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+      <section class="motion-section motion-delay-3 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        @for (app of paginatedFilteredApps(); track app.id) {
+          <app-application-summary-card
+            [app]="app"
+            [theme]="theme()"
+            [defaultLogo]="defaultAppLogoDataUri"
+            [busy]="deletingId() === app.id"
+            (remove)="deleteApp(app)"
+          />
+        }
+      </section>
+      </div>
+    } @else {
+      <section
+        class="motion-section motion-delay-3 min-h-0 flex-1 overflow-hidden rounded-lg border shadow-sm"
+        [ngClass]="theme() === 'light'
+          ? 'border-slate-200 bg-white'
+          : 'border-slate-700/70 bg-slate-800/85'"
+      >
+        <div class="app-table-shell app-table-shell--fill max-h-none min-h-0 flex-1 border-0 shadow-none">
+          <table class="min-w-full divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
+            <thead [ngClass]="theme() === 'light' ? 'bg-slate-50/90' : 'bg-slate-900/60'">
+              <tr>
+                <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Application</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Owner</th>
+                <th class="px-5 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Identity</th>
+                <th class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
+              @for (app of paginatedFilteredApps(); track app.id) {
+                <tr
+                  class="motion-card transition-all duration-200 hover:-translate-y-px"
+                  [ngClass]="theme() === 'light'
+                    ? 'hover:bg-sky-50/40'
+                    : 'hover:bg-slate-700/30'"
+                >
+                  <td class="px-5 py-4">
+                    <div class="flex items-center gap-3">
+                      <img
+                        [src]="app.logoUrl || defaultAppLogoDataUri"
+                        [alt]="app.name + ' logo'"
+                        class="h-11 w-11 rounded-md border object-cover"
+                        [ngClass]="theme() === 'light' ? 'border-slate-200' : 'border-slate-700'"
+                      />
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ app.name }}</p>
+                        <p class="mt-1 truncate text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ app.description || 'No description' }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-5 py-4">
+                    <span
+                      class="inline-block max-w-[240px] truncate rounded-md px-2.5 py-1 text-xs font-medium"
+                      [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'"
+                      [attr.title]="app.ownerDisplayName && app.ownerId ? app.ownerId : null"
+                    >
+                      {{ app.ownerDisplayName || app.ownerId || 'Not assigned' }}
+                    </span>
+                  </td>
+                  <td class="px-5 py-4">
+                    <p class="max-w-[260px] truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ app.id }}</p>
+                  </td>
+                  <td class="px-5 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <a
+                        [routerLink]="['/applications', app.id]"
+                        class="inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition"
+                        [ngClass]="theme() === 'light'
+                          ? 'bg-slate-900 text-white hover:bg-slate-700'
+                          : 'bg-sky-500 text-white hover:bg-sky-400'"
+                      >
+                        <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+                        Open
+                      </a>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-md border px-3.5 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
+                        [disabled]="deletingId() === app.id"
+                        [ngClass]="theme() === 'light'
+                          ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                          : 'border-rose-500/40 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'"
+                        (click)="deleteApp(app)"
+                      >
+                        <span class="material-symbols-outlined text-[18px]">{{ deletingId() === app.id ? 'progress_activity' : 'delete' }}</span>
+                        {{ deletingId() === app.id ? 'Deleting' : 'Delete' }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+    <app-table-pagination
+      [totalItems]="totalFiltered()"
+      [page]="listPage()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="listPageSizeSvc.options"
+      [theme]="theme()"
+      (pageChange)="setListPage($event)"
+      (pageSizeChange)="onListPageSizeChange($event)"
+    />
+    </div>
+  }
+</div>
+
+@if (showModal()) {
+  <app-drawer
+    [title]="'Create application'"
+    [closing]="closing()"
+    [theme]="theme()"
+    (close)="closeModal()"
+  >
+    <div class="space-y-5">
+      <div
+        class="rounded-md border p-4"
+        [ngClass]="theme() === 'light' ? 'border-sky-200 bg-sky-50/70' : 'border-sky-500/20 bg-sky-500/10'"
+      >
+        <p class="text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+          Add clear naming, description and branding now so access management screens stay readable later.
+        </p>
+      </div>
+
+      <app-form-field
+        label="Name"
+        [model]="form.name"
+        (modelChange)="updateName($event)"
+        placeholder="Social CRM"
+        [required]="true"
+        [invalid]="isNameInvalid()"
+        error="Application name is required."
+        [theme]="theme()"
+      />
+      <app-form-field
+        label="Description"
+        [model]="form.description"
+        (modelChange)="updateDescription($event)"
+        placeholder="Explain what this workspace is for"
+        [theme]="theme()"
+      />
+      <app-form-field
+        label="Logo URL"
+        [model]="form.logoUrl"
+        (modelChange)="updateLogoUrl($event)"
+        placeholder="https://example.com/logo.png"
+        [theme]="theme()"
+      />
+      <app-form-field
+        label="Backchannel Logout URI"
+        [model]="form.backchannelLogoutUri"
+        (modelChange)="updateBackchannelLogoutUri($event)"
+        placeholder="https://your-app.com/api/sso/backchannel-logout"
+        [theme]="theme()"
+      />
+      <app-form-field
+        label="Allowed Redirect URIs"
+        [model]="form.allowedRedirectUris"
+        (modelChange)="updateAllowedRedirectUris($event)"
+        placeholder="https://your-app.com/callback, https://your-app.com/callback2"
+        [theme]="theme()"
+      />
+
+      <div class="space-y-2">
+        <label class="block text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+          Upload logo
+        </label>
+        @if (uploadingLogo()) {
+          <p class="flex items-center gap-2 text-sm" [ngClass]="theme() === 'light' ? 'text-sky-600' : 'text-sky-400'">
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+            Uploading image...
+          </p>
+        }
+        <input
+          type="file"
+          accept="image/*"
+          [disabled]="uploadingLogo()"
+          (change)="onLogoFileSelected($event)"
+          class="w-full rounded-md border px-3 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-600 bg-slate-900 text-slate-100'"
+        />
+        @if (uploadedLogoPreview() || form.logoUrl) {
+          <div class="flex items-center gap-3 rounded-md border p-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-900/60'">
+            <img
+              [src]="form.logoUrl || uploadedLogoPreview()"
+              alt="Logo preview"
+              class="h-12 w-12 rounded-xl object-cover"
+            />
+            <p class="text-xs leading-5" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+              The upload stores the image first. Saving the form persists the logo URL with the application record.
+            </p>
+          </div>
+        }
+      </div>
+    </div>
+    <app-drawer-footer-actions
+      [theme]="theme()"
+      cancelLabel="Cancel"
+      saveLabel="Create application"
+      loadingLabel="Saving..."
+      [loading]="saving() || uploadingLogo()"
+      (cancel)="closeModal()"
+      (save)="saveCreate()"
+    />
+  </app-drawer>
+}

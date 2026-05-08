@@ -1,0 +1,155 @@
+<div class="main main-layout main-layout--table-page flex min-h-0 flex-1 flex-col overflow-hidden">
+  <div class="app-toolbar-row shrink-0">
+    <app-icon-button
+      class="shrink-0 sm:order-last"
+      icon="add"
+      [theme]="theme()"
+      [title]="translate.t().permissionsAdd"
+      (click)="openCreate()"
+    />
+    <div class="app-search-field">
+      <span class="material-symbols-outlined shrink-0 text-[var(--app-text-secondary)]">search</span>
+      <input
+        type="search"
+        [ngModel]="search()"
+        (ngModelChange)="onSearchChange($event)"
+        [placeholder]="translate.t().permissionsSearchPlaceholder"
+        class="min-w-0 flex-1 bg-transparent text-sm text-[var(--app-text-primary)] outline-none placeholder:text-[var(--app-text-secondary)] placeholder:opacity-80"
+      />
+    </div>
+    <div class="min-w-[180px] shrink-0">
+      <app-dropdown
+        [options]="categoryOptions()"
+        [placeholder]="translate.t().permissionsAllCategories"
+        [ngModel]="categoryFilter()"
+        (ngModelChange)="onCategoryChange($event)"
+        [theme]="theme()"
+      />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <app-loading-state class="shrink-0" [message]="translate.t().permissionsLoading" [theme]="theme()" />
+  } @else if (error()) {
+    <div class="app-alert-error flex shrink-0 items-start gap-2">
+      <span class="material-symbols-outlined shrink-0 text-lg">error</span>
+      <span>{{ error() }}</span>
+    </div>
+  } @else {
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div class="app-table-shell app-table-shell--fill">
+      <table>
+        <thead>
+          <tr>
+            <th>{{ translate.t().permissionsCode }}</th>
+            <th>{{ translate.t().description }}</th>
+            <th>{{ translate.t().permissionsCategory }}</th>
+            <th>{{ translate.t().permissionsSystem }}</th>
+            <th>{{ translate.t().active }}</th>
+            <th>{{ translate.t().permissionsScope }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of paginatedPermissions(); track p.id) {
+            <tr>
+              <td class="app-table-td-code text-sm">{{ p.code }}</td>
+              <td class="max-w-[200px] truncate text-[var(--app-text-secondary)]">{{ p.description || p.name || '—' }}</td>
+              <td class="text-[var(--app-text-secondary)]">{{ categoryDisplayLabel(p.category) }}</td>
+              <td>
+                @if (p.isSystemPermission !== false) {
+                  <span class="app-badge-pill-warn">{{ translate.t().permissionsYes }}</span>
+                } @else {
+                  <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
+                }
+              </td>
+              <td>
+                @if (p.isActive !== false) {
+                  <span class="app-badge-pill-ok">{{ translate.t().permissionsYes }}</span>
+                } @else {
+                  <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
+                }
+              </td>
+              <td class="text-[var(--app-text-secondary)]">{{ p.scope ?? '—' }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-5 py-16 text-center text-[var(--app-text-secondary)]">
+                <span class="material-symbols-outlined text-4xl opacity-40">folder_off</span>
+                <p class="mt-2 text-sm">{{ translate.t().permissionsEmpty }} <strong class="font-semibold" [ngClass]="theme() === 'light' ? 'text-sky-600' : 'text-sky-400'">{{ translate.t().permissionsAddNew }}</strong> {{ translate.t().permissionsCreateNew }}</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-table-pagination
+      [totalItems]="totalFiltered()"
+      [page]="listPage()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="listPageSizeSvc.options"
+      [theme]="theme()"
+      (pageChange)="setListPage($event)"
+      (pageSizeChange)="onListPageSizeChange($event)"
+    />
+    </div>
+  }
+</div>
+
+@if (showModal()) {
+  <app-drawer
+    [title]="translate.t().permissionsAddModalTitle"
+    [closing]="closing()"
+    [theme]="theme()"
+    (close)="closeModal()"
+  >
+    <div class="space-y-5">
+      <app-form-field
+        label="Code"
+        [model]="form.code"
+        (modelChange)="form.code = $event"
+        placeholder="users.view"
+        [required]="true"
+        [theme]="theme()"
+      />
+      <app-form-field
+        label="Tên"
+        [model]="form.name"
+        (modelChange)="form.name = $event"
+        placeholder="Xem users"
+        [theme]="theme()"
+      />
+      <div class="grid grid-cols-2 gap-4">
+        <app-form-field
+          [label]="translate.t().permissionsResource"
+          [model]="form.resource"
+          (modelChange)="form.resource = $event"
+          placeholder="users"
+          [theme]="theme()"
+        />
+        <app-form-field
+          [label]="translate.t().permissionsAction"
+          [model]="form.action"
+          (modelChange)="form.action = $event"
+          placeholder="view"
+          [theme]="theme()"
+        />
+      </div>
+      <app-form-field
+        [label]="translate.t().description"
+        [model]="form.description"
+        (modelChange)="form.description = $event"
+        placeholder="Cho phép xem danh sách users"
+        [theme]="theme()"
+      />
+    </div>
+    <app-drawer-footer-actions
+      [theme]="theme()"
+      [cancelLabel]="translate.t().cancel"
+      [saveLabel]="translate.t().save"
+      [loadingLabel]="translate.t().loading"
+      [loading]="saving()"
+      (cancel)="closeModal()"
+      (save)="saveCreate()"
+    />
+  </app-drawer>
+}
