@@ -1,0 +1,231 @@
+<div class="main main-layout flex min-h-0 flex-1 flex-col overflow-hidden">
+  <p class="mb-4 shrink-0 text-sm">
+    <a routerLink="/permissions" class="font-medium" [ngClass]="theme() === 'light' ? 'text-sky-600 hover:text-sky-700' : 'text-sky-400 hover:text-sky-300'">
+      {{ translate.t().rolePermManageLink }}
+    </a>
+  </p>
+
+  <!-- Tabs -->
+  <div
+    class="inline-flex shrink-0 rounded-full p-1 text-xs"
+    [ngClass]="theme() === 'light' ? 'bg-slate-200 text-slate-600' : 'bg-slate-800 text-slate-300'"
+  >
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 transition"
+      [ngClass]="activeTab() === 'roles'
+        ? (theme() === 'light' ? 'bg-white text-slate-800 shadow-sm' : 'bg-slate-700 text-slate-50 shadow')
+        : (theme() === 'light' ? 'hover:bg-slate-100' : 'hover:bg-slate-700/50')"
+      (click)="setTab('roles')"
+    >
+      Roles
+    </button>
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 transition"
+      [ngClass]="activeTab() === 'permissions'
+        ? (theme() === 'light' ? 'bg-white text-slate-800 shadow-sm' : 'bg-slate-700 text-slate-50 shadow')
+        : (theme() === 'light' ? 'hover:bg-slate-100' : 'hover:bg-slate-700/50')"
+      (click)="setTab('permissions')"
+    >
+      Permissions
+    </button>
+    <button
+      type="button"
+      class="rounded-full px-4 py-2 transition"
+      [ngClass]="activeTab() === 'assign-permission'
+        ? (theme() === 'light' ? 'bg-white text-slate-800 shadow-sm' : 'bg-slate-700 text-slate-50 shadow')
+        : (theme() === 'light' ? 'hover:bg-slate-100' : 'hover:bg-slate-700/50')"
+      (click)="setTab('assign-permission')"
+    >
+      Gán permission → role
+    </button>
+  </div>
+
+  @if (error()) {
+    <div
+      class="shrink-0 rounded-xl border px-4 py-3 text-sm"
+      [ngClass]="theme() === 'light' ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-rose-500/30 bg-rose-900/20 text-rose-200'"
+    >
+      {{ error() }}
+    </div>
+  }
+
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <!-- Tab: Roles -->
+  @if (activeTab() === 'roles') {
+    <div
+      class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4"
+      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700/80 bg-slate-800/80'"
+    >
+      <div class="mb-3 flex shrink-0 gap-2">
+        <input
+          type="search"
+          [ngModel]="searchRole()"
+          (ngModelChange)="searchRole.set($event)"
+          placeholder="Tìm role…"
+          class="flex-1 rounded-xl border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-500/50"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-900' : 'border-slate-600 bg-slate-900 text-slate-100'"
+        />
+      </div>
+      @if (loadingRoles()) {
+        <p class="py-8 text-center text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().loading }}</p>
+      } @else {
+        <div class="min-h-0 flex-1 overflow-auto rounded-xl border" [ngClass]="theme() === 'light' ? 'border-slate-200' : 'border-slate-700'">
+          <table class="min-w-full divide-y text-sm" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
+            <thead class="sticky top-0 z-10" [ngClass]="theme() === 'light' ? 'bg-slate-50' : 'bg-slate-900/95'">
+              <tr>
+                <th class="px-4 py-2.5 text-left text-xs font-semibold uppercase" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ translate.t().rolesName }}</th>
+                <th class="px-4 py-2.5 text-left text-xs font-semibold uppercase" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ translate.t().description }}</th>
+                <th class="px-4 py-2.5 text-left text-xs font-semibold uppercase" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ translate.t().rolesSystem }}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200 bg-white' : 'divide-slate-700 bg-slate-800/50'">
+              @for (r of filteredRoles(); track r.id) {
+                <tr class="transition" [ngClass]="theme() === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-700/50'">
+                  <td class="px-4 py-2.5 font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ r.name }}</td>
+                  <td class="px-4 py-2.5" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ r.description || '—' }}</td>
+                  <td class="px-4 py-2.5">
+                    @if (r.isSystemRole) {
+                      <span class="rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="theme() === 'light' ? 'bg-amber-100 text-amber-800' : 'bg-amber-500/20 text-amber-200'">System</span>
+                    } @else {
+                      <span [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'">—</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="px-4 py-8 text-center text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().rolePermNoRoles }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Tab: Permissions -->
+  @if (activeTab() === 'permissions') {
+    <div
+      class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border p-4"
+      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700/80 bg-slate-800/80'"
+    >
+      <div class="mb-3 flex shrink-0 gap-2">
+        <input
+          type="search"
+          [ngModel]="searchPermission()"
+          (ngModelChange)="searchPermission.set($event)"
+          placeholder="Tìm permission (code, resource)…"
+          class="flex-1 rounded-xl border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-500/50"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-900' : 'border-slate-600 bg-slate-900 text-slate-100'"
+        />
+      </div>
+      @if (loadingPermissions()) {
+        <p class="py-8 text-center text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().loading }}</p>
+      } @else {
+        <div class="grid min-h-0 flex-1 gap-3 overflow-auto sm:grid-cols-2 md:grid-cols-3">
+          @for (p of filteredPermissions(); track p.id) {
+            <div
+              class="rounded-xl border p-3 text-sm transition"
+              [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/80 hover:bg-slate-100/80' : 'border-slate-600 bg-slate-900/50 hover:bg-slate-700/50'"
+            >
+              <span class="font-mono font-medium" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ p.code }}</span>
+              <p class="mt-0.5 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ p.name || '—' }} · {{ p.resource || '—' }} / {{ p.action || '—' }}</p>
+            </div>
+          }
+        </div>
+        @if (filteredPermissions().length === 0) {
+          <p class="py-8 text-center text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().rolePermNoPermissions }} <a routerLink="/permissions" class="underline">{{ translate.t().rolePermCreateNew }}</a>.</p>
+        }
+      }
+    </div>
+  }
+
+  <!-- Tab: Gán permission cho role -->
+  @if (activeTab() === 'assign-permission') {
+    <div class="grid min-h-0 flex-1 gap-6 overflow-auto md:grid-cols-2">
+      <div
+        class="rounded-2xl border p-4"
+        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700/80 bg-slate-800/80'"
+      >
+        <h3 class="mb-3 text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">1. {{ translate.t().rolePermSelectRole }}</h3>
+        <div class="space-y-2">
+          @for (r of roles(); track r.id) {
+            <button
+              type="button"
+              class="w-full rounded-xl border px-3 py-2.5 text-left text-sm transition"
+              [ngClass]="selectedRoleForPermission()?.id === r.id
+                ? (theme() === 'light' ? 'border-sky-300 bg-sky-50 text-sky-800' : 'border-sky-500 bg-sky-500/20 text-sky-200')
+                : (theme() === 'light' ? 'border-slate-200 hover:bg-slate-50 text-slate-700' : 'border-slate-600 hover:bg-slate-700/50 text-slate-200')"
+              (click)="selectRoleForPermission(r)"
+            >
+              {{ r.name }}
+            </button>
+          }
+        </div>
+      </div>
+      <div
+        class="rounded-2xl border p-4"
+        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700/80 bg-slate-800/80'"
+      >
+        <h3 class="mb-3 text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">2. Gán / gỡ permission</h3>
+        @if (selectedRoleForPermission(); as role) {
+          <p class="mb-2 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Role: <strong>{{ role.name }}</strong></p>
+          @if (loadingRolePermissions()) {
+            <p class="py-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().rolePermLoadingRolePerms }}</p>
+          } @else {
+            <div class="space-y-4">
+            <div class="mb-3 flex flex-wrap gap-2">
+              @for (p of permissionsNotInRole(); track p.id) {
+                <button
+                  type="button"
+                  class="rounded-lg border px-2.5 py-1.5 text-xs transition"
+                  [ngClass]="selectedPermissionToAssign()?.id === p.id
+                    ? (theme() === 'light' ? 'border-sky-400 bg-sky-100 text-sky-800' : 'border-sky-400 bg-sky-500/30 text-sky-200')
+                    : (theme() === 'light' ? 'border-slate-200 hover:bg-slate-100 text-slate-700' : 'border-slate-600 hover:bg-slate-700 text-slate-200')"
+                  (click)="selectedPermissionToAssign.set(p)"
+                >
+                  {{ p.code }}
+                </button>
+              }
+            </div>
+            <button
+              type="button"
+              class="rounded-xl bg-sky-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-sky-600 disabled:opacity-50"
+              [disabled]="!selectedPermissionToAssign() || savingAssign()"
+              (click)="assignPermissionToRole()"
+            >
+              {{ savingAssign() ? 'Đang gán…' : 'Gán permission cho role' }}
+            </button>
+            <div class="mt-4">
+              <p class="mb-2 text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Đã gán (bấm để gỡ):</p>
+              <div class="flex flex-wrap gap-2">
+                @for (p of rolePermissions(); track p.id) {
+                  <button
+                    type="button"
+                    class="rounded-lg border px-2.5 py-1 text-xs transition"
+                    [ngClass]="theme() === 'light'
+                      ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                      : 'border-rose-500/50 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'"
+                    [disabled]="savingRemove() === p.id"
+                    (click)="removePermissionFromRole(role, p.id)"
+                  >
+                    {{ p.code }} ×
+                  </button>
+                }
+              </div>
+              @if (rolePermissions().length === 0 && !loadingRolePermissions()) {
+                <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Chưa gán permission nào.</p>
+              }
+            </div>
+            </div>
+          }
+        } @else {
+          <p class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().rolePermSelectRoleHint }}</p>
+        }
+      </div>
+    </div>
+  }
+  </div>
+</div>

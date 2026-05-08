@@ -1,0 +1,279 @@
+<div class="main main-layout">
+  @if (error()) {
+    <div class="app-alert-error">
+      <div class="flex flex-1 items-center justify-between gap-4">
+        <span>{{ error() }}</span>
+        <button type="button" class="font-medium underline underline-offset-4" (click)="load()">{{ translate.t().dashRetry }}</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <app-loading-state [message]="translate.t().dashLoading" [theme]="theme()" />
+  } @else {
+    <section class="motion-section motion-delay-1 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <app-stat-card
+        [label]="translate.t().totalUsers"
+        [value]="totalUsers()"
+        [sublabel]="translate.t().totalUsersDesc"
+        icon="group"
+        variant="primary"
+        [theme]="theme()"
+      />
+      <app-stat-card
+        [label]="translate.t().activeUsers"
+        [value]="activeUsers()"
+        [sublabel]="activePercent() + '% ' + translate.t().dashCardActiveSuffix"
+        icon="person_check"
+        variant="success"
+        [theme]="theme()"
+      />
+      <app-stat-card
+        [label]="translate.t().navApplications"
+        [value]="totalApplications()"
+        [sublabel]="translate.t().dashCardAppsSub"
+        icon="apps"
+        [theme]="theme()"
+      />
+      <app-stat-card
+        [label]="translate.t().dashSsoAccountsTitle"
+        [value]="ssoUsers()"
+        [sublabel]="ssoPercent() + '% ' + translate.t().dashCardSsoSuffix"
+        icon="badge"
+        variant="warning"
+        [theme]="theme()"
+      />
+    </section>
+
+    <section class="motion-section motion-delay-2 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <div
+        class="rounded-xl border p-5 shadow-sm"
+        [ngClass]="theme() === 'light'
+          ? 'border-slate-200 bg-white'
+          : 'border-slate-700/70 bg-slate-800/85'"
+      >
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ translate.t().dashRegTrend }}</h2>
+            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().dashRegTrendDesc }}</p>
+          </div>
+          <span class="rounded-full px-2.5 py-1 text-xs font-medium" [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'">
+            {{ registrations7d().length }} {{ translate.t().dashDaysLabel }}
+          </span>
+        </div>
+
+        <div class="flex h-56 items-end gap-3 rounded-lg border px-4 pb-4 pt-6" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+          @for (point of registrations7d(); track point.date) {
+            <div class="flex flex-1 flex-col items-center gap-2">
+              <span class="text-xs font-medium tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ point.count }}</span>
+              <div class="flex h-36 w-full items-end justify-center">
+                <div
+                  class="w-full max-w-10 rounded-t-lg bg-gradient-to-t transition-all duration-500"
+                  [style.height.%]="registrationHeight(point)"
+                  [ngClass]="theme() === 'light'
+                    ? 'from-sky-500 to-cyan-300 shadow-[0_12px_24px_-16px_rgba(14,165,233,0.6)]'
+                    : 'from-sky-500 to-cyan-400 shadow-[0_18px_30px_-18px_rgba(14,165,233,0.55)]'"
+                ></div>
+              </div>
+              <span class="text-[11px] font-medium" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ point.label }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div
+        class="rounded-xl border p-5 shadow-sm"
+        [ngClass]="theme() === 'light'
+          ? 'border-slate-200 bg-white'
+          : 'border-slate-700/70 bg-slate-800/85'"
+      >
+        <div class="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ translate.t().dashAccountHealth }}</h2>
+            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().dashAccountHealthDesc }}</p>
+          </div>
+          <span class="rounded-full px-2.5 py-1 text-xs font-medium" [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'">
+            {{ rolesCount() }} {{ translate.t().dashRolesWord }}
+          </span>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <div class="mb-1.5 flex items-center justify-between text-sm">
+              <span [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ translate.t().dashActiveAccounts }}</span>
+              <span class="font-semibold tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ activePercent() }}%</span>
+            </div>
+            <div class="h-2.5 overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-100' : 'bg-slate-700/60'">
+              <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" [style.width.%]="activePercent()"></div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-1.5 flex items-center justify-between text-sm">
+              <span [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ translate.t().dashEmailVerified }}</span>
+              <span class="font-semibold tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ verifiedPercent() }}%</span>
+            </div>
+            <div class="h-2.5 overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-100' : 'bg-slate-700/60'">
+              <div class="h-full rounded-full bg-sky-500 transition-all duration-500" [style.width.%]="verifiedPercent()"></div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-1.5 flex items-center justify-between text-sm">
+              <span [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ translate.t().dashBannedAccounts }}</span>
+              <span class="font-semibold tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ bannedPercent() }}%</span>
+            </div>
+            <div class="h-2.5 overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-100' : 'bg-slate-700/60'">
+              <div class="h-full rounded-full bg-rose-500 transition-all duration-500" [style.width.%]="bannedPercent()"></div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-1.5 flex items-center justify-between text-sm">
+              <span [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">{{ translate.t().dashSsoCoverage }}</span>
+              <span class="font-semibold tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ ssoPercent() }}%</span>
+            </div>
+            <div class="h-2.5 overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-100' : 'bg-slate-700/60'">
+              <div class="h-full rounded-full bg-violet-500 transition-all duration-500" [style.width.%]="ssoPercent()"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="motion-section motion-delay-3 grid gap-5 xl:grid-cols-[1fr_1fr]">
+      <div
+        class="rounded-xl border p-5 shadow-sm"
+        [ngClass]="theme() === 'light'
+          ? 'border-slate-200 bg-white'
+          : 'border-slate-700/70 bg-slate-800/85'"
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ translate.t().dashAppCatalogTitle }}</h2>
+            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().dashAppCatalogDesc }}</p>
+          </div>
+          <a
+            routerLink="/applications"
+            class="rounded-lg px-3.5 py-2 text-sm font-medium transition"
+            [ngClass]="theme() === 'light' ? 'bg-slate-900 text-white hover:bg-slate-700' : 'bg-sky-500 text-white hover:bg-sky-400'"
+          >
+            {{ translate.t().dashViewAll }}
+          </a>
+        </div>
+
+        @if (applications().length === 0) {
+          <app-empty-state icon="apps_outage" [message]="translate.t().dashEmptyApps" [theme]="theme()" />
+        } @else {
+          <div class="space-y-3">
+            @for (app of applications().slice(0, 5); track app.id) {
+              <a
+                [routerLink]="['/applications', app.id]"
+                class="motion-card flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:-translate-y-0.5"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-slate-50/70 hover:border-sky-200'
+                  : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30'"
+              >
+                @if (app.logoUrl && !appLogoFailed().has(app.id)) {
+                  <img
+                    [src]="app.logoUrl"
+                    alt=""
+                    class="h-11 w-11 rounded-lg object-cover"
+                    (error)="onAppLogoError(app.id)"
+                  />
+                } @else {
+                  <span class="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-semibold text-white">
+                    {{ (app.name || '?').charAt(0).toUpperCase() }}
+                  </span>
+                }
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ app.name }}</p>
+                  <p class="mt-1 truncate text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ app.description || translate.t().dashNoDescription }}</p>
+                </div>
+                <span class="material-symbols-outlined text-[18px]" [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'">arrow_forward</span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+
+      <div
+        class="rounded-xl border p-5 shadow-sm"
+        [ngClass]="theme() === 'light'
+          ? 'border-slate-200 bg-white'
+          : 'border-slate-700/70 bg-slate-800/85'"
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ translate.t().dashRecentUsersTitle }}</h2>
+            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().dashRecentUsersDesc }}</p>
+          </div>
+          <a
+            routerLink="/users"
+            class="rounded-lg px-3.5 py-2 text-sm font-medium transition"
+            [ngClass]="theme() === 'light' ? 'bg-slate-900 text-white hover:bg-slate-700' : 'bg-sky-500 text-white hover:bg-sky-400'"
+          >
+            {{ translate.t().dashManageUsers }}
+          </a>
+        </div>
+
+        @if (recentUsers().length === 0) {
+          <app-empty-state icon="group_off" [message]="translate.t().dashEmptyUsers" [theme]="theme()" />
+        } @else {
+          <div class="space-y-3">
+            @for (user of recentUsers(); track user.id) {
+              <div
+                class="motion-card flex items-center gap-3 rounded-lg border p-3 transition-all duration-200 hover:-translate-y-0.5"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-slate-50/70 hover:border-sky-200'
+                  : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30'"
+              >
+                <a [routerLink]="['/users', user.id]" class="flex min-w-0 flex-1 items-center gap-3 no-underline text-inherit">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-sm font-semibold text-white shadow-sm">
+                    {{ (user.email || user.userName || '?').charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ user.userName || user.email }}</p>
+                    <p class="mt-1 truncate text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ user.email }}</p>
+                  </div>
+                </a>
+                <div class="flex items-center gap-2">
+                  @if (canBan() && auth.user()?.id !== user.id) {
+                    @if (!user.isBanned) {
+                      <button
+                        type="button"
+                        class="rounded-xl px-2.5 py-1.5 text-[11px] font-medium transition disabled:opacity-50"
+                        [ngClass]="theme() === 'light'
+                          ? 'border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                          : 'border border-rose-500/40 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25'"
+                        [disabled]="banActionId() === user.id"
+                        (click)="banUser(user, $event)"
+                      >
+                        {{ banActionId() === user.id ? '...' : translate.t().userBan }}
+                      </button>
+                    } @else {
+                      <button
+                        type="button"
+                        class="rounded-xl px-2.5 py-1.5 text-[11px] font-medium transition disabled:opacity-50"
+                        [ngClass]="theme() === 'light'
+                          ? 'border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                          : 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25'"
+                        [disabled]="banActionId() === user.id"
+                        (click)="unbanUser(user, $event)"
+                      >
+                        {{ banActionId() === user.id ? '...' : translate.t().userUnban }}
+                      </button>
+                    }
+                  }
+
+                  @if (user.isBanned) {
+                    <span class="rounded-full px-2 py-0.5 text-[10px] font-medium" [ngClass]="theme() === 'light' ? 'bg-rose-100 text-rose-700' : 'bg-rose-500/20 text-rose-300'">{{ translate.t().dashBannedBadge }}</span>
+                  } @else if (user.isActive) {
+                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

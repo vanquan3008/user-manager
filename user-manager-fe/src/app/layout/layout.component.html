@@ -1,0 +1,302 @@
+<div class="fixed inset-0 overflow-hidden" [class.theme-light]="theme() === 'light'">
+  <div
+    class="absolute inset-0"
+    [ngClass]="theme() === 'light'
+      ? 'bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_32%),linear-gradient(180deg,_#f8fbff_0%,_#eef4f8_100%)]'
+      : 'bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.08),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)]'"
+  ></div>
+
+  @if (sidebarOpen()) {
+    <button
+      type="button"
+      class="absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[2px] lg:hidden"
+      [attr.aria-label]="translate.t().ariaCloseNavigation"
+      (click)="closeSidebar()"
+    ></button>
+  }
+
+  <div class="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+    <header
+      class="relative z-20 shrink-0 border-b backdrop-blur-xl"
+      [ngClass]="theme() === 'light'
+        ? 'border-slate-200/90 bg-white/85 shadow-[0_1px_0_0_rgba(15,23,42,0.06)]'
+        : 'border-slate-700/80 bg-slate-900/75 shadow-[0_1px_0_0_rgba(0,0,0,0.35)]'"
+    >
+      <div class="flex min-w-0 items-stretch">
+        <a
+          routerLink="/"
+          class="app-header-brand-col hidden shrink-0 items-center gap-3 border-r px-5 py-2.5 text-inherit no-underline lg:flex lg:w-[292px]"
+          (click)="closeSidebar()"
+        >
+          <div
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg shadow-sm"
+            [ngClass]="theme() === 'light' ? 'bg-slate-900 text-white' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20'"
+          >
+            <span class="material-symbols-outlined text-[24px]">dashboard</span>
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-[11px] font-semibold uppercase tracking-[0.22em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+              {{ translate.t().layoutBrandEyebrow }}
+            </p>
+            <p class="truncate text-base font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-50'">
+              {{ translate.t().layoutBrandTitle }}
+            </p>
+          </div>
+        </a>
+
+        <div
+          class="flex min-w-0 flex-1 items-center justify-between gap-2 px-4 py-2.5 sm:gap-3 sm:px-6 lg:px-8"
+        >
+          <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition lg:hidden"
+              [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'"
+              (click)="toggleSidebar()"
+              [attr.aria-label]="translate.t().ariaOpenNavigation"
+            >
+              <span class="material-symbols-outlined text-[22px]">menu</span>
+            </button>
+
+            <a
+              routerLink="/"
+              class="flex shrink-0 items-center gap-2 rounded-lg py-0.5 text-inherit no-underline lg:hidden"
+              (click)="closeSidebar()"
+            >
+              <div
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg shadow-sm"
+                [ngClass]="theme() === 'light' ? 'bg-slate-900 text-white' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-400/20'"
+              >
+                <span class="material-symbols-outlined text-[20px]">dashboard</span>
+              </div>
+              <span class="max-w-[7.5rem] truncate text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-50'">{{ translate.t().layoutBrandTitle }}</span>
+            </a>
+
+            <div class="min-w-0 shrink-0">
+              <p class="truncate text-[11px] font-semibold uppercase tracking-[0.2em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                {{ headerEyebrow() }}
+              </p>
+              <h1 class="truncate text-base font-semibold tracking-tight sm:text-lg" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-50'">
+                {{ headerTitle() }}
+              </h1>
+            </div>
+
+            @if (pageToolbar.badge() || pageToolbar.description()) {
+              <div
+                class="hidden min-w-0 flex-1 items-center gap-2 border-l pl-2 sm:flex sm:pl-3"
+                [ngClass]="theme() === 'light' ? 'border-slate-200' : 'border-slate-600/50'"
+              >
+                @if (pageToolbar.badge()) {
+                  <span class="app-header-toolbar-badge shrink-0 whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                    {{ pageToolbar.badge() }}
+                  </span>
+                }
+                @if (pageToolbar.description()) {
+                  <p class="min-w-0 flex-1 truncate text-xs leading-snug text-[var(--app-text-secondary)]">
+                    {{ pageToolbar.description() }}
+                  </p>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div class="app-header-tool-well pb-3 hidden items-center px-3 py-1.5 text-xs font-medium text-[var(--app-text-secondary)] md:flex">
+            {{ auth.user()?.roles?.[0] || translate.t().layoutPageAdmin }} {{ translate.t().headerWorkspaceSuffix }}
+          </div>
+
+          <div class="app-header-tool-well flex items-center gap-1 p-1">
+            @for (locale of localeOptions; track locale) {
+              <button
+                type="button"
+                class="rounded-md px-2.5 py-1.5 text-xs font-semibold uppercase transition"
+                [ngClass]="translate.locale() === locale
+                  ? (theme() === 'light' ? 'bg-white text-slate-900 shadow-sm' : 'bg-slate-700 text-white')
+                  : (theme() === 'light' ? 'text-slate-500 hover:bg-white hover:text-slate-900' : 'text-slate-400 hover:bg-slate-700/80 hover:text-slate-100')"
+                (click)="setLocale(locale)"
+              >
+                {{ locale }}
+              </button>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="app-header-tool-well flex h-10 w-10 items-center justify-center rounded-lg transition hover:opacity-90"
+            [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"
+            (click)="toggleTheme()"
+            [attr.aria-label]="theme() === 'light' ? translate.t().ariaSwitchToDark : translate.t().ariaSwitchToLight"
+          >
+            <span class="material-symbols-outlined text-[20px]">{{ theme() === 'light' ? 'dark_mode' : 'light_mode' }}</span>
+          </button>
+        </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="relative min-h-0 flex-1 overflow-hidden lg:grid lg:min-h-0 lg:grid-cols-[292px_minmax(0,1fr)]">
+    <aside
+      class="absolute inset-y-0 left-0 z-40 flex w-[292px] shrink-0 flex-col overflow-hidden border-r backdrop-blur-xl transition-transform duration-300 lg:static lg:h-full lg:min-h-0 lg:translate-x-0"
+      [ngClass]="[
+        theme() === 'light'
+          ? 'border-white/60 bg-white/90 shadow-[0_18px_60px_-30px_rgba(15,23,42,0.25)]'
+          : 'border-slate-700/60 bg-slate-900/80 shadow-[0_22px_80px_-34px_rgba(2,6,23,0.85)]',
+        sidebarOpen() ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      ]"
+    >
+      <div
+        class="flex items-center justify-end border-b px-4 py-3 lg:hidden"
+        [ngClass]="theme() === 'light' ? 'border-slate-200/80' : 'border-slate-700/70'"
+      >
+        <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-lg transition"
+          [ngClass]="theme() === 'light' ? 'text-slate-500 hover:bg-slate-100 hover:text-slate-900' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'"
+          (click)="closeSidebar()"
+          [attr.aria-label]="translate.t().ariaCloseNavigation"
+        >
+          <span class="material-symbols-outlined text-[22px]">close</span>
+        </button>
+      </div>
+
+      <div class="sidebar-nav-scroll flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4 lg:pt-4">
+        <div class="space-y-6">
+          <div>
+            <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+              {{ translate.t().navGroupPrimary }}
+            </p>
+            <nav class="space-y-1.5">
+              @for (item of primaryNav(); track item.path) {
+                <a
+                  [routerLink]="item.path"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
+                  class="group flex min-h-[2.75rem] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium leading-snug transition-all duration-200"
+                  [ngClass]="theme() === 'light'
+                    ? 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm [&.active]:bg-sky-500 [&.active]:text-white [&.active]:shadow-md [&.active]:shadow-sky-500/30'
+                    : 'text-slate-300 hover:bg-slate-800/90 hover:text-slate-100 [&.active]:bg-sky-500/20 [&.active]:text-sky-100 [&.active]:ring-1 [&.active]:ring-sky-400/40 [&.active]:shadow-sm'"
+                  (click)="closeSidebar()"
+                >
+                  <span
+                    class="flex size-9 shrink-0 items-center justify-center rounded-lg transition"
+                    [ngClass]="theme() === 'light'
+                      ? 'bg-slate-100 text-slate-500 group-[.active]:bg-white/20 group-[.active]:text-white'
+                      : 'bg-slate-800 text-slate-400 group-[.active]:bg-sky-500/30 group-[.active]:text-sky-100'"
+                  >
+                    <span class="material-symbols-outlined text-[20px] leading-none">{{ item.icon }}</span>
+                  </span>
+                  <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+                </a>
+              }
+            </nav>
+          </div>
+
+          <div>
+            <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+              {{ translate.t().navGroupAdmin }}
+            </p>
+            <nav class="space-y-1.5">
+              @for (item of secondaryNav(); track item.path) {
+                <a
+                  [routerLink]="item.path"
+                  routerLinkActive="active"
+                  class="group flex min-h-[2.75rem] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium leading-snug transition-all duration-200"
+                  [ngClass]="theme() === 'light'
+                    ? 'text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm [&.active]:bg-sky-500/12 [&.active]:text-sky-800 [&.active]:ring-1 [&.active]:ring-sky-400/50'
+                    : 'text-slate-300 hover:bg-slate-800/90 hover:text-slate-100 [&.active]:bg-sky-500/20 [&.active]:text-sky-100 [&.active]:ring-1 [&.active]:ring-sky-400/35'"
+                  (click)="closeSidebar()"
+                >
+                  <span
+                    class="flex size-9 shrink-0 items-center justify-center rounded-lg transition"
+                    [ngClass]="theme() === 'light'
+                      ? 'bg-slate-100 text-slate-500 group-[.active]:bg-sky-500/20 group-[.active]:text-sky-800'
+                      : 'bg-slate-800 text-slate-400 group-[.active]:bg-sky-500/30 group-[.active]:text-sky-100'"
+                  >
+                    <span class="material-symbols-outlined text-[20px] leading-none">{{ item.icon }}</span>
+                  </span>
+                  <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+                </a>
+              }
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="shrink-0 border-t"
+        [ngClass]="theme() === 'light' ? 'border-slate-200/80' : 'border-slate-700/70'"
+      >
+        @if (auth.user(); as user) {
+          <div class="px-4 pt-4 pb-4 sm:px-5">
+            <div
+              class="rounded-lg border p-4"
+              [ngClass]="theme() === 'light'
+                ? 'border-slate-200/80 bg-slate-50/80'
+                : 'border-slate-700/70 bg-slate-800/55'"
+            >
+              <div class="flex items-center gap-3">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-semibold text-white shadow-sm">
+                  {{ (user.displayName || user.username || user.email).charAt(0).toUpperCase() }}
+                </div>
+                <div class="min-w-0 flex-1 space-y-1.5">
+                  <p class="truncate text-sm font-semibold leading-tight" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
+                    {{ user.displayName || user.username || user.email }}
+                  </p>
+                  <p class="truncate text-xs leading-snug" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                    {{ user.email }}
+                  </p>
+                  <div class="flex flex-wrap gap-1.5 pt-0.5">
+                    @for (role of user.roles; track role) {
+                      <span
+                        class="rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                        [ngClass]="theme() === 'light' ? 'bg-white text-slate-600 ring-1 ring-slate-200' : 'bg-slate-900/70 text-slate-300 ring-1 ring-slate-700'"
+                      >
+                        {{ role }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div
+          class="px-4 pb-4 pt-4 sm:px-5"
+          [class.border-t]="!!auth.user()"
+          [ngClass]="[
+            theme() === 'light' ? 'border-slate-200/80' : 'border-slate-700/70'
+          ]"
+        >
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white text-slate-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700'
+              : 'border-slate-700 bg-slate-900/40 text-slate-200 hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-200'"
+            (click)="auth.logout()"
+          >
+            <span class="material-symbols-outlined text-[18px]">logout</span>
+            {{ translate.t().logout }}
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="app-main-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+          <div
+            class="app-main-outlet mx-auto flex min-h-0 w-full max-w-[1500px] min-h-full flex-1 flex-col px-4 py-5 sm:px-8 sm:py-6 lg:px-12 lg:py-8"
+          >
+            <router-outlet />
+          </div>
+        </div>
+      </main>
+
+      <app-notification />
+      <app-confirm-dialog />
+    </div>
+    </div>
+  </div>
+</div>
