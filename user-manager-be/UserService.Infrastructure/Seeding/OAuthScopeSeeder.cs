@@ -18,34 +18,9 @@ public class OAuthScopeSeeder
 
     private static readonly Dictionary<string, (string Code, string Description, string Category)> StandardScopes = new()
     {
-        ["openid"] = ("oauth.openid", "OpenID Connect authentication", "OAuth"),
-        ["profile"] = ("oauth.profile", "Access to user profile information (name, username, avatar, bio)", "OAuth"),
+        ["openId"] = ("oauth.openid", "OpenID Connect authentication", "OAuth"),
+        ["profile"] = ("oauth.profile", "Access to basic profile information (name, username)", "OAuth"),
         ["email"] = ("oauth.email", "Access to user email address and email verification status", "OAuth"),
-        ["phone"] = ("oauth.phone", "Access to user phone number", "OAuth"),
-        ["address"] = ("oauth.address", "Access to user address information", "OAuth"),
-        
-       
-        ["users:read"] = (PermissionCodes.ViewUsers, "Read user information", "Users"),
-        ["users:write"] = (PermissionCodes.ManageUsers, "Create, update, and delete users (full CRUD access)", "Users"),
-        
-        // Role Management Scopes
-        ["roles:read"] = (PermissionCodes.ViewRoles, "Read role information", "Roles"),
-        ["roles:write"] = (PermissionCodes.ManageRoles, "Create, update, and delete roles (full CRUD access)", "Roles"),
-        
-        // Permission Management Scopes
-        ["permissions:read"] = (PermissionCodes.ViewPermissions, "Read permission information", "Permissions"),
-        ["permissions:write"] = (PermissionCodes.ManagePermissions, "Create and manage permissions (full CRUD access)", "Permissions"),
-        
-        // Application Management Scopes
-        ["applications:read"] = (PermissionCodes.ViewApplications, "Read application information", "Applications"),
-        ["applications:write"] = (PermissionCodes.ManageApplications, "Create, update, and delete applications (full CRUD access)", "Applications"),
-        
-        // Reporting Scopes
-        ["reports:read"] = (PermissionCodes.ViewReports, "View reports and analytics", "Reports"),
-        ["reports:export"] = (PermissionCodes.ExportReports, "Export reports and data", "Reports"),
-        
-        // Audit Scopes
-        ["audit:read"] = (PermissionCodes.ViewAuditLogs, "View audit logs and system activity", "Audit"),
     };
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
@@ -64,7 +39,6 @@ public class OAuthScopeSeeder
                 
                 if (permission == null)
                 {
-                    // Create new permission with OAuth scope
                     permission = Permission.Create(
                         code: PermissionCode.Create(code),
                         description: description,
@@ -78,7 +52,6 @@ public class OAuthScopeSeeder
                 }
                 else if (permission.Scope != scopeName)
                 {
-                    // Update existing permission with OAuth scope
                     permission.SetScope(scopeName);
                     updatedCount++;
                     Log.Information("✓ Updated OAuth scope mapping: Scope='{ScopeName}' -> Code='{Code}'", scopeName, code);
@@ -111,9 +84,6 @@ public class OAuthScopeSeeder
         }
     }
 
-    /// <summary>
-    /// Get permission by OAuth scope name
-    /// </summary>
     public async Task<Permission?> GetPermissionByScopeAsync(string scopeName, CancellationToken cancellationToken = default)
     {
         return await _db.Permissions
