@@ -24,7 +24,7 @@
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
-    <PackageReference Include="OpenIddict.AspNetCore" Version="5.8.0" />
+    <PackageReference Include="OpenIddict.AspNetCore" Version="7.5.0" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="5.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
   </ItemGroup>
