@@ -11,6 +11,7 @@ updates:
           - "Microsoft.EntityFrameworkCore*"
           - "Microsoft.Extensions*"
           - "Microsoft.AspNetCore*"
+          - "Npgsql.EntityFrameworkCore.PostgreSQL*"
 
   - package-ecosystem: "npm"
     directory: "/user-manager-fe"
@@ -29,6 +30,15 @@ updates:
           - "jasmine*"
           - "@types/jasmine*"
           - "karma*"
+      style-packages:
+        patterns:
+          - "tailwindcss"
+          - "postcss"
+          - "autoprefixer"
+    ignore:
+      # Chặn tất cả các bản nâng cấp lớn (Major) cho NPM để tránh lỗi build
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
