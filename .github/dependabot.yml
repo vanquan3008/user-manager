@@ -1,17 +1,37 @@
 version: 2
-
 updates:
   - package-ecosystem: "nuget"
     directory: "/user-manager-be"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      microsoft-packages:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions*"
+          - "Microsoft.AspNetCore*"
 
   - package-ecosystem: "npm"
     directory: "/user-manager-fe"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      angular-packages:
+        patterns:
+          - "@angular/*"
+          - "zone.js"
+          - "rxjs"
+          - "typescript"
+      testing-packages:
+        patterns:
+          - "jasmine*"
+          - "@types/jasmine*"
+          - "karma*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
