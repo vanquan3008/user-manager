@@ -41,7 +41,8 @@
     "typescript": "~5.7.2"
   },
   "overrides": {
-    "tar": "^6.2.1",
+    "tar": "^7.5.10",
+    "serialize-javascript": "^7.0.4",
     "braces": "^3.0.3",
     "micromatch": "^4.0.8",
     "cross-spawn": "^7.0.5"
