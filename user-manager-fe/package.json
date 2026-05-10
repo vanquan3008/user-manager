@@ -23,8 +23,8 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^21.2.10",
-    "@angular/cli": "^21.2.10",
+    "@angular-devkit/build-angular": "^19.2.0",
+    "@angular/cli": "^19.2.0",
     "@angular/compiler-cli": "^19.2.0",
     "@ngx-env/builder": "^19.1.0",
     "@types/jasmine": "~5.1.0",
@@ -39,5 +39,11 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.13",
     "typescript": "~5.7.2"
+  },
+  "overrides": {
+    "tar": "^6.2.1",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "cross-spawn": "^7.0.5"
   }
 }
