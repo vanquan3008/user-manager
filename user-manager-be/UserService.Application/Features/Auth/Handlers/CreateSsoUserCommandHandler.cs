@@ -1,11 +1,11 @@
 using MediatR;
 using UserService.Application.Features.Auth.Commands;
-using UserService.Application.Services;
+using UserService.Application.Interfaces.Services;
 using UserService.Domain.Entities;
 using UserService.Domain.Exceptions;
+using UserService.Domain.Interfaces;
 using UserService.Domain.Repositories;
 using UserService.Domain.ValueObjects;
-using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
@@ -34,19 +34,29 @@ public class CreateSSOUserCommandHandler : IRequestHandler<CreateSSOUserCommand,
         if (existing != null)
             throw new DuplicateUserException("[Email Duplicate]", command.Email);
 
-        var (succeeded, userId, errors) = await _identityService.RegisterAsync(command.Email, command.Password, command.Username, cancellationToken);
-        if (!succeeded)
+        var (succeeded, userId, errors) = await _identityService.RegisterAsync(
+            command.Email,
+            command.Password,
+            command.Username,
+            cancellationToken);
+        if (!succeeded || !userId.HasValue)
+        {
             throw new BusinessRuleValidationException(
                 "[Not Create SSO] - ",
                 $"[SSO user creation failed] : {string.Join(", ", errors)}");
+        }
 
         try
         {
-            var usernameVO = Username.Create(command.Username);
-            var emailVO = Email.Create(command.Email);
-            var dateOfBirth = ResolveDateOfBirth(command.DateOfBirth);
-            var user = User.Create(userId!.Value, usernameVO, emailVO, PersonName.Create(command.FirstName, command.LastName), dateOfBirth, _clock.UtcNow);
+            var user = User.Create(
+                userId.Value,
+                Username.Create(command.Username),
+                Email.Create(command.Email),
+                PersonName.Create(command.FirstName, command.LastName),
+                ResolveDateOfBirth(command.DateOfBirth),
+                _clock.UtcNow);
             user.EnableSSO();
+
             await _userRepository.AddAsync(user, cancellationToken);
             await _identityService.UpdateUserProfileIdAsync(userId.Value, user.Id, cancellationToken);
             await _identityService.AddToRoleAsync(userId.Value, Domain.Constants.RoleNames.Guest, cancellationToken);
@@ -54,9 +64,10 @@ public class CreateSSOUserCommandHandler : IRequestHandler<CreateSSOUserCommand,
         }
         catch
         {
-            await _identityService.DeleteUserAsync(userId!.Value, cancellationToken);
+            await _identityService.DeleteUserAsync(userId.Value, cancellationToken);
             throw;
         }
+
         return new SuccessResponse(true, $"[SSO Account created] '{command.Email}'.");
     }
 
@@ -68,6 +79,7 @@ public class CreateSSOUserCommandHandler : IRequestHandler<CreateSSOUserCommand,
         {
             return dateOfBirth.Value;
         }
+
         return new DateOnly(1990, 1, 1);
     }
 }

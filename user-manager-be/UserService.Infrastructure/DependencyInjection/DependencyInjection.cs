@@ -6,7 +6,6 @@ using UserService.Domain.Interfaces;
 using UserService.Domain.Repositories;
 using UserService.Infrastructure.Repositories;
 using UserService.Infrastructure.Services;
-using UserService.Application.Common;
 
 namespace UserService.Infrastructure.DependencyInjection;
 
@@ -16,33 +15,15 @@ public static class DependencyInjectionExtension
         this IServiceCollection services,
         AppSettings appSettings)
     {
-        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-        services.AddRepositories();
-        services.AddServices(appSettings);
-        return services;
+        return services
+            .AddIdentityInfrastructure(appSettings)
+            .AddApplicationsInfrastructure()
+            .AddAuthorizationInfrastructure()
+            .AddSubscriptionsInfrastructure()
+            .AddOutboxInfrastructure(appSettings);
     }
 
-    private static IServiceCollection AddRepositories(this IServiceCollection services)
-    {
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IMagicLinkTokenRepository, MagicLinkTokenRepository>();
-        services.AddScoped<IApplicationRepository, ApplicationRepository>();
-        services.AddScoped<IUserApplicationRepository, UserApplicationRepository>();
-        services.AddScoped<IApplicationRoleRepository, ApplicationRoleRepository>();
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
-        services.AddScoped<ILicensePackageRepository, LicensePackageRepository>();
-        services.AddScoped<IPermissionRepository, PermissionRepository>();
-        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
-        services.AddScoped<IApplicationOAuthScopeRepository, ApplicationOAuthScopeRepository>();
-        services.AddScoped<IUserOAuthConsentRepository, UserOAuthConsentRepository>();
-        services.AddScoped<IOAuthAuthorizationCodeRepository, OAuthAuthorizationCodeRepository>();
-        services.AddScoped<IOAuthRefreshTokenRepository, OAuthRefreshTokenRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-        return services;
-    }
-
-    private static IServiceCollection AddServices(
+    internal static IServiceCollection AddSharedInfrastructureServices(
         this IServiceCollection services, 
         AppSettings appSettings)
     {
@@ -53,10 +34,6 @@ public static class DependencyInjectionExtension
 
         // File storage and related
         services.AddFileStorage(appSettings);
-
-        // Application / role services (infra implementations)
-        services.AddScoped<IApplicationRoleService, ApplicationRoleService>();
-        services.AddScoped<ISystemRoleService, SystemRoleService>();
 
         services.AddHttpClient<IThirdPartyApiService, ThirdPartyApiService>(client =>
         {

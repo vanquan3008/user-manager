@@ -12,13 +12,28 @@ public static class ApplicationEntityMapper
         return new(
             app.Id,
             app.Name.Value,
+            app.ApiKey.Value,
+            app.ClientType,
             string.IsNullOrEmpty(app.Description.Value) ? null : app.Description.Value,
             app.OwnerId,
             app.LogoUrl?.Value,
             ResolveOwnerDisplayName(owner),
             string.Join(",", app.AllowedRedirectUris.Select(u => (string)u)),
-            app.BackchannelLogoutUri?.Value);
+            app.BackchannelLogoutUri?.Value,
+            null,
+            app.LastApiKeyRotatedAt);
     }
+
+    public static ApplicationCredentialDto ToCredentialDto(AppApplication app, string? plainClientSecret = null)
+        => new(
+            app.Id,
+            app.Name.Value,
+            app.ApiKey.Value,
+            app.ClientType,
+            plainClientSecret,
+            app.LastApiKeyRotatedAt,
+            string.Join(",", app.AllowedRedirectUris.Select(u => (string)u)),
+            app.BackchannelLogoutUri?.Value);
 
     private static string? ResolveOwnerDisplayName(User? owner)
     {
@@ -35,18 +50,11 @@ public static class ApplicationEntityMapper
         return owner.Email?.Value;
     }
 
-    public static ApplicationUserDto ToApplicationUserDto(UserApplication membership) =>
-        new(membership.UserId, membership.Role, null, null);
-
-    public static ApplicationInfoDto ToApplicationInfoDto(AppApplication app, UserApplication membership) =>
+    public static ApplicationUserDto ToApplicationUserDto(ApplicationMembership membership) =>
         new(
-            app.Id,
-            app.Name.Value,
-            app.Description.Value,
-            membership.Role,
-            membership.CanRead,
-            membership.CanWrite,
-            membership.CanDelete,
-            membership.CanManageUsers,
-            membership.CanManageSubscription);
+            membership.UserId, 
+            membership.RoleId.ToString(), 
+            membership.User?.Email?.Value, 
+            membership.User?.Username?.Value ?? membership.User?.Name?.DisplayName);
+
 }

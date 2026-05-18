@@ -8,7 +8,8 @@ public static class SubscriptionEntityMapper
 {
     public static SubscriptionPlanCatalogDto ToCatalogDto(
         SubscriptionPlan plan,
-        IReadOnlyDictionary<Guid, string> roleNameById) =>
+        IReadOnlyCollection<string> featureCodes,
+        IReadOnlyCollection<string> permissionCodes) =>
         new(
             plan.Id,
             plan.ApplicationId,
@@ -18,29 +19,11 @@ public static class SubscriptionEntityMapper
             plan.YearlyPrice,
             plan.MaxUsers,
             plan.MaxApiCalls,
-            plan.IncludeAnalytics,
-            plan.IncludeSupport,
-            plan.IncludeAdvancedSecurity,
-            plan.IncludeCustomDomain,
+            featureCodes.ToList(),
+            permissionCodes.ToList(),
             plan.IsActive,
             plan.DisplayOrder,
-            plan.RoleAssignments.Select(a => a.RoleId).ToList(),
-            plan.ToAssignedRolesCsv(roleNameById),
             plan.Icon?.Value);
-
-    public static LicensePackageCatalogDto ToCatalogDto(LicensePackage package) =>
-        new(
-            package.Id,
-            package.ApplicationId,
-            package.SubscriptionPlanId,
-            package.Name,
-            null,
-            package.FeatureJson,
-            package.SeatLimit,
-            package.IsActive,
-            package.DisplayOrder,
-            package.AssignedRole,
-            package.GetFeatures());
 
     public static EntitlementQuotasDto ToDto(EntitlementQuotas q) =>
         new(q.MaxUsers, q.MaxApplications, q.MaxStorageMb, q.MaxMembers, q.MaxApiCalls);
@@ -70,22 +53,6 @@ public static class SubscriptionEntityMapper
             s.MaxMembers,
             s.CurrentMemberCount,
             ToDto(s.EntitlementSnapshot),
-            s.LicensePackageId,
             s.CreatedAt,
-            s.UpdatedAt,
-            s.Members?.Select(ToMemberDto).ToList());
-
-    public static SubscriptionMemberDto ToMemberDto(SubscriptionMember m) =>
-        new(
-            m.Id,
-            m.SubscriptionId,
-            m.UserId,
-            m.User?.Email ?? string.Empty,
-            m.User?.Username ?? string.Empty,
-            m.RoleType?.Name ?? string.Empty,
-            m.IsAdmin,
-            m.IsOwner,
-            m.IsActive,
-            m.JoinedAt,
-            m.LastActivityAt);
+            s.UpdatedAt);
 }

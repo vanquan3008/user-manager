@@ -10,14 +10,10 @@ public static class ApiMiddlewareExtensions
         this WebApplication app,
         AppSettings appSettings)
     {
-        // Configure forwarded headers for proxy/load balancer scenarios
-        // This ensures request.IsHttps works correctly behind reverse proxies
         app.UseForwardedHeaders(new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
         {
             ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
                              | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
-            // Clear known networks and proxies to accept headers from any proxy
-            // In production, configure specific proxy IPs for security
             KnownIPNetworks = { },
             KnownProxies = { }
         });
@@ -28,7 +24,6 @@ public static class ApiMiddlewareExtensions
             app.UseHttpsRedirection();
         }
 
-        // Swagger configuration - conditional based on settings
         if (appSettings.Swagger.Enabled)
         {
             if (appSettings.IsProduction() && !appSettings.Swagger.RequireAuthentication && appSettings.Swagger.AllowedIpAddresses.Count == 0)

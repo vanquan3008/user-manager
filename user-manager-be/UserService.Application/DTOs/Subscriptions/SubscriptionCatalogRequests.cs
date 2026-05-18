@@ -8,35 +8,11 @@ public record CreateSubscriptionPlanRequest(
     decimal YearlyPrice,
     int MaxUsers,
     int? MaxApiCalls,
-    bool IncludeAnalytics,
-    bool IncludeSupport,
-    bool IncludeAdvancedSecurity,
-    bool IncludeCustomDomain,
+    IReadOnlyList<string> Features,
+    IReadOnlyList<string>? Permissions,
     bool IsActive,
     int DisplayOrder,
-    IReadOnlyList<Guid> AssignedRoleIds,
     string? Icon);
-
-public record CreateLicensePackageRequest(
-    Guid ApplicationId,
-    Guid SubscriptionPlanId,
-    string Name,
-    string? Description,
-    IReadOnlyList<string> Features,
-    int SeatLimit,
-    bool IsActive,
-    int DisplayOrder,
-    string AssignedRole);
-
-public record UpdateLicensePackageRequest(
-    Guid ApplicationId,
-    string Name,
-    string? Description,
-    IReadOnlyList<string> Features,
-    int SeatLimit,
-    bool IsActive,
-    int DisplayOrder,
-    string AssignedRole);
 
 public record UpdateSubscriptionPlanRequest(
     Guid? ApplicationId,
@@ -46,11 +22,8 @@ public record UpdateSubscriptionPlanRequest(
     decimal YearlyPrice,
     int MaxUsers,
     int? MaxApiCalls,
-    bool IncludeAnalytics,
-    bool IncludeSupport,
-    bool IncludeAdvancedSecurity,
-    bool IncludeCustomDomain,
+    IReadOnlyList<string> Features,
+    IReadOnlyList<string>? Permissions,
     bool IsActive,
     int DisplayOrder,
-    IReadOnlyList<Guid> AssignedRoleIds,
     string? Icon);

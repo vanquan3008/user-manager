@@ -21,13 +21,13 @@ public class LoggingBehavior<TRequest, TResponse> :
         var requestName = typeof(TRequest).Name;
         var stopwatch = Stopwatch.StartNew();
 
-        _logger.LogInformation("Handling {RequestName} - {@Request}", requestName, request);
+        _logger.LogInformation("Handling {RequestName}", requestName);
 
         try
         {
             var response = await next();
             stopwatch.Stop();
-            _logger.LogInformation("Handled {RequestName} in {ElapsedMs}ms - {@Response}", requestName, stopwatch.ElapsedMilliseconds,  response);
+            _logger.LogInformation("Handled {RequestName} in {ElapsedMs}ms", requestName, stopwatch.ElapsedMilliseconds);
             if (stopwatch.ElapsedMilliseconds > 3000)
             {
                 _logger.LogWarning("SLOW REQUEST: {RequestName} took {ElapsedMs}ms", requestName, stopwatch.ElapsedMilliseconds);

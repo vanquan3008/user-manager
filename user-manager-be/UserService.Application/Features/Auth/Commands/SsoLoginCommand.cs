@@ -1,7 +1,7 @@
 using MediatR;
 namespace UserService.Application.Features.Auth.Commands;
 
-public record SsoLoginCommand(
+public record SSOLoginCommand(
     string Email,
     string Password
 ) : IRequest<AuthResponse>;

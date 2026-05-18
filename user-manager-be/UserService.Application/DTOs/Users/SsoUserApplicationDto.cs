@@ -1,6 +1,6 @@
 namespace UserService.Application.DTOs.Users;
 
-public sealed record SsoUserApplicationDto(
+public sealed record SSOUserApplicationDto(
     Guid Id,
     string Name,
     string Role

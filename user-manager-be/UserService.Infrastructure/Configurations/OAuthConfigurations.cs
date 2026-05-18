@@ -4,34 +4,6 @@ using UserService.Domain.Entities;
 
 namespace UserService.Infrastructure.Configurations;
 
-public sealed class ApplicationOAuthScopeConfiguration : IEntityTypeConfiguration<ApplicationOAuthScope>
-{
-    public void Configure(EntityTypeBuilder<ApplicationOAuthScope> builder)
-    {
-        builder.ToTable("ApplicationOAuthScopes");
-        builder.HasKey(x => x.Id);
-
-        // Match soft-delete query filters on required principals to avoid EF warnings
-        // and prevent returning rows whose required principal is filtered out.
-        builder.HasQueryFilter(x => !x.Application.IsDeleted && !x.Permission.IsDeleted);
-
-        builder.HasOne(x => x.Application)
-              .WithMany()
-              .HasForeignKey(x => x.ApplicationId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.Permission)
-              .WithMany()
-              .HasForeignKey(x => x.PermissionId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(x => new { x.ApplicationId, x.PermissionId }).IsUnique();
-        builder.HasIndex(x => x.ApplicationId);
-        builder.HasIndex(x => x.PermissionId);
-        builder.HasIndex(x => x.IsActive);
-    }
-}
-
 public sealed class UserOAuthConsentConfiguration : IEntityTypeConfiguration<UserOAuthConsent>
 {
     public void Configure(EntityTypeBuilder<UserOAuthConsent> builder)

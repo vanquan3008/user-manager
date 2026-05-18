@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using UserService.Application.Configuration;
 using UserService.Infrastructure.Data;
+using Npgsql;
 
 namespace UserService.Api.Extensions;
 
@@ -14,9 +15,9 @@ public static class DatabaseServiceExtensions
     {
         services.AddDbContext<UserDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("UserDatabase")
+            var connectionString = ResolveConnectionString(configuration)
                 ?? throw new InvalidOperationException(
-                    "Connection string 'UserDatabase' is required. Set ConnectionStrings:UserDatabase or env ConnectionStrings__UserDatabase.");
+                    "Connection string 'UserDatabase' is required. Set ConnectionStrings:UserDatabase, DATABASE_URL, or POSTGRES_* environment variables.");
 
             options.UseNpgsql(connectionString);
             options.ConfigureWarnings(w =>
@@ -32,6 +33,39 @@ public static class DatabaseServiceExtensions
         });
 
         return services;
+    }
+
+    private static string? ResolveConnectionString(IConfiguration configuration)
+    {
+        var explicitConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__UserDatabase");
+        if (!string.IsNullOrWhiteSpace(explicitConnectionString))
+            return explicitConnectionString;
+
+        var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+        if (!string.IsNullOrWhiteSpace(databaseUrl))
+            return databaseUrl;
+
+        var postgresUser = Environment.GetEnvironmentVariable("POSTGRES_USER");
+        var postgresPassword = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+        var postgresDatabase = Environment.GetEnvironmentVariable("POSTGRES_DB");
+        if (!string.IsNullOrWhiteSpace(postgresUser) &&
+            !string.IsNullOrWhiteSpace(postgresPassword) &&
+            !string.IsNullOrWhiteSpace(postgresDatabase))
+        {
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost",
+                Port = int.TryParse(Environment.GetEnvironmentVariable("POSTGRES_PORT"), out var port) ? port : 5432,
+                Database = postgresDatabase,
+                Username = postgresUser,
+                Password = postgresPassword,
+                SslMode = SslMode.Disable
+            };
+
+            return builder.ConnectionString;
+        }
+
+        return configuration.GetConnectionString("UserDatabase");
     }
 
     public static async Task MigrateDatabaseAsync(this WebApplication app)

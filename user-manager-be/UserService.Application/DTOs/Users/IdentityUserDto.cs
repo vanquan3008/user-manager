@@ -12,7 +12,7 @@ public record IdentityUserDto(
     DateTime? RefreshTokenExpiryTime,
     DateTime CreatedAt,
     Guid? UserProfileId,
-    bool IsSsoAccount = false
+    bool IsSSOAccount = false
 );
 
 public record UserWithRolesDto(IdentityUserDto User, IList<string> Roles);

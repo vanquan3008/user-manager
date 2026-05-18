@@ -2,16 +2,13 @@ namespace UserService.Domain.Constants;
 
 public static partial class PermissionCodes
 {
-    // Subscription catalog (plans / license packages)
-    public const string ViewSubscriptions = "subscriptions.view";
-    public const string ManageSubscriptions = "subscriptions.manage";
+    // Subscription catalog and plan operations
+    public const string ViewSubscriptions = "SUBSCRIPTION.READ";
+    public const string ManageSubscriptions = "SUBSCRIPTION.MANAGE";
 
-    // Subscription operations (each API separate)
-    public const string ActivateSubscription = "subscriptions.activate";
-    public const string ActivateSubscriptionPackage = "subscriptions.activate-package";
-    public const string UpgradeSubscription = "subscriptions.upgrade";
-    public const string UpgradeSubscriptionPackage = "subscriptions.upgrade-package";
-    public const string ExtendSubscription = "subscriptions.extend";
-    public const string CancelSubscription = "subscriptions.cancel";
+    // Subscription operations
+    public const string ActivateSubscription = "SUBSCRIPTION.ACTIVATE";
+    public const string UpgradeSubscription = "SUBSCRIPTION.UPGRADE";
+    public const string ExtendSubscription = "SUBSCRIPTION.EXTEND";
+    public const string CancelSubscription = "SUBSCRIPTION.CANCEL";
 }
-

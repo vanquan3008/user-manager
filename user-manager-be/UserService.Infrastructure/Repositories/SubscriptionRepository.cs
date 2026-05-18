@@ -16,30 +16,29 @@ public sealed class SubscriptionRepository : Repository<Subscription>, ISubscrip
 
     public async Task<Subscription?> GetActiveSubscriptionAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default)
     {
+        var utcNow = DateTime.UtcNow;
         return await _dbSet
-            .Include(s => s.Members)
-                .ThenInclude(m => m.User)
-            .Include(s => s.Members)
-                .ThenInclude(m => m.RoleType)
             .AsNoTracking()
-            .Where(s => s.UserId == userId && s.ApplicationId == applicationId && s.IsActive)
+            .Where(s =>
+                s.UserId == userId &&
+                s.ApplicationId == applicationId &&
+                s.IsActive &&
+                s.CancelledAt == null &&
+                (!s.ExpiresAt.HasValue || s.ExpiresAt > utcNow))
             .OrderByDescending(s => s.StartedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public async Task<Subscription?> GetByIdWithMembersAsync(Guid id, CancellationToken cancellationToken = default)
-    {
-        return await _dbSet
-            .Include(s => s.Members)
-            .Where(s => s.Id == id)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<Subscription?> GetActiveSubscriptionForUpdateAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default)
     {
+        var utcNow = DateTime.UtcNow;
         return await _dbSet
-            .Include(s => s.Members)
-            .Where(s => s.UserId == userId && s.ApplicationId == applicationId && s.IsActive)
+            .Where(s =>
+                s.UserId == userId &&
+                s.ApplicationId == applicationId &&
+                s.IsActive &&
+                s.CancelledAt == null &&
+                (!s.ExpiresAt.HasValue || s.ExpiresAt > utcNow))
             .OrderByDescending(s => s.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -47,10 +46,6 @@ public sealed class SubscriptionRepository : Repository<Subscription>, ISubscrip
     public async Task<IEnumerable<Subscription>> GetUserSubscriptionsAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
-            .Include(s => s.Members)
-                .ThenInclude(m => m.User)
-            .Include(s => s.Members)
-                .ThenInclude(m => m.RoleType)
             .AsNoTracking()
             .Where(s => s.UserId == userId && s.ApplicationId == applicationId)
             .OrderByDescending(s => s.StartedAt)

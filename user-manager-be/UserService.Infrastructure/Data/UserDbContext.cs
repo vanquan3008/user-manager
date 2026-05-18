@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using UserService.Application.Common;
 using UserService.Domain.Entities;
 using UserService.Domain.Events;
-using UserService.Infrastructure.Identity;
-
 using UserService.Domain.Interfaces;
+using UserService.Infrastructure.Identity;
 
 namespace UserService.Infrastructure.Data;
 
@@ -18,31 +16,26 @@ public sealed class UserDbContext : IdentityDbContext<
     IdentityRoleClaim<Guid>,
     IdentityUserToken<Guid>>
 {
-    private readonly IDomainEventDispatcher _domainEventDispatcher;
     private readonly IClock _clock;
     public UserDbContext(
         DbContextOptions<UserDbContext> options, 
-        IDomainEventDispatcher domainEventDispatcher,
         IClock clock)
         : base(options)
     {
-        ArgumentNullException.ThrowIfNull(domainEventDispatcher);
         ArgumentNullException.ThrowIfNull(clock);
-        _domainEventDispatcher = domainEventDispatcher;
         _clock = clock;
     }
 
     public DbSet<User> DomainUsers { get; set; } = null!;
     public DbSet<MagicLinkToken> MagicLinkTokens { get; set; } = null!;
     public DbSet<Subscription> Subscriptions { get; set; } = null!;
-    public DbSet<SubscriptionMember> SubscriptionMembers { get; set; } = null!;
-    public DbSet<SubscriptionRoleType> SubscriptionRoleTypes { get; set; } = null!;
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
-    public DbSet<LicensePackage> LicensePackages { get; set; } = null!;
+    public DbSet<SubscriptionPlanPermission> SubscriptionPlanPermissions { get; set; } = null!;
+    public DbSet<ApplicationSubscription> ApplicationSubscriptions { get; set; } = null!;
     public DbSet<AppApplication> AppApplications { get; set; } = null!;
-    public DbSet<UserApplication> UserApplications { get; set; } = null!;
-    public DbSet<FamilyPlan> FamilyPlans { get; set; } = null!;
-    public DbSet<FamilySubscription> FamilySubscriptions { get; set; } = null!;
+    public DbSet<ApplicationMembership> ApplicationMemberships { get; set; } = null!;
+    public DbSet<Feature> Features { get; set; } = null!;
+    public DbSet<PlanFeature> PlanFeatures { get; set; } = null!;
     public DbSet<Permission> Permissions { get; set; } = null!;
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<ApplicationRole> ApplicationRoles { get; set; } = null!;
@@ -51,6 +44,7 @@ public sealed class UserDbContext : IdentityDbContext<
     public DbSet<UserOAuthConsentScope> UserOAuthConsentScopes { get; set; } = null!;
     public DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes { get; set; } = null!;
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; set; } = null!;
+    public DbSet<OutboxMessage> OutboxMessages { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -66,13 +60,10 @@ public sealed class UserDbContext : IdentityDbContext<
         ApplyAuditing(utcNow);
         ApplySoftDelete(utcNow);
 
-        var aggregatesWithEvents = GetAggregatesWithEvents();
+        var domainEvents = ExtractDomainEvents();
+        EnqueueOutboxMessages(domainEvents);
 
-        var result = await base.SaveChangesAsync(cancellationToken);
-
-        await DispatchDomainEventsAsync(aggregatesWithEvents, cancellationToken);
-
-        return result;
+        return await base.SaveChangesAsync(cancellationToken);
     }
 
     private void ApplyAuditing(DateTime utcNow)
@@ -115,36 +106,31 @@ public sealed class UserDbContext : IdentityDbContext<
         }
     }
 
-    private List<IAggregateRoot> GetAggregatesWithEvents()
+    private List<IDomainEvent> ExtractDomainEvents()
     {
-        return ChangeTracker.Entries<IAggregateRoot>()
+        var aggregates = ChangeTracker.Entries<IAggregateRoot>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .Select(e => e.Entity)
             .Where(a => a.DomainEvents.Count > 0)
             .ToList();
-    }
 
-    private async Task DispatchDomainEventsAsync(
-        List<IAggregateRoot> aggregatesWithEvents,
-        CancellationToken cancellationToken)
-    {
-        if (aggregatesWithEvents.Count == 0)
-        {
-            return;
-        }
-        var domainEvents = aggregatesWithEvents
+        var domainEvents = aggregates
             .SelectMany(a => a.DomainEvents)
             .ToList();
 
-        if (domainEvents.Count == 0)
-        {
-            return;
-        }
-
-        await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
-        foreach (var aggregate in aggregatesWithEvents)
+        foreach (var aggregate in aggregates)
         {
             aggregate.ClearDomainEvents();
+        }
+
+        return domainEvents;
+    }
+
+    private void EnqueueOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
+    {
+        foreach (var domainEvent in domainEvents)
+        {
+            OutboxMessages.Add(OutboxMessage.Create(domainEvent, OutboxJsonSerializer.Serialize(domainEvent)));
         }
     }
 }

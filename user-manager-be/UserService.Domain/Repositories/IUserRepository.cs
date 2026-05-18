@@ -7,7 +7,7 @@ namespace UserService.Domain.Repositories;
 /// </summary>
 public interface IUserRepository : IRepository<User>
 {
-    Task<IReadOnlyDictionary<Guid, bool>> GetIsSsoAccountByProfileIdsAsync(
+    Task<IReadOnlyDictionary<Guid, bool>> GetIsSSOAccountByProfileIdsAsync(
         IEnumerable<Guid> profileIds,
         CancellationToken cancellationToken = default);
 

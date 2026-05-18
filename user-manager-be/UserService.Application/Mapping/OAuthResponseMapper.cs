@@ -2,12 +2,6 @@ using UserService.Application.DTOs.OAuth;
 
 namespace UserService.Application.Mapping;
 
-public sealed record OAuthTokenResponseSource(
-    string AccessToken,
-    string RefreshToken,
-    int ExpiresIn,
-    string[] Scopes);
-
 public sealed record OAuthAuthorizeResponseSource(
     bool RequiresConsent,
     string ClientName,

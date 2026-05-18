@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Security.Claims;
 using System.Text.Json;
 using UserService.Api.Extensions;
-
 using UserService.Domain.Constants;
 
 namespace UserService.Api.Filters;
@@ -21,7 +21,7 @@ public sealed class ApplicationScopeActionFilter : IAsyncActionFilter
             await next();
             return;
         }
-        if (user.IsInRole(RoleNames.Admin) || user.IsInRole(RoleNames.SuperAdmin))
+        if (user.IsInRole(RoleNames.SuperAdmin))
         {
             await next();
             return;
@@ -46,7 +46,9 @@ public sealed class ApplicationScopeActionFilter : IAsyncActionFilter
         else if (isSubscriptionsRoute)
         {
             targetAppId = await ResolveSubscriptionApplicationIdAsync(http.Request);
+            targetAppId ??= ResolveImplicitApplicationId(user);
         }
+
         if (!targetAppId.HasValue)
         {
             if (isSubscriptionsRoute)
@@ -58,7 +60,7 @@ public sealed class ApplicationScopeActionFilter : IAsyncActionFilter
             return;
         }
 
-        var ssoAppIds = http.User.GetAuthorizedSsoApplicationIds();
+        var ssoAppIds = http.User.GetAuthorizedSSOApplicationIds();
         if (ssoAppIds.Count > 0)
         {
             if (!ssoAppIds.Contains(targetAppId.Value))
@@ -77,6 +79,15 @@ public sealed class ApplicationScopeActionFilter : IAsyncActionFilter
             throw new UnauthorizedAccessException("Token application_id does not match requested application.");
 
         await next();
+    }
+
+    private static Guid? ResolveImplicitApplicationId(ClaimsPrincipal user)
+    {
+        var ssoAppIds = user.GetAuthorizedSSOApplicationIds();
+        if (ssoAppIds.Count == 1)
+            return ssoAppIds.First();
+
+        return user.TryGetTokenApplicationId();
     }
 
     private static async Task<Guid?> ResolveSubscriptionApplicationIdAsync(HttpRequest request)
