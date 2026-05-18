@@ -1,0 +1,444 @@
+<div class="main main-layout">
+  <section
+    class="rounded-2xl border shadow-sm motion-section"
+    [ngClass]="theme() === 'light' ? 'border-slate-200/90 bg-white' : 'border-slate-600/60 bg-slate-800/90'"
+  >
+    <div
+      class="relative border-b px-5 py-4 sm:px-6"
+      [ngClass]="theme() === 'light'
+        ? 'border-slate-200 bg-gradient-to-br from-sky-50/90 via-white to-violet-50/40'
+        : 'border-slate-600/80 bg-gradient-to-br from-sky-950/40 via-slate-800 to-violet-950/25'"
+    >
+      <div class="flex flex-wrap items-start gap-4">
+        <div
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1"
+          [ngClass]="theme() === 'light'
+            ? 'bg-white text-sky-600 ring-sky-100'
+            : 'bg-slate-700/80 text-sky-300 ring-sky-500/20'"
+        >
+          <span class="material-symbols-outlined text-[26px]">subscriptions</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-base font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
+            {{ translate.t().subsSelectUserApp }}
+          </h2>
+          <p class="mt-1 max-w-2xl text-sm leading-relaxed" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">
+            Subscription chỉ quản lý feature, quota và trạng thái gói. Role của user trong application được quản lý riêng qua membership.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-5 sm:p-6">
+      <div class="grid gap-5 lg:grid-cols-[1fr_auto_1fr] lg:items-end lg:gap-4">
+        <div
+          class="rounded-xl border p-4 transition"
+          [ngClass]="
+            step1Complete()
+              ? theme() === 'light'
+                ? 'border-sky-200/80 bg-sky-50/30 ring-1 ring-sky-100/80'
+                : 'border-sky-500/25 bg-sky-500/5 ring-1 ring-sky-500/15'
+              : theme() === 'light'
+                ? 'border-slate-200 bg-slate-50/50'
+                : 'border-slate-600/80 bg-slate-900/30'
+          "
+        >
+          <div class="mb-3 flex items-center gap-2.5">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">1</span>
+            <div>
+              <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">Application</p>
+              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Nguồn subscription đang xem</p>
+            </div>
+          </div>
+          <app-dropdown
+            [options]="appOptions()"
+            [placeholder]="translate.t().selectApplication"
+            [theme]="theme()"
+            [ngModel]="applicationId()"
+            (ngModelChange)="onApplicationIdChange($event)"
+          />
+          @if (selectedAppName()) {
+            <div
+              class="mt-3 flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs"
+              [ngClass]="theme() === 'light' ? 'bg-white/80 text-slate-700 ring-1 ring-slate-200/80' : 'bg-slate-800/80 text-slate-300 ring-1 ring-slate-600/50'"
+            >
+              <span class="material-symbols-outlined text-base text-sky-500">apps</span>
+              <span class="font-medium">{{ selectedAppName() }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="hidden items-center justify-center pb-3 lg:flex" aria-hidden="true">
+          <span
+            class="material-symbols-outlined text-2xl"
+            [ngClass]="step1Complete() ? (theme() === 'light' ? 'text-sky-400' : 'text-sky-500/70') : theme() === 'light' ? 'text-slate-300' : 'text-slate-600'"
+          >
+            arrow_forward
+          </span>
+        </div>
+
+        <div
+          class="rounded-xl border p-4 transition"
+          [ngClass]="
+            !applicationId().trim()
+              ? theme() === 'light'
+                ? 'border-slate-200/80 bg-slate-50/30 opacity-75'
+                : 'border-slate-700/80 bg-slate-900/20 opacity-70'
+              : step2Complete()
+                ? theme() === 'light'
+                  ? 'border-emerald-200/80 bg-emerald-50/20 ring-1 ring-emerald-100/70'
+                  : 'border-emerald-500/25 bg-emerald-500/5 ring-1 ring-emerald-500/10'
+                : theme() === 'light'
+                  ? 'border-slate-200 bg-white'
+                  : 'border-slate-600/80 bg-slate-900/30'
+          "
+        >
+          <div class="mb-3 flex items-center gap-2.5">
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+              [ngClass]="
+                !applicationId().trim()
+                  ? theme() === 'light' ? 'bg-slate-300 text-white' : 'bg-slate-600 text-slate-400'
+                  : theme() === 'light' ? 'bg-violet-500 text-white' : 'bg-violet-500/85 text-white'
+              "
+            >
+              2
+            </span>
+            <div>
+              <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">User</p>
+              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Member trong application đã chọn</p>
+            </div>
+          </div>
+          <app-dropdown
+            [options]="userOptions()"
+            [placeholder]="translate.t().selectUser"
+            [disabled]="!applicationId().trim() || loadingUsers()"
+            [theme]="theme()"
+            [ngModel]="userId()"
+            (ngModelChange)="userId.set($event)"
+          />
+          @if (selectedUserSummary()) {
+            <div
+              class="mt-3 flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs"
+              [ngClass]="theme() === 'light' ? 'bg-white/80 text-slate-700 ring-1 ring-slate-200/80' : 'bg-slate-800/80 text-slate-300 ring-1 ring-slate-600/50'"
+            >
+              <span class="material-symbols-outlined text-base text-violet-500">person</span>
+              <span class="min-w-0 truncate font-medium">{{ selectedUserSummary() }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      @if (step2Complete()) {
+        <div
+          class="mt-5 flex items-start gap-3 rounded-xl border px-4 py-3 sm:items-center"
+          [ngClass]="theme() === 'light' ? 'border-emerald-200/90 bg-emerald-50/50' : 'border-emerald-500/25 bg-emerald-500/10'"
+        >
+          <span class="material-symbols-outlined shrink-0" [ngClass]="theme() === 'light' ? 'text-emerald-600' : 'text-emerald-400'">verified</span>
+          <p class="text-sm" [ngClass]="theme() === 'light' ? 'text-emerald-900' : 'text-emerald-100/90'">
+            Subscription hiện tại và lịch sử sẽ hiển thị bên dưới. Nếu user chưa có active subscription, bạn có thể kích hoạt theo plan.
+          </p>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (loading()) {
+    <app-loading-state [message]="translate.t().loading" [theme]="theme()" />
+  } @else if (step2Complete()) {
+    <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div
+        class="rounded-xl border p-6 shadow-sm"
+        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ translate.t().subsActiveSubscription }}</h2>
+          <button
+            type="button"
+            class="flex h-8 w-8 items-center justify-center rounded-lg transition"
+            [ngClass]="theme() === 'light' ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-700'"
+            [disabled]="loading()"
+            (click)="loadSubscriptions()"
+            [attr.title]="translate.t().subsLoadSubscription"
+          >
+            <span class="material-symbols-outlined text-lg">refresh</span>
+          </button>
+        </div>
+
+        @if (active(); as sub) {
+          <div class="mt-4 space-y-4 text-sm">
+            <div class="grid gap-2">
+              <div class="flex justify-between" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">
+                <span>{{ translate.t().type }}</span>
+                <span class="font-medium" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ sub.subscriptionType }}</span>
+              </div>
+              <div class="flex justify-between" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">
+                <span>{{ translate.t().startDate }}</span>
+                <span [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ sub.startedAt | date:'short' }}</span>
+              </div>
+              <div class="flex justify-between" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">
+                <span>{{ translate.t().expiryDate }}</span>
+                <span [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ sub.expiresAt | date:'short' }}</span>
+              </div>
+            </div>
+
+            @if (sub.entitlementSnapshot) {
+              <div class="rounded-lg border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50' : 'border-slate-700 bg-slate-900/50'">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Entitlement snapshot</h3>
+                <div class="mb-3 flex flex-wrap gap-1.5">
+                  @for (feature of sub.entitlementSnapshot.features; track feature) {
+                    <span
+                      class="rounded-md px-2 py-0.5 text-xs font-medium"
+                      [ngClass]="theme() === 'light' ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'"
+                    >
+                      {{ feature }}
+                    </span>
+                  } @empty {
+                    <span class="text-xs italic text-slate-500">Không có feature mở rộng trong snapshot.</span>
+                  }
+                </div>
+                <div class="grid grid-cols-2 gap-y-2 text-xs">
+                  <div class="text-slate-500">Max users</div>
+                  <div class="text-right font-medium">{{ displayQuota(sub.entitlementSnapshot.quotas.maxUsers) }}</div>
+                  <div class="text-slate-500">API calls</div>
+                  <div class="text-right font-medium">{{ displayQuota(sub.entitlementSnapshot.quotas.maxApiCalls) }}</div>
+                  <div class="text-slate-500">Max members</div>
+                  <div class="text-right font-medium">{{ displayQuota(sub.entitlementSnapshot.quotas.maxMembers) }}</div>
+                </div>
+              </div>
+            }
+
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="rounded-lg border px-3 py-1.5 text-sm transition disabled:opacity-70"
+                [ngClass]="theme() === 'light' ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-rose-500/50 text-rose-300 hover:bg-rose-500/10'"
+                [disabled]="saving()"
+                (click)="doCancel()"
+              >
+                {{ translate.t().subsCancelSubscription }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <p class="mt-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().subsNoActiveSubscription }}</p>
+          <button
+            type="button"
+            class="mt-2 rounded-lg bg-sky-500 px-3 py-1.5 text-sm text-white hover:bg-sky-600"
+            (click)="openActivateModal()"
+          >
+            {{ translate.t().subsActivate }}
+          </button>
+        }
+      </div>
+
+      <div class="space-y-6">
+        <section
+          class="rounded-xl border p-6 shadow-sm"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">Plan catalog cho application</h2>
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg transition"
+              [ngClass]="theme() === 'light' ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-700'"
+              [disabled]="loadingPlans()"
+              (click)="loadPlans(applicationId())"
+              title="Refresh plans"
+            >
+              <span class="material-symbols-outlined text-lg">refresh</span>
+            </button>
+          </div>
+
+          @if (loadingPlans()) {
+            <app-loading-state [message]="translate.t().loading" [theme]="theme()" />
+          } @else if (plans().length > 0) {
+            <div class="mt-4 space-y-3">
+              @for (plan of plans(); track plan.id) {
+                <div class="rounded-xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/40' : 'border-slate-700 bg-slate-900/35'">
+                  <div class="flex items-start justify-between gap-4">
+                    <div>
+                      <div class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ plan.name }}</div>
+                      <p class="mt-1 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ plan.description || 'Không có mô tả.' }}</p>
+                    </div>
+                    <span class="rounded-full px-2.5 py-1 text-[11px] font-medium" [ngClass]="plan.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">
+                      {{ plan.isActive ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                    <div class="rounded-lg px-3 py-2" [ngClass]="theme() === 'light' ? 'bg-white text-slate-700 ring-1 ring-slate-200' : 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'">
+                      Max users: <span class="font-semibold">{{ displayQuota(plan.maxUsers) }}</span>
+                    </div>
+                    <div class="rounded-lg px-3 py-2" [ngClass]="theme() === 'light' ? 'bg-white text-slate-700 ring-1 ring-slate-200' : 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'">
+                      API calls: <span class="font-semibold">{{ displayQuota(plan.maxApiCalls) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-1.5">
+                    @for (feature of planFeatures(plan); track feature) {
+                      <span class="rounded-md px-2 py-0.5 text-xs font-medium" [ngClass]="theme() === 'light' ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'">
+                        {{ feature }}
+                      </span>
+                    } @empty {
+                      <span class="text-xs italic text-slate-500">Plan này chưa bật feature compatibility nào.</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="mt-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+              Application này chưa có plan nào để kích hoạt.
+            </p>
+          }
+        </section>
+
+        <section
+          class="rounded-xl border p-6 shadow-sm"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white' : 'border-slate-700 bg-slate-800/80'"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ translate.t().subsHistory }}</h2>
+            <button
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-lg transition"
+              [ngClass]="theme() === 'light' ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-400 hover:bg-slate-700'"
+              [disabled]="loading()"
+              (click)="loadSubscriptions()"
+              [attr.title]="translate.t().subsLoadSubscription"
+            >
+              <span class="material-symbols-outlined text-lg">refresh</span>
+            </button>
+          </div>
+          @if (history().length > 0) {
+            <ul class="mt-4 space-y-2">
+              @for (item of history(); track item.id) {
+                <li class="rounded-lg border px-3 py-2 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-100' : 'border-slate-600/50'">
+                  <span class="font-medium" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ item.subscriptionType }}</span>
+                  · {{ item.startedAt | date:'short' }} → {{ item.expiresAt | date:'short' }}
+                  @if (item.isActive) {
+                    <span class="ml-2 rounded px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700" [ngClass]="theme() === 'dark' ? '!bg-emerald-500/20 !text-emerald-300' : ''">Active</span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ translate.t().subsNoHistory }}</p>
+          }
+        </section>
+      </div>
+    </div>
+  }
+
+  @if (showActivateModal()) {
+    <app-drawer
+      [title]="translate.t().subsActivateModalTitle"
+      [closing]="closingActivate()"
+      [theme]="theme()"
+      (close)="closeActivateModal()"
+    >
+      <div class="space-y-6">
+        <div class="space-y-3">
+          <label class="block text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">Chọn subscription plan</label>
+          <div class="grid gap-4 sm:grid-cols-2">
+            @for (plan of plans(); track plan.id) {
+              <div
+                class="relative cursor-pointer overflow-hidden rounded-xl border-2 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                [ngClass]="
+                  activateForm.subscriptionPlanId === plan.id
+                    ? (theme() === 'light'
+                        ? 'border-sky-500 bg-sky-50 shadow-sky-100'
+                        : 'border-sky-400 bg-sky-500/10 shadow-sky-900/20')
+                    : (theme() === 'light'
+                        ? 'border-slate-200 bg-white hover:border-sky-300'
+                        : 'border-slate-700 bg-slate-800/60 hover:border-sky-500/50')
+                "
+                (click)="onPlanSelect(plan.id)"
+              >
+                @if (activateForm.subscriptionPlanId === plan.id) {
+                  <div class="absolute right-0 top-0 rounded-bl-xl px-2 py-1" [ngClass]="theme() === 'light' ? 'bg-sky-500 text-white' : 'bg-sky-400 text-slate-900'">
+                    <span class="material-symbols-outlined block text-[16px]">check</span>
+                  </div>
+                }
+                <div class="mb-2 flex items-center gap-3">
+                  <span class="material-symbols-outlined text-2xl" [ngClass]="theme() === 'light' ? 'text-sky-600' : 'text-sky-400'">
+                    {{ plan.icon || 'verified' }}
+                  </span>
+                  <h3 class="text-base font-bold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ plan.name }}</h3>
+                </div>
+                <p class="mb-3 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ plan.description }}</p>
+
+                <div class="space-y-1.5 text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">group</span>
+                    <span>{{ displayQuota(plan.maxUsers) }} users</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[14px]">api</span>
+                    <span>{{ displayQuota(plan.maxApiCalls) }} API calls</span>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  @for (feature of planFeatures(plan); track feature) {
+                    <span class="rounded-md px-2 py-0.5 text-[11px] font-medium" [ngClass]="theme() === 'light' ? 'bg-indigo-50 text-indigo-700' : 'bg-indigo-500/20 text-indigo-300'">
+                      {{ feature }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">{{ translate.t().subsPlanType }}</label>
+          <div class="grid grid-cols-4 gap-2">
+            @for (type of ['Free', 'Premium', 'Family', 'Student']; track type) {
+              <button
+                type="button"
+                class="rounded-lg border py-2 text-sm font-medium transition-colors"
+                [ngClass]="
+                  activateForm.subscriptionType === type
+                    ? (theme() === 'light'
+                        ? 'border-violet-500 bg-violet-50 text-violet-700'
+                        : 'border-violet-400 bg-violet-500/20 text-violet-300')
+                    : (theme() === 'light'
+                        ? 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700')
+                "
+                (click)="activateForm.subscriptionType = $any(type)"
+              >
+                {{ type }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <app-form-field
+            [label]="translate.t().expiryDate"
+            [model]="activateForm.expiresAt"
+            (modelChange)="activateForm.expiresAt = $event.toString()"
+            type="date"
+            [theme]="theme()"
+          />
+        </div>
+      </div>
+
+      <app-drawer-footer-actions
+        [theme]="theme()"
+        [cancelLabel]="translate.t().cancel"
+        [saveLabel]="translate.t().subsActivate"
+        [loadingLabel]="translate.t().subsProcessing"
+        [loading]="saving()"
+        (cancel)="closeActivateModal()"
+        (save)="doActivate()"
+      />
+    </app-drawer>
+  }
+
+
+</div>
