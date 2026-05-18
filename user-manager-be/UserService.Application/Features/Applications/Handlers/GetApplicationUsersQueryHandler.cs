@@ -8,16 +8,16 @@ namespace UserService.Application.Features.Applications.Handlers;
 public sealed class GetApplicationUsersQueryHandler
     : IRequestHandler<GetApplicationUsersQuery, IReadOnlyList<ApplicationUserDto>>
 {
-    private readonly IUserApplicationRepository _userApplications;
+    private readonly IApplicationMembershipRepository _memberships;
 
-    public GetApplicationUsersQueryHandler(IUserApplicationRepository userApplications)
+    public GetApplicationUsersQueryHandler(IApplicationMembershipRepository memberships)
     {
-        _userApplications = userApplications;
+        _memberships = memberships;
     }
 
     public async Task<IReadOnlyList<ApplicationUserDto>> Handle(GetApplicationUsersQuery request, CancellationToken cancellationToken)
     {
-        var memberships = (await _userApplications.GetByApplicationAsync(request.ApplicationId, cancellationToken))
+        var memberships = (await _memberships.GetByApplicationAsync(request.ApplicationId, cancellationToken))
             .ToList();
 
         if (memberships.Count == 0)

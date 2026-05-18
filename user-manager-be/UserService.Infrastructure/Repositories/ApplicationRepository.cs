@@ -37,8 +37,9 @@ public sealed class ApplicationRepository : Repository<AppApplication>, IApplica
     }
     public async Task<IReadOnlyList<AppApplication>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        var context = (UserDbContext)_context;
         return await _dbSet.AsNoTracking()
-            .Where(a => a.Users.Any(u => u.UserId == userId && u.IsActive))
+            .Where(a => context.ApplicationMemberships.Any(u => u.ApplicationId == a.Id && u.UserId == userId && u.IsActive))
             .ToListAsync(cancellationToken);
     }
     public async Task<bool> IsNameTakenAsync(Guid ownerId, string name, CancellationToken cancellationToken = default)

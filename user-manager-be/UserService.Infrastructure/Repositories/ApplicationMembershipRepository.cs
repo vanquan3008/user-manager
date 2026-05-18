@@ -5,29 +5,27 @@ using UserService.Infrastructure.Data;
 
 namespace UserService.Infrastructure.Repositories;
 
-/// <summary>
-/// Repository for UserApplication (user's membership/role in an app).
-/// </summary>
-public sealed class UserApplicationRepository : Repository<UserApplication>, IUserApplicationRepository
+public sealed class ApplicationMembershipRepository : Repository<ApplicationMembership>, IApplicationMembershipRepository
 {
-    public UserApplicationRepository(UserDbContext context) : base(context)
+    public ApplicationMembershipRepository(UserDbContext context) : base(context)
     {
     }
 
-    public async Task<UserApplication?> GetByUserAndAppAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default)
+    public async Task<ApplicationMembership?> GetByUserAndAppAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default)
     {
         return await _dbSet.AsNoTracking()
             .FirstOrDefaultAsync(ua => ua.UserId == userId && ua.ApplicationId == applicationId, cancellationToken);
     }
 
-    public async Task<IEnumerable<UserApplication>> GetByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ApplicationMembership>> GetByApplicationAsync(Guid applicationId, CancellationToken cancellationToken = default)
     {
         return await _dbSet.AsNoTracking()
+            .Include(ua => ua.User)
             .Where(ua => ua.ApplicationId == applicationId)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<UserApplication>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<ApplicationMembership>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _dbSet.AsNoTracking()
             .Include(ua => ua.Application)

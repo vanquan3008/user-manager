@@ -85,6 +85,19 @@ public class ApplicationsController(IMediator mediator) : ApiControllerBase
 
         return OkSuccess("User added to application successfully");
     }
+
+    [HttpDelete("{applicationId:guid}/users/{userId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.ManageUsers)]
+    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<SuccessResponse>>> RemoveUserFromApplication(
+        Guid applicationId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new RemoveUserFromApplicationCommand(applicationId, userId);
+        await mediator.Send(command, cancellationToken);
+        return OkSuccess("User removed from application successfully");
+    }
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.CreateApplication)]
     [ProducesResponseType(typeof(ApiResponse<CreateApplicationResponse>), StatusCodes.Status201Created)]
@@ -98,13 +111,41 @@ public class ApplicationsController(IMediator mediator) : ApiControllerBase
             request.Name,
             request.Description,
             request.OwnerId,
-            request.DefaultLicensePackageId,
+            request.ClientType,
             request.SubscriptionPlanId,
             request.LogoUrl,
             request.AllowedRedirectUris,
             request.BackchannelLogoutUri);
         var created = await mediator.Send(command, cancellationToken);
         return CreatedResponse(nameof(GetApplication), created, new { applicationId = created.Id });
+    }
+
+    [HttpGet("{applicationId:guid}/credentials")]
+    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [ProducesResponseType(typeof(ApiResponse<ApplicationCredentialDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<ApplicationCredentialDto>>> GetCredentials(
+        Guid applicationId,
+        CancellationToken cancellationToken = default)
+    {
+        var credentials = await mediator.Send(new GetApplicationCredentialsQuery(applicationId), cancellationToken);
+        return OkResponse(credentials);
+    }
+
+    [HttpPost("{applicationId:guid}/credentials/rotate")]
+    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [ProducesResponseType(typeof(ApiResponse<ApplicationCredentialDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<ApplicationCredentialDto>>> RotateCredentials(
+        Guid applicationId,
+        [FromBody] RotateApplicationClientSecretRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is { Confirm: false })
+            return BadRequestResponse("Credential rotation was not confirmed.", "ROTATION_NOT_CONFIRMED");
+
+        var credentials = await mediator.Send(new RotateApplicationClientSecretCommand(applicationId), cancellationToken);
+        return OkResponse(credentials);
     }
 
     [HttpPut("{applicationId:guid}/logo")]

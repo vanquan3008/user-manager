@@ -22,11 +22,7 @@ public sealed class AppRole : IdentityRole<Guid>
 
     public string? Description { get; set; }
     public bool IsSystemRole { get; set; }
-
-    // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
-
-    // Navigation properties
     public ICollection<AppUserRole> UserRoles { get; set; } = new List<AppUserRole>();
 }

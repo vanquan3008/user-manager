@@ -37,12 +37,12 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResponse
             .Distinct()
             .ToList();
 
-        var ssoByProfile = await _userRepository.GetIsSsoAccountByProfileIdsAsync(profileIds, cancellationToken);
+        var ssoByProfile = await _userRepository.GetIsSSOAccountByProfileIdsAsync(profileIds, cancellationToken);
 
         var enriched = items.Select(i =>
         {
-            var isSso = i.UserProfileId is { } pid && ssoByProfile.TryGetValue(pid, out var flag) && flag;
-            return i with { IsSsoAccount = isSso };
+            var isSSO = i.UserProfileId is { } pid && ssoByProfile.TryGetValue(pid, out var flag) && flag;
+            return i with { IsSSOAccount = isSSO };
         }).ToList();
 
         return new PagedResponse<IdentityUserDto>(

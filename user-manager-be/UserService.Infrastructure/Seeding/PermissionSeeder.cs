@@ -49,6 +49,7 @@ public class PermissionSeeder
             if (string.IsNullOrEmpty(val)) continue;
             codes.Add(val);
         }
+
         return codes.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
