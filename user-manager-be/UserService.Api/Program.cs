@@ -2,7 +2,6 @@ using Serilog;
 using UserService.Api.Extensions;
 using UserService.Application.Configuration;
 using UserService.Application.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using UserService.Infrastructure.DependencyInjection;
 
 Log.Logger = SerilogExtensions.CreateBootstrapLogger();
@@ -15,7 +14,7 @@ try
     var appSettings = new AppSettings();
     builder.Configuration.GetSection(AppSettings.SectionName).Bind(appSettings);
 
-    builder.Services.AddApplicationServices(builder.Configuration);
+    builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructureServices(appSettings);                  
     builder.Services.AddApiServices(builder.Configuration, appSettings);
    

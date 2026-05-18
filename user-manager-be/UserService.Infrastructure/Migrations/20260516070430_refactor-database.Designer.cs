@@ -12,15 +12,15 @@ using UserService.Infrastructure.Data;
 namespace UserService.Infrastructure.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20260508044411_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260516070430_refactor-database")]
+    partial class RefactorDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -347,13 +347,15 @@ namespace UserService.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("ClientType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("DefaultLicensePackageId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -409,8 +411,6 @@ namespace UserService.Infrastructure.Migrations
                     b.HasIndex("ApiKey")
                         .IsUnique();
 
-                    b.HasIndex("DefaultLicensePackageId");
-
                     b.HasIndex("IsActive");
 
                     b.HasIndex("IsDeleted");
@@ -420,6 +420,75 @@ namespace UserService.Infrastructure.Migrations
                     b.HasIndex("SubscriptionPlanId");
 
                     b.ToTable("AppApplications", (string)null);
+                });
+
+            modelBuilder.Entity("UserService.Domain.Entities.ApplicationMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApplicationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("InvitedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ApplicationId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.ToTable("ApplicationMemberships", (string)null);
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.ApplicationOAuthScope", b =>
@@ -447,14 +516,9 @@ namespace UserService.Infrastructure.Migrations
 
                     b.HasIndex("ApplicationId");
 
-                    b.HasIndex("IsActive");
-
                     b.HasIndex("PermissionId");
 
-                    b.HasIndex("ApplicationId", "PermissionId")
-                        .IsUnique();
-
-                    b.ToTable("ApplicationOAuthScopes", (string)null);
+                    b.ToTable("ApplicationOAuthScopes");
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.ApplicationRole", b =>
@@ -478,171 +542,14 @@ namespace UserService.Infrastructure.Migrations
                     b.ToTable("ApplicationRoles", (string)null);
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.FamilyMember", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.ApplicationSubscription", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("FamilyPlanId")
+                    b.Property<Guid>("ApplicationId")
                         .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsAdmin")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsOwner")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastActivityAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("RoleTypeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FamilyPlanId");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("IsAdmin");
-
-                    b.HasIndex("RoleTypeId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "FamilyPlanId")
-                        .IsUnique();
-
-                    b.ToTable("FamilyMembers", (string)null);
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.FamilyPlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("CanShareApplications")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanShareContent")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanSharePayment")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("CurrentFamilySubscriptionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DeletedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("FamilyDescription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("FamilyIcon")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("FamilyName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("FamilySubscriptionPlanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("InviteCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<DateTime?>("InviteCodeExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("MaxMembers")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("SharedStorageMB")
-                        .HasColumnType("bigint")
-                        .HasColumnName("SharedStorageMB");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("UsedStorageMB")
-                        .HasColumnType("bigint")
-                        .HasColumnName("UsedStorageMB");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("FamilySubscriptionPlanId");
-
-                    b.HasIndex("InviteCode")
-                        .IsUnique();
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("FamilyPlans", (string)null);
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.FamilySubscription", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("AutoRenew")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("BillingCycle")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
@@ -659,39 +566,23 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("ExpiresAt")
+                    b.Property<DateTime?>("EndsAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("FamilyPlanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                    b.Property<string>("EntitlementSnapshot")
+                        .HasColumnType("text")
+                        .HasColumnName("EntitlementSnapshotJson");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("PaymentMethodId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal?>("PricePerMonth")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
-
-                    b.Property<decimal?>("PricePerYear")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("numeric(10,2)");
-
-                    b.Property<DateTime?>("RenewsAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("StorageMBPerFamily")
-                        .HasColumnType("bigint")
-                        .HasColumnName("StorageMBPerFamily");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<Guid>("SubscriptionPlanId")
                         .HasColumnType("uuid");
@@ -704,34 +595,29 @@ namespace UserService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ExpiresAt");
+                    b.HasIndex("ApplicationId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ApplicationSubscriptions_ApplicationId_Active")
+                        .HasFilter("\"Status\" IN ('Trialing', 'Active', 'PastDue') AND \"CancelledAt\" IS NULL");
 
-                    b.HasIndex("FamilyPlanId");
-
-                    b.HasIndex("StartedAt");
+                    b.HasIndex("Status");
 
                     b.HasIndex("SubscriptionPlanId");
 
-                    b.HasIndex("FamilyPlanId", "IsActive");
+                    b.HasIndex("ApplicationId", "CancelledAt");
 
-                    b.ToTable("FamilySubscriptions", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_FamilySubscriptions_PricePerMonth_NonNegative", "\"PricePerMonth\" >= 0");
+                    b.HasIndex("ApplicationId", "Status");
 
-                            t.HasCheckConstraint("CK_FamilySubscriptions_PricePerYear_NonNegative", "\"PricePerYear\" >= 0");
-                        });
+                    b.ToTable("ApplicationSubscriptions", (string)null);
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.LicensePackage", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.Feature", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AssignedRole")
+                    b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -748,13 +634,10 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FeatureJson")
+                    b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -762,16 +645,13 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<int>("SeatLimit")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("SubscriptionPlanId")
-                        .HasColumnType("uuid");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -781,17 +661,12 @@ namespace UserService.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplicationId");
-
-                    b.HasIndex("SubscriptionPlanId");
-
-                    b.HasIndex("SubscriptionPlanId", "Name")
+                    b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("LicensePackages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_LicensePackages_SeatLimit_MinusOneOrMore", "\"SeatLimit\" >= -1");
-                        });
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("Features", (string)null);
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.MagicLinkToken", b =>
@@ -1038,6 +913,30 @@ namespace UserService.Infrastructure.Migrations
                     b.ToTable("Permissions", (string)null);
                 });
 
+            modelBuilder.Entity("UserService.Domain.Entities.PlanFeature", b =>
+                {
+                    b.Property<Guid>("SubscriptionPlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FeatureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LimitsJson")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.HasKey("SubscriptionPlanId", "FeatureId");
+
+                    b.HasIndex("FeatureId");
+
+                    b.HasIndex("IsEnabled");
+
+                    b.ToTable("PlanFeatures", (string)null);
+                });
+
             modelBuilder.Entity("UserService.Domain.Entities.RolePermission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1106,9 +1005,6 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("LicensePackageId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("MaxMembers")
                         .HasColumnType("integer");
 
@@ -1136,8 +1032,6 @@ namespace UserService.Infrastructure.Migrations
 
                     b.HasIndex("ExpiresAt");
 
-                    b.HasIndex("LicensePackageId");
-
                     b.HasIndex("StartedAt");
 
                     b.HasIndex("SubscriptionPlanId");
@@ -1148,62 +1042,6 @@ namespace UserService.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Subscriptions_MaxMembers_Positive", "\"MaxMembers\" > 0");
                         });
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionMember", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("ContributionPercentage")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsOwner")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPrimaryPayer")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastActivityAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("RoleTypeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SubscriptionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TotalPaid")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleTypeId");
-
-                    b.HasIndex("SubscriptionId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("SubscriptionId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("SubscriptionMembers", (string)null);
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlan", b =>
@@ -1238,18 +1076,6 @@ namespace UserService.Infrastructure.Migrations
                     b.Property<string>("Icon")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IncludeAdvancedSecurity")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IncludeAnalytics")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IncludeCustomDomain")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IncludeSupport")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -1303,40 +1129,19 @@ namespace UserService.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlanRoleAssignment", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlanPermission", b =>
                 {
                     b.Property<Guid>("SubscriptionPlanId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("RoleId")
+                    b.Property<Guid>("PermissionId")
                         .HasColumnType("uuid");
 
-                    b.HasKey("SubscriptionPlanId", "RoleId");
+                    b.HasKey("SubscriptionPlanId", "PermissionId");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("PermissionId");
 
-                    b.ToTable("SubscriptionPlanRoleAssignments", (string)null);
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionRoleType", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsAdmin")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubscriptionRoleTypes");
+                    b.ToTable("SubscriptionPlanPermissions", (string)null);
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.User", b =>
@@ -1439,87 +1244,6 @@ namespace UserService.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users", (string)null);
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.UserApplication", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("AppApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ApplicationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("CanDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageSubscription")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanManageUsers")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanRead")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("CanWrite")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("InvitedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LicenseAssignedRole")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("LicensePackageId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppApplicationId");
-
-                    b.HasIndex("ApplicationId");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("LicensePackageId");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "ApplicationId")
-                        .IsUnique();
-
-                    b.ToTable("UserApplications", (string)null);
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.UserOAuthConsent", b =>
@@ -1824,11 +1548,6 @@ namespace UserService.Infrastructure.Migrations
 
             modelBuilder.Entity("UserService.Domain.Entities.AppApplication", b =>
                 {
-                    b.HasOne("UserService.Domain.Entities.LicensePackage", "DefaultLicensePackage")
-                        .WithMany()
-                        .HasForeignKey("DefaultLicensePackageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("UserService.Domain.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
@@ -1840,14 +1559,12 @@ namespace UserService.Infrastructure.Migrations
                         .HasForeignKey("SubscriptionPlanId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("DefaultLicensePackage");
-
                     b.Navigation("Owner");
 
                     b.Navigation("SubscriptionPlan");
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.ApplicationOAuthScope", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.ApplicationMembership", b =>
                 {
                     b.HasOne("UserService.Domain.Entities.AppApplication", "Application")
                         .WithMany()
@@ -1855,10 +1572,35 @@ namespace UserService.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("UserService.Infrastructure.Identity.AppRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Entities.ApplicationOAuthScope", b =>
+                {
+                    b.HasOne("UserService.Domain.Entities.AppApplication", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("UserService.Domain.Entities.Permission", "Permission")
                         .WithMany()
                         .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Application");
@@ -1881,143 +1623,7 @@ namespace UserService.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.FamilyMember", b =>
-                {
-                    b.HasOne("UserService.Domain.Entities.FamilyPlan", "FamilyPlan")
-                        .WithMany("Members")
-                        .HasForeignKey("FamilyPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.SubscriptionRoleType", "RoleType")
-                        .WithMany()
-                        .HasForeignKey("RoleTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("FamilyPlan");
-
-                    b.Navigation("RoleType");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.FamilyPlan", b =>
-                {
-                    b.HasOne("UserService.Domain.Entities.SubscriptionPlan", null)
-                        .WithMany()
-                        .HasForeignKey("FamilySubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("UserService.Domain.Entities.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.OwnsMany("UserService.Domain.Entities.SharedApplication", "SharedApplications", b1 =>
-                        {
-                            b1.Property<Guid>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("uuid");
-
-                            b1.Property<Guid>("ApplicationId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<DateTime>("CreatedAt")
-                                .HasColumnType("timestamp with time zone");
-
-                            b1.Property<Guid>("FamilyPlanId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<bool>("IsActive")
-                                .HasColumnType("boolean");
-
-                            b1.Property<DateTime>("SharedAt")
-                                .HasColumnType("timestamp with time zone");
-
-                            b1.Property<DateTime?>("UpdatedAt")
-                                .HasColumnType("timestamp with time zone");
-
-                            b1.HasKey("Id");
-
-                            b1.HasIndex("ApplicationId");
-
-                            b1.HasIndex("FamilyPlanId");
-
-                            b1.ToTable("FamilySharedApplications", (string)null);
-
-                            b1.HasOne("UserService.Domain.Entities.AppApplication", "Application")
-                                .WithMany()
-                                .HasForeignKey("ApplicationId")
-                                .OnDelete(DeleteBehavior.Restrict)
-                                .IsRequired();
-
-                            b1.WithOwner()
-                                .HasForeignKey("FamilyPlanId");
-
-                            b1.OwnsMany("UserService.Domain.Entities.SharedApplicationAllowedMember", "AllowedMembers", b2 =>
-                                {
-                                    b2.Property<Guid>("SharedApplicationId")
-                                        .HasColumnType("uuid");
-
-                                    b2.Property<Guid>("FamilyMemberId")
-                                        .HasColumnType("uuid");
-
-                                    b2.HasKey("SharedApplicationId", "FamilyMemberId");
-
-                                    b2.HasIndex("FamilyMemberId");
-
-                                    b2.ToTable("FamilySharedApplicationAllowedMembers", (string)null);
-
-                                    b2.HasOne("UserService.Domain.Entities.FamilyMember", "FamilyMember")
-                                        .WithMany()
-                                        .HasForeignKey("FamilyMemberId")
-                                        .OnDelete(DeleteBehavior.Cascade)
-                                        .IsRequired();
-
-                                    b2.WithOwner()
-                                        .HasForeignKey("SharedApplicationId");
-
-                                    b2.Navigation("FamilyMember");
-                                });
-
-                            b1.Navigation("AllowedMembers");
-
-                            b1.Navigation("Application");
-                        });
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("SharedApplications");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.FamilySubscription", b =>
-                {
-                    b.HasOne("UserService.Domain.Entities.FamilyPlan", "FamilyPlan")
-                        .WithMany()
-                        .HasForeignKey("FamilyPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany()
-                        .HasForeignKey("SubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("FamilyPlan");
-
-                    b.Navigation("SubscriptionPlan");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.LicensePackage", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.ApplicationSubscription", b =>
                 {
                     b.HasOne("UserService.Domain.Entities.AppApplication", "Application")
                         .WithMany()
@@ -2028,7 +1634,8 @@ namespace UserService.Infrastructure.Migrations
                     b.HasOne("UserService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
                         .WithMany()
                         .HasForeignKey("SubscriptionPlanId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Application");
 
@@ -2084,6 +1691,25 @@ namespace UserService.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("UserService.Domain.Entities.PlanFeature", b =>
+                {
+                    b.HasOne("UserService.Domain.Entities.Feature", "Feature")
+                        .WithMany()
+                        .HasForeignKey("FeatureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
+                        .WithMany()
+                        .HasForeignKey("SubscriptionPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Feature");
+
+                    b.Navigation("SubscriptionPlan");
+                });
+
             modelBuilder.Entity("UserService.Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("UserService.Domain.Entities.Permission", "Permission")
@@ -2109,11 +1735,6 @@ namespace UserService.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("UserService.Domain.Entities.LicensePackage", "LicensePackage")
-                        .WithMany("Subscriptions")
-                        .HasForeignKey("LicensePackageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("UserService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
                         .WithMany()
                         .HasForeignKey("SubscriptionPlanId")
@@ -2127,36 +1748,7 @@ namespace UserService.Infrastructure.Migrations
 
                     b.Navigation("Application");
 
-                    b.Navigation("LicensePackage");
-
                     b.Navigation("SubscriptionPlan");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionMember", b =>
-                {
-                    b.HasOne("UserService.Domain.Entities.SubscriptionRoleType", "RoleType")
-                        .WithMany()
-                        .HasForeignKey("RoleTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.Subscription", "Subscription")
-                        .WithMany("Members")
-                        .HasForeignKey("SubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("RoleType");
-
-                    b.Navigation("Subscription");
 
                     b.Navigation("User");
                 });
@@ -2169,19 +1761,21 @@ namespace UserService.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlanRoleAssignment", b =>
+            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlanPermission", b =>
                 {
-                    b.HasOne("UserService.Infrastructure.Identity.AppRole", null)
+                    b.HasOne("UserService.Domain.Entities.Permission", "Permission")
                         .WithMany()
-                        .HasForeignKey("RoleId")
+                        .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("UserService.Domain.Entities.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany("RoleAssignments")
+                        .WithMany()
                         .HasForeignKey("SubscriptionPlanId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Permission");
 
                     b.Navigation("SubscriptionPlan");
                 });
@@ -2316,36 +1910,6 @@ namespace UserService.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.UserApplication", b =>
-                {
-                    b.HasOne("UserService.Domain.Entities.AppApplication", null)
-                        .WithMany("Users")
-                        .HasForeignKey("AppApplicationId");
-
-                    b.HasOne("UserService.Domain.Entities.AppApplication", "Application")
-                        .WithMany()
-                        .HasForeignKey("ApplicationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("UserService.Domain.Entities.LicensePackage", "LicensePackage")
-                        .WithMany()
-                        .HasForeignKey("LicensePackageId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("UserService.Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Application");
-
-                    b.Navigation("LicensePackage");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("UserService.Domain.Entities.UserOAuthConsent", b =>
                 {
                     b.HasOne("UserService.Domain.Entities.AppApplication", "Application")
@@ -2419,34 +1983,9 @@ namespace UserService.Infrastructure.Migrations
                     b.Navigation("Tokens");
                 });
 
-            modelBuilder.Entity("UserService.Domain.Entities.AppApplication", b =>
-                {
-                    b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.FamilyPlan", b =>
-                {
-                    b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.LicensePackage", b =>
-                {
-                    b.Navigation("Subscriptions");
-                });
-
             modelBuilder.Entity("UserService.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.Subscription", b =>
-                {
-                    b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("UserService.Domain.Entities.SubscriptionPlan", b =>
-                {
-                    b.Navigation("RoleAssignments");
                 });
 
             modelBuilder.Entity("UserService.Domain.Entities.UserOAuthConsent", b =>

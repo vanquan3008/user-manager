@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace UserService.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class RefactorDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -65,6 +65,29 @@ namespace UserService.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Features",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    IsSystem = table.Column<bool>(type: "boolean", nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Features", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -131,20 +154,6 @@ namespace UserService.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Permissions", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SubscriptionRoleTypes",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    SortOrder = table.Column<int>(type: "integer", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SubscriptionRoleTypes", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -421,10 +430,10 @@ namespace UserService.Infrastructure.Migrations
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                     OwnerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DefaultLicensePackageId = table.Column<Guid>(type: "uuid", nullable: true),
                     SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: true),
                     ApiKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     ApiSecret = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    ClientType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     LogoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     LastApiKeyRotatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     WebhookUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
@@ -452,6 +461,49 @@ namespace UserService.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ApplicationMemberships",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    InvitedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationMemberships", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ApplicationMemberships_AppApplications_ApplicationId",
+                        column: x => x.ApplicationId,
+                        principalTable: "AppApplications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ApplicationMemberships_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ApplicationMemberships_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ApplicationOAuthScopes",
                 columns: table => new
                 {
@@ -470,13 +522,13 @@ namespace UserService.Infrastructure.Migrations
                         column: x => x.ApplicationId,
                         principalTable: "AppApplications",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_ApplicationOAuthScopes_Permissions_PermissionId",
                         column: x => x.PermissionId,
                         principalTable: "Permissions",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -587,10 +639,6 @@ namespace UserService.Infrastructure.Migrations
                     YearlyPrice = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
                     MaxUsers = table.Column<int>(type: "integer", nullable: false),
                     MaxApiCalls = table.Column<int>(type: "integer", nullable: true),
-                    IncludeAnalytics = table.Column<bool>(type: "boolean", nullable: false),
-                    IncludeSupport = table.Column<bool>(type: "boolean", nullable: false),
-                    IncludeAdvancedSecurity = table.Column<bool>(type: "boolean", nullable: false),
-                    IncludeCustomDomain = table.Column<bool>(type: "boolean", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -647,63 +695,17 @@ namespace UserService.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "FamilyPlans",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    OwnerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FamilyName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    FamilyIcon = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    FamilyDescription = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    FamilySubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CurrentFamilySubscriptionId = table.Column<Guid>(type: "uuid", nullable: true),
-                    MaxMembers = table.Column<int>(type: "integer", nullable: false),
-                    InviteCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    InviteCodeExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    SharedStorageMB = table.Column<long>(type: "bigint", nullable: false),
-                    UsedStorageMB = table.Column<long>(type: "bigint", nullable: false),
-                    CanShareApplications = table.Column<bool>(type: "boolean", nullable: false),
-                    CanShareContent = table.Column<bool>(type: "boolean", nullable: false),
-                    CanSharePayment = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FamilyPlans", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FamilyPlans_SubscriptionPlans_FamilySubscriptionPlanId",
-                        column: x => x.FamilySubscriptionPlanId,
-                        principalTable: "SubscriptionPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_FamilyPlans_Users_OwnerId",
-                        column: x => x.OwnerId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "LicensePackages",
+                name: "ApplicationSubscriptions",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    FeatureJson = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: false),
-                    SeatLimit = table.Column<int>(type: "integer", nullable: false),
-                    AssignedRole = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    DisplayOrder = table.Column<int>(type: "integer", nullable: false),
+                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<string>(type: "character varying(40)", maxLength: 40, nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndsAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CancelledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EntitlementSnapshotJson = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -714,16 +716,15 @@ namespace UserService.Infrastructure.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LicensePackages", x => x.Id);
-                    table.CheckConstraint("CK_LicensePackages_SeatLimit_MinusOneOrMore", "\"SeatLimit\" >= -1");
+                    table.PrimaryKey("PK_ApplicationSubscriptions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_LicensePackages_AppApplications_ApplicationId",
+                        name: "FK_ApplicationSubscriptions_AppApplications_ApplicationId",
                         column: x => x.ApplicationId,
                         principalTable: "AppApplications",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_LicensePackages_SubscriptionPlans_SubscriptionPlanId",
+                        name: "FK_ApplicationSubscriptions_SubscriptionPlans_SubscriptionPlan~",
                         column: x => x.SubscriptionPlanId,
                         principalTable: "SubscriptionPlans",
                         principalColumn: "Id",
@@ -731,27 +732,100 @@ namespace UserService.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SubscriptionPlanRoleAssignments",
+                name: "PlanFeatures",
                 columns: table => new
                 {
                     SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uuid", nullable: false)
+                    FeatureId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    LimitsJson = table.Column<string>(type: "character varying(8000)", maxLength: 8000, nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SubscriptionPlanRoleAssignments", x => new { x.SubscriptionPlanId, x.RoleId });
+                    table.PrimaryKey("PK_PlanFeatures", x => new { x.SubscriptionPlanId, x.FeatureId });
                     table.ForeignKey(
-                        name: "FK_SubscriptionPlanRoleAssignments_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
+                        name: "FK_PlanFeatures_Features_FeatureId",
+                        column: x => x.FeatureId,
+                        principalTable: "Features",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_SubscriptionPlanRoleAssignments_SubscriptionPlans_Subscript~",
+                        name: "FK_PlanFeatures_SubscriptionPlans_SubscriptionPlanId",
                         column: x => x.SubscriptionPlanId,
                         principalTable: "SubscriptionPlans",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SubscriptionPlanPermissions",
+                columns: table => new
+                {
+                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PermissionId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SubscriptionPlanPermissions", x => new { x.SubscriptionPlanId, x.PermissionId });
+                    table.ForeignKey(
+                        name: "FK_SubscriptionPlanPermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SubscriptionPlanPermissions_SubscriptionPlans_SubscriptionP~",
+                        column: x => x.SubscriptionPlanId,
+                        principalTable: "SubscriptionPlans",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Subscriptions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: true),
+                    EntitlementSnapshotJson = table.Column<string>(type: "text", nullable: true),
+                    SubscriptionType = table.Column<int>(type: "integer", nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    MaxMembers = table.Column<int>(type: "integer", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CancelledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Subscriptions", x => x.Id);
+                    table.CheckConstraint("CK_Subscriptions_MaxMembers_Positive", "\"MaxMembers\" > 0");
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_AppApplications_ApplicationId",
+                        column: x => x.ApplicationId,
+                        principalTable: "AppApplications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_SubscriptionPlans_SubscriptionPlanId",
+                        column: x => x.SubscriptionPlanId,
+                        principalTable: "SubscriptionPlans",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Subscriptions_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -787,300 +861,11 @@ namespace UserService.Infrastructure.Migrations
                         principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateTable(
-                name: "FamilyMembers",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FamilyPlanId = table.Column<Guid>(type: "uuid", nullable: false),
-                    RoleTypeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    IsAdmin = table.Column<bool>(type: "boolean", nullable: false),
-                    IsOwner = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastActivityAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FamilyMembers", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FamilyMembers_FamilyPlans_FamilyPlanId",
-                        column: x => x.FamilyPlanId,
-                        principalTable: "FamilyPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_FamilyMembers_SubscriptionRoleTypes_RoleTypeId",
-                        column: x => x.RoleTypeId,
-                        principalTable: "SubscriptionRoleTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_FamilyMembers_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "FamilySharedApplications",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FamilyPlanId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    SharedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FamilySharedApplications", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_FamilySharedApplications_AppApplications_ApplicationId",
-                        column: x => x.ApplicationId,
-                        principalTable: "AppApplications",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_FamilySharedApplications_FamilyPlans_FamilyPlanId",
-                        column: x => x.FamilyPlanId,
-                        principalTable: "FamilyPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "FamilySubscriptions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    FamilyPlanId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    RenewsAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    BillingCycle = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    PaymentMethodId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    PricePerMonth = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: true),
-                    PricePerYear = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    AutoRenew = table.Column<bool>(type: "boolean", nullable: false),
-                    CancelledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    StorageMBPerFamily = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FamilySubscriptions", x => x.Id);
-                    table.CheckConstraint("CK_FamilySubscriptions_PricePerMonth_NonNegative", "\"PricePerMonth\" >= 0");
-                    table.CheckConstraint("CK_FamilySubscriptions_PricePerYear_NonNegative", "\"PricePerYear\" >= 0");
-                    table.ForeignKey(
-                        name: "FK_FamilySubscriptions_FamilyPlans_FamilyPlanId",
-                        column: x => x.FamilyPlanId,
-                        principalTable: "FamilyPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_FamilySubscriptions_SubscriptionPlans_SubscriptionPlanId",
-                        column: x => x.SubscriptionPlanId,
-                        principalTable: "SubscriptionPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Subscriptions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SubscriptionPlanId = table.Column<Guid>(type: "uuid", nullable: true),
-                    LicensePackageId = table.Column<Guid>(type: "uuid", nullable: true),
-                    EntitlementSnapshotJson = table.Column<string>(type: "text", nullable: true),
-                    SubscriptionType = table.Column<int>(type: "integer", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    MaxMembers = table.Column<int>(type: "integer", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CancelledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    UpdatedBy = table.Column<Guid>(type: "uuid", nullable: true),
-                    DeletedBy = table.Column<Guid>(type: "uuid", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Subscriptions", x => x.Id);
-                    table.CheckConstraint("CK_Subscriptions_MaxMembers_Positive", "\"MaxMembers\" > 0");
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_AppApplications_ApplicationId",
-                        column: x => x.ApplicationId,
-                        principalTable: "AppApplications",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_LicensePackages_LicensePackageId",
-                        column: x => x.LicensePackageId,
-                        principalTable: "LicensePackages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_SubscriptionPlans_SubscriptionPlanId",
-                        column: x => x.SubscriptionPlanId,
-                        principalTable: "SubscriptionPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Subscriptions_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserApplications",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    ApplicationId = table.Column<Guid>(type: "uuid", nullable: false),
-                    LicensePackageId = table.Column<Guid>(type: "uuid", nullable: true),
-                    Role = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    LicenseAssignedRole = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    CanRead = table.Column<bool>(type: "boolean", nullable: false),
-                    CanWrite = table.Column<bool>(type: "boolean", nullable: false),
-                    CanDelete = table.Column<bool>(type: "boolean", nullable: false),
-                    CanManageUsers = table.Column<bool>(type: "boolean", nullable: false),
-                    CanManageSubscription = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    InvitedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    AppApplicationId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserApplications", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_UserApplications_AppApplications_AppApplicationId",
-                        column: x => x.AppApplicationId,
-                        principalTable: "AppApplications",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_UserApplications_AppApplications_ApplicationId",
-                        column: x => x.ApplicationId,
-                        principalTable: "AppApplications",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_UserApplications_LicensePackages_LicensePackageId",
-                        column: x => x.LicensePackageId,
-                        principalTable: "LicensePackages",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_UserApplications_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "FamilySharedApplicationAllowedMembers",
-                columns: table => new
-                {
-                    FamilyMemberId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SharedApplicationId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_FamilySharedApplicationAllowedMembers", x => new { x.SharedApplicationId, x.FamilyMemberId });
-                    table.ForeignKey(
-                        name: "FK_FamilySharedApplicationAllowedMembers_FamilyMembers_FamilyM~",
-                        column: x => x.FamilyMemberId,
-                        principalTable: "FamilyMembers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_FamilySharedApplicationAllowedMembers_FamilySharedApplicati~",
-                        column: x => x.SharedApplicationId,
-                        principalTable: "FamilySharedApplications",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SubscriptionMembers",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    SubscriptionId = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    RoleTypeId = table.Column<Guid>(type: "uuid", nullable: false),
-                    IsOwner = table.Column<bool>(type: "boolean", nullable: false),
-                    IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    ContributionPercentage = table.Column<decimal>(type: "numeric", nullable: false),
-                    TotalPaid = table.Column<decimal>(type: "numeric", nullable: false),
-                    IsPrimaryPayer = table.Column<bool>(type: "boolean", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastActivityAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SubscriptionMembers", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_SubscriptionMembers_SubscriptionRoleTypes_RoleTypeId",
-                        column: x => x.RoleTypeId,
-                        principalTable: "SubscriptionRoleTypes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_SubscriptionMembers_Subscriptions_SubscriptionId",
-                        column: x => x.SubscriptionId,
-                        principalTable: "Subscriptions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_SubscriptionMembers_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_AppApplications_ApiKey",
                 table: "AppApplications",
                 column: "ApiKey",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AppApplications_DefaultLicensePackageId",
-                table: "AppApplications",
-                column: "DefaultLicensePackageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AppApplications_IsActive",
@@ -1103,20 +888,41 @@ namespace UserService.Infrastructure.Migrations
                 column: "SubscriptionPlanId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ApplicationOAuthScopes_ApplicationId",
-                table: "ApplicationOAuthScopes",
+                name: "IX_ApplicationMemberships_ApplicationId",
+                table: "ApplicationMemberships",
                 column: "ApplicationId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ApplicationOAuthScopes_ApplicationId_PermissionId",
-                table: "ApplicationOAuthScopes",
-                columns: new[] { "ApplicationId", "PermissionId" },
-                unique: true);
+                name: "IX_ApplicationMemberships_ApplicationId_UserId",
+                table: "ApplicationMemberships",
+                columns: new[] { "ApplicationId", "UserId" },
+                unique: true,
+                filter: "\"IsDeleted\" = FALSE");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ApplicationOAuthScopes_IsActive",
-                table: "ApplicationOAuthScopes",
+                name: "IX_ApplicationMemberships_IsActive",
+                table: "ApplicationMemberships",
                 column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationMemberships_RoleId",
+                table: "ApplicationMemberships",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationMemberships_Status",
+                table: "ApplicationMemberships",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationMemberships_UserId",
+                table: "ApplicationMemberships",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationOAuthScopes_ApplicationId",
+                table: "ApplicationOAuthScopes",
+                column: "ApplicationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ApplicationOAuthScopes_PermissionId",
@@ -1127,6 +933,33 @@ namespace UserService.Infrastructure.Migrations
                 name: "IX_ApplicationRoles_RoleId",
                 table: "ApplicationRoles",
                 column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationSubscriptions_ApplicationId_Active",
+                table: "ApplicationSubscriptions",
+                column: "ApplicationId",
+                unique: true,
+                filter: "\"Status\" IN ('Trialing', 'Active', 'PastDue') AND \"CancelledAt\" IS NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationSubscriptions_ApplicationId_CancelledAt",
+                table: "ApplicationSubscriptions",
+                columns: new[] { "ApplicationId", "CancelledAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationSubscriptions_ApplicationId_Status",
+                table: "ApplicationSubscriptions",
+                columns: new[] { "ApplicationId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationSubscriptions_Status",
+                table: "ApplicationSubscriptions",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ApplicationSubscriptions_SubscriptionPlanId",
+                table: "ApplicationSubscriptions",
+                column: "SubscriptionPlanId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -1177,122 +1010,15 @@ namespace UserService.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_FamilyPlanId",
-                table: "FamilyMembers",
-                column: "FamilyPlanId");
+                name: "IX_Features_Code",
+                table: "Features",
+                column: "Code",
+                unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_IsActive",
-                table: "FamilyMembers",
+                name: "IX_Features_IsActive",
+                table: "Features",
                 column: "IsActive");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_IsAdmin",
-                table: "FamilyMembers",
-                column: "IsAdmin");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_RoleTypeId",
-                table: "FamilyMembers",
-                column: "RoleTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_UserId",
-                table: "FamilyMembers",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyMembers_UserId_FamilyPlanId",
-                table: "FamilyMembers",
-                columns: new[] { "UserId", "FamilyPlanId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_CreatedAt",
-                table: "FamilyPlans",
-                column: "CreatedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_FamilySubscriptionPlanId",
-                table: "FamilyPlans",
-                column: "FamilySubscriptionPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_InviteCode",
-                table: "FamilyPlans",
-                column: "InviteCode",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_IsActive",
-                table: "FamilyPlans",
-                column: "IsActive");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_IsDeleted",
-                table: "FamilyPlans",
-                column: "IsDeleted");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilyPlans_OwnerId",
-                table: "FamilyPlans",
-                column: "OwnerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySharedApplicationAllowedMembers_FamilyMemberId",
-                table: "FamilySharedApplicationAllowedMembers",
-                column: "FamilyMemberId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySharedApplications_ApplicationId",
-                table: "FamilySharedApplications",
-                column: "ApplicationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySharedApplications_FamilyPlanId",
-                table: "FamilySharedApplications",
-                column: "FamilyPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySubscriptions_ExpiresAt",
-                table: "FamilySubscriptions",
-                column: "ExpiresAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySubscriptions_FamilyPlanId",
-                table: "FamilySubscriptions",
-                column: "FamilyPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySubscriptions_FamilyPlanId_IsActive",
-                table: "FamilySubscriptions",
-                columns: new[] { "FamilyPlanId", "IsActive" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySubscriptions_StartedAt",
-                table: "FamilySubscriptions",
-                column: "StartedAt");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_FamilySubscriptions_SubscriptionPlanId",
-                table: "FamilySubscriptions",
-                column: "SubscriptionPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LicensePackages_ApplicationId",
-                table: "LicensePackages",
-                column: "ApplicationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LicensePackages_SubscriptionPlanId",
-                table: "LicensePackages",
-                column: "SubscriptionPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_LicensePackages_SubscriptionPlanId_Name",
-                table: "LicensePackages",
-                columns: new[] { "SubscriptionPlanId", "Name" },
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_MagicLinkTokens_CreatedAt",
@@ -1411,6 +1137,16 @@ namespace UserService.Infrastructure.Migrations
                 column: "IsActive");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PlanFeatures_FeatureId",
+                table: "PlanFeatures",
+                column: "FeatureId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlanFeatures_IsEnabled",
+                table: "PlanFeatures",
+                column: "IsEnabled");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
                 table: "RolePermissions",
                 column: "PermissionId");
@@ -1427,30 +1163,9 @@ namespace UserService.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionMembers_RoleTypeId",
-                table: "SubscriptionMembers",
-                column: "RoleTypeId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionMembers_SubscriptionId",
-                table: "SubscriptionMembers",
-                column: "SubscriptionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionMembers_SubscriptionId_UserId",
-                table: "SubscriptionMembers",
-                columns: new[] { "SubscriptionId", "UserId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionMembers_UserId",
-                table: "SubscriptionMembers",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionPlanRoleAssignments_RoleId",
-                table: "SubscriptionPlanRoleAssignments",
-                column: "RoleId");
+                name: "IX_SubscriptionPlanPermissions_PermissionId",
+                table: "SubscriptionPlanPermissions",
+                column: "PermissionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SubscriptionPlans_ApplicationId",
@@ -1479,11 +1194,6 @@ namespace UserService.Infrastructure.Migrations
                 column: "ExpiresAt");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Subscriptions_LicensePackageId",
-                table: "Subscriptions",
-                column: "LicensePackageId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Subscriptions_StartedAt",
                 table: "Subscriptions",
                 column: "StartedAt");
@@ -1497,37 +1207,6 @@ namespace UserService.Infrastructure.Migrations
                 name: "IX_Subscriptions_UserId_ApplicationId_IsActive",
                 table: "Subscriptions",
                 columns: new[] { "UserId", "ApplicationId", "IsActive" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_AppApplicationId",
-                table: "UserApplications",
-                column: "AppApplicationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_ApplicationId",
-                table: "UserApplications",
-                column: "ApplicationId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_IsActive",
-                table: "UserApplications",
-                column: "IsActive");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_LicensePackageId",
-                table: "UserApplications",
-                column: "LicensePackageId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_UserId",
-                table: "UserApplications",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserApplications_UserId_ApplicationId",
-                table: "UserApplications",
-                columns: new[] { "UserId", "ApplicationId" },
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserOAuthConsents_ApplicationId",
@@ -1584,14 +1263,6 @@ namespace UserService.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_AppApplications_LicensePackages_DefaultLicensePackageId",
-                table: "AppApplications",
-                column: "DefaultLicensePackageId",
-                principalTable: "LicensePackages",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
-
-            migrationBuilder.AddForeignKey(
                 name: "FK_AppApplications_SubscriptionPlans_SubscriptionPlanId",
                 table: "AppApplications",
                 column: "SubscriptionPlanId",
@@ -1604,18 +1275,20 @@ namespace UserService.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_AppApplications_LicensePackages_DefaultLicensePackageId",
-                table: "AppApplications");
-
-            migrationBuilder.DropForeignKey(
                 name: "FK_AppApplications_SubscriptionPlans_SubscriptionPlanId",
                 table: "AppApplications");
+
+            migrationBuilder.DropTable(
+                name: "ApplicationMemberships");
 
             migrationBuilder.DropTable(
                 name: "ApplicationOAuthScopes");
 
             migrationBuilder.DropTable(
                 name: "ApplicationRoles");
+
+            migrationBuilder.DropTable(
+                name: "ApplicationSubscriptions");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
@@ -1633,12 +1306,6 @@ namespace UserService.Infrastructure.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "FamilySharedApplicationAllowedMembers");
-
-            migrationBuilder.DropTable(
-                name: "FamilySubscriptions");
-
-            migrationBuilder.DropTable(
                 name: "MagicLinkTokens");
 
             migrationBuilder.DropTable(
@@ -1654,16 +1321,16 @@ namespace UserService.Infrastructure.Migrations
                 name: "OpenIddictTokens");
 
             migrationBuilder.DropTable(
+                name: "PlanFeatures");
+
+            migrationBuilder.DropTable(
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
-                name: "SubscriptionMembers");
+                name: "SubscriptionPlanPermissions");
 
             migrationBuilder.DropTable(
-                name: "SubscriptionPlanRoleAssignments");
-
-            migrationBuilder.DropTable(
-                name: "UserApplications");
+                name: "Subscriptions");
 
             migrationBuilder.DropTable(
                 name: "UserOAuthConsentScopes");
@@ -1672,16 +1339,10 @@ namespace UserService.Infrastructure.Migrations
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "FamilyMembers");
-
-            migrationBuilder.DropTable(
-                name: "FamilySharedApplications");
-
-            migrationBuilder.DropTable(
                 name: "OpenIddictAuthorizations");
 
             migrationBuilder.DropTable(
-                name: "Subscriptions");
+                name: "Features");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
@@ -1693,16 +1354,7 @@ namespace UserService.Infrastructure.Migrations
                 name: "UserOAuthConsents");
 
             migrationBuilder.DropTable(
-                name: "SubscriptionRoleTypes");
-
-            migrationBuilder.DropTable(
-                name: "FamilyPlans");
-
-            migrationBuilder.DropTable(
                 name: "OpenIddictApplications");
-
-            migrationBuilder.DropTable(
-                name: "LicensePackages");
 
             migrationBuilder.DropTable(
                 name: "SubscriptionPlans");
