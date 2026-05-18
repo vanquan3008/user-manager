@@ -1,23 +1,22 @@
 using MediatR;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
-using UserService.Application.Services;
 using UserService.Domain.Exceptions;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
 public class VerifyEmailCommandHandler : IRequestHandler<VerifyEmailCommand, Unit>
 {
-    private readonly IAuthServices _authService;
+    private readonly IEmailVerificationService _emailVerificationService;
 
-    public VerifyEmailCommandHandler(IAuthServices authService)
+    public VerifyEmailCommandHandler(IEmailVerificationService emailVerificationService)
     {
-        _authService = authService;
+        _emailVerificationService = emailVerificationService;
     }
 
     public async Task<Unit> Handle(VerifyEmailCommand command, CancellationToken cancellationToken)
     {
-        var succeeded = await _authService.VerifyEmailAsync(command.UserId, command.Token, cancellationToken);
+        var succeeded = await _emailVerificationService.VerifyEmailAsync(command.UserId, command.Token, cancellationToken);
 
         if (!succeeded)
         {

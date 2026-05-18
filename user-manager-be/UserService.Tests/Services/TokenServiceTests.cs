@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Application.Configuration;
+using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
 using UserService.Application.Services;
 using UserService.Infrastructure.Services;
@@ -34,10 +35,10 @@ public class TokenServiceTests
     public void GenerateAccessToken_WhenSecretKeyMissing_ThrowsInvalidOperationException()
     {
         var svc = new TokenService(_claimsFactoryMock.Object, new AppSettings { Jwt = new JwtConfiguration { SecretKey = "" } });
-        _claimsFactoryMock.Setup(x => x.CreateAccessTokenClaims(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<IEnumerable<string>>()))
+        _claimsFactoryMock.Setup(x => x.CreateAccessTokenClaims(It.IsAny<AccessTokenRequest>()))
             .Returns(new List<Claim>());
 
-        var act = () => svc.GenerateAccessToken(Guid.NewGuid(), "u@test.com", "u", Array.Empty<string>());
+        var act = () => svc.GenerateAccessToken(new AccessTokenRequest(Guid.NewGuid(), "u@test.com", "u", Array.Empty<string>()));
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*SecretKey*");
@@ -53,10 +54,10 @@ public class TokenServiceTests
             new(JwtRegisteredClaimNames.Email, "u@test.com")
         };
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "u@test.com", "u", It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
             .Returns(claims);
 
-        var token = _sut.GenerateAccessToken(userId, "u@test.com", "u", new[] { "User" });
+        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", "u", new[] { "User" }));
 
         token.Should().NotBeNullOrWhiteSpace();
         token.Split('.').Length.Should().Be(3); // JWT has 3 parts
@@ -90,10 +91,10 @@ public class TokenServiceTests
             new(JwtRegisteredClaimNames.Email, "u@test.com")
         };
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "u@test.com", null, It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
             .Returns(claims);
 
-        var token = _sut.GenerateAccessToken(userId, "u@test.com", null, Array.Empty<string>());
+        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", null, Array.Empty<string>()));
         var isValid = _sut.ValidateToken(token);
 
         isValid.Should().BeTrue();
@@ -117,10 +118,10 @@ public class TokenServiceTests
             new(JwtRegisteredClaimNames.Email, "u@test.com")
         };
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "u@test.com", null, It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
             .Returns(claims);
 
-        var token = _sut.GenerateAccessToken(userId, "u@test.com", null, Array.Empty<string>());
+        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", null, Array.Empty<string>()));
         var extractedId = _sut.GetUserIdFromToken(token);
 
         extractedId.Should().Be(userId);
@@ -151,10 +152,10 @@ public class TokenServiceTests
         };
         claims.AddRange(roles.Select(r => new Claim(System.Security.Claims.ClaimTypes.Role, r)));
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, email, displayName, It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == email && r.DisplayName == displayName)))
             .Returns(claims);
 
-        var token = _sut.GenerateAccessToken(userId, email, displayName, roles);
+        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, email, displayName, roles));
 
         token.Should().NotBeNullOrWhiteSpace();
         _sut.ValidateToken(token).Should().BeTrue();
@@ -166,13 +167,13 @@ public class TokenServiceTests
     {
         var userId = Guid.NewGuid();
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "e@test.com", null, It.Is<IEnumerable<string>>(r => !r.Any())))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@test.com" && r.DisplayName == null && !r.Roles.Any())))
             .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
 
-        _sut.GenerateAccessToken(userId, "e@test.com", null, Array.Empty<string>());
+        _sut.GenerateAccessToken(new AccessTokenRequest(userId, "e@test.com", null, Array.Empty<string>()));
 
         _claimsFactoryMock.Verify(
-            x => x.CreateAccessTokenClaims(userId, "e@test.com", null, It.Is<IEnumerable<string>>(r => !r.Any())),
+            x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@test.com" && r.DisplayName == null && !r.Roles.Any())),
             Times.Once);
     }
 
@@ -230,10 +231,10 @@ public class TokenServiceTests
         });
         var userId = Guid.NewGuid();
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "e@t.com", null, It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@t.com")))
             .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
 
-        var token = svc.GenerateAccessToken(userId, "e@t.com", null, Array.Empty<string>());
+        var token = svc.GenerateAccessToken(new AccessTokenRequest(userId, "e@t.com", null, Array.Empty<string>()));
 
         token.Should().NotBeNullOrWhiteSpace();
         svc.ValidateToken(token).Should().BeTrue();
@@ -245,10 +246,10 @@ public class TokenServiceTests
     {
         var userId = Guid.NewGuid();
         _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(userId, "", It.IsAny<string?>(), It.IsAny<IEnumerable<string>>()))
+            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "")))
             .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
 
-        var token = _sut.GenerateAccessToken(userId, "", null, Array.Empty<string>());
+        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "", null, Array.Empty<string>()));
 
         token.Should().NotBeNullOrWhiteSpace();
         _sut.GetUserIdFromToken(token).Should().Be(userId);

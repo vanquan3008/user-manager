@@ -2,7 +2,7 @@ using MediatR;
 
 namespace UserService.Application.Features.Auth.Commands;
 
-public record SsoAuthorizeCommand(
+public record SSOAuthorizeCommand(
     string Email,
     string Password,
     string ClientId,
@@ -11,9 +11,9 @@ public record SsoAuthorizeCommand(
     string? State = null,
     string? CodeChallenge = null,
     string? CodeChallengeMethod = "S256"
-) : IRequest<SsoAuthorizeResponse>;
+) : IRequest<SSOAuthorizeResponse>;
 
-public record SsoAuthorizeResponse(
+public record SSOAuthorizeResponse(
     bool RequiresConsent,
     string? Code,
     string RedirectUri,

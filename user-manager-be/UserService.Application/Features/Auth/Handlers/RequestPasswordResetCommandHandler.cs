@@ -1,23 +1,22 @@
 using MediatR;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
-using UserService.Application.Services;
 using UserService.Domain.Exceptions;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
 public class RequestPasswordResetCommandHandler : IRequestHandler<RequestPasswordResetCommand, Unit>
 {
-    private readonly IAuthServices _authService;
+    private readonly IPasswordRecoveryService _passwordRecoveryService;
 
-    public RequestPasswordResetCommandHandler(IAuthServices authService)
+    public RequestPasswordResetCommandHandler(IPasswordRecoveryService passwordRecoveryService)
     {
-        _authService = authService;
+        _passwordRecoveryService = passwordRecoveryService;
     }
 
     public async Task<Unit> Handle(RequestPasswordResetCommand command, CancellationToken cancellationToken)
     {
-        var succeeded = await _authService.RequestPasswordResetAsync(command.Email, cancellationToken);
+        var succeeded = await _passwordRecoveryService.RequestPasswordResetAsync(command.Email, cancellationToken);
 
         if (!succeeded)
         {

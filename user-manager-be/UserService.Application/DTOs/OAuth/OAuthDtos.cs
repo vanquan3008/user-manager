@@ -39,6 +39,7 @@ public record OAuthTokenRequest(
     [property: JsonPropertyName("grantType")] string GrantType,
     [property: JsonPropertyName("clientId")] string ClientId,
     [property: JsonPropertyName("redirectUri")] string RedirectUri,
+    [property: JsonPropertyName("clientSecret")] string? ClientSecret = null,
     [property: JsonPropertyName("code")] string? Code = null,
     [property: JsonPropertyName("codeVerifier")] string? CodeVerifier = null,
     [property: JsonPropertyName("refreshToken")] string? RefreshToken = null

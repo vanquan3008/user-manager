@@ -5,6 +5,6 @@ namespace UserService.Application.Features.Auth.Commands;
 public record LoginUserCommand(
     string Email,
     string Password,
-    Guid? ApplicationId = null,
+    string? ClientId = null,
     string? ReturnUrl = null
 ) : IRequest<AuthResponse>;

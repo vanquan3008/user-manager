@@ -8,5 +8,5 @@ public record RegisterUserCommand(
     string FirstName,
     string LastName,
     DateOnly DateOfBirth,
-    Guid? ApplicationId = null
+    string? ClientId = null
 ) : IRequest<AuthResponse>;

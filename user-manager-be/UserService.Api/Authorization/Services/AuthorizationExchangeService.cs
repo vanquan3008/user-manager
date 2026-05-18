@@ -20,7 +20,7 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
     private readonly IValidator<PasswordGrantInput> _passwordGrantValidator;
     private readonly IValidator<MagicLinkGrantInput> _magicLinkGrantValidator;
     private readonly IUserPermissionService _userPermissionService;
-    private readonly IUserApplicationAppService _userApplicationService;
+    private readonly IApplicationAccessService _applicationAccessService;
     private readonly IApplicationAppService _applicationService;
     private readonly IApplicationOAuthScopeAppService _applicationOAuthScopeService;
 
@@ -31,7 +31,7 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         IValidator<PasswordGrantInput> passwordGrantValidator,
         IValidator<MagicLinkGrantInput> magicLinkGrantValidator,
         IUserPermissionService userPermissionService,
-        IUserApplicationAppService userApplicationService,
+        IApplicationAccessService applicationAccessService,
         IApplicationAppService applicationService,
         IApplicationOAuthScopeAppService applicationOAuthScopeService)
     {
@@ -41,7 +41,7 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         _passwordGrantValidator = passwordGrantValidator;
         _magicLinkGrantValidator = magicLinkGrantValidator;
         _userPermissionService = userPermissionService;
-        _userApplicationService = userApplicationService;
+        _applicationAccessService = applicationAccessService;
         _applicationService = applicationService;
         _applicationOAuthScopeService = applicationOAuthScopeService;
     }
@@ -172,9 +172,6 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         foreach (var role in roles)
             identity.AddClaim(OpenIddictConstants.Claims.Role, role);
 
-        var isAdmin = roles.Contains(RoleNames.Admin, StringComparer.OrdinalIgnoreCase)
-            || roles.Contains(RoleNames.SuperAdmin, StringComparer.OrdinalIgnoreCase);
-
         IReadOnlyList<string> permissions;
         IReadOnlyCollection<string>? oauthScopes = requestedOauthScopes;
 
@@ -185,18 +182,15 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
             if (application == null || !application.IsActive)
                 throw new InvalidOperationException("Application not found or inactive.");
 
-            if (!isAdmin)
-            {
-                var membership = await _userApplicationService.GetMembershipAsync(user.Id, applicationId.Value, cancellationToken);
-                if (membership == null || !membership.IsActive)
-                    throw new InvalidOperationException("User does not belong to this application.");
+            var hasAccess = await _applicationAccessService.HasAccessAsync(
+                user.Id,
+                applicationId.Value,
+                roles,
+                cancellationToken);
+            if (!hasAccess)
+                throw new InvalidOperationException("User does not have active access to this application.");
 
-                permissions = await _userPermissionService.GetPermissionCodesForUserAsync(user.Id, applicationId.Value, cancellationToken);
-            }
-            else
-            {
-                permissions = await _userPermissionService.GetPermissionCodesForUserAsync(user.Id, cancellationToken);
-            }
+            permissions = await _userPermissionService.GetPermissionCodesForUserAsync(user.Id, applicationId.Value, cancellationToken);
 
             if (oauthScopes == null)
             {
