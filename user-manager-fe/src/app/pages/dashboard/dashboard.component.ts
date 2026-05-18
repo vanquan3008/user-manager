@@ -6,7 +6,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UsersService } from '../../core/services/users.service';
 import { RolesService } from '../../core/services/roles.service';
-import { ApplicationsService, type ApplicationListItem } from '../../core/services/applications.service';
+import { ApplicationsService } from '../../core/services/applications.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { TranslateService } from '../../core/services/translate.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -14,7 +14,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { environment } from '../../../environments/environment';
 import { canBanUsers } from '../../core/constants/roles';
-import type { IdentityUser } from '../../core/models/api-response';
+import type { ApplicationListItem, IdentityUser } from '../../core/models';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
@@ -103,7 +103,7 @@ export class DashboardComponent implements OnInit {
           this.registrations7d.set(this.buildRegistrationSeries(list));
           this.appLogoFailed.set(new Set());
         },
-        error: err => {
+        error: (err: any) => {
           this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load dashboard overview.');
         }
       });
@@ -145,7 +145,7 @@ export class DashboardComponent implements OnInit {
           this.notification.success(response.data?.message ?? 'User banned.');
           this.load();
         },
-        error: err => {
+        error: (err: any) => {
           const message = err?.error?.error?.message ?? err?.error?.message ?? 'Error';
           this.notification.error(typeof message === 'string' ? message : 'Error');
         }
@@ -176,7 +176,7 @@ export class DashboardComponent implements OnInit {
           this.notification.success(response.data?.message ?? 'User unbanned.');
           this.load();
         },
-        error: err => {
+        error: (err: any) => {
           const message = err?.error?.error?.message ?? err?.error?.message ?? 'Error';
           this.notification.error(typeof message === 'string' ? message : 'Error');
         }

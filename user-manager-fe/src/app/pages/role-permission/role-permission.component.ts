@@ -8,7 +8,7 @@ import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { RolesService } from '../../core/services/roles.service';
 import { PermissionsService } from '../../core/services/permissions.service';
-import type { RoleDto, PermissionDto } from '../../core/models/api-response';
+import type { PermissionDto, RoleDto } from '../../core/models';
 
 @Component({
   selector: 'app-role-permission',
@@ -62,8 +62,8 @@ export class RolePermissionComponent implements OnInit {
     return list.filter(
       p =>
         (p.code || '').toLowerCase().includes(q) ||
-        (p.name || '').toLowerCase().includes(q) ||
-        (p.resource || '').toLowerCase().includes(q)
+        (p.description || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q)
     );
   });
 
@@ -89,7 +89,7 @@ export class RolePermissionComponent implements OnInit {
         this.roles.set(list);
         this.loadingRoles.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(err.error?.message || 'Không thể tải roles');
         this.loadingRoles.set(false);
       }
@@ -103,7 +103,7 @@ export class RolePermissionComponent implements OnInit {
         this.permissions.set(list);
         this.loadingPermissions.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(err.error?.message || 'Không thể tải permissions');
         this.loadingPermissions.set(false);
       }
@@ -151,7 +151,7 @@ export class RolePermissionComponent implements OnInit {
         }
         this.loadingRolePermissions.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         const codesFromRole = this.parseRolePermissionsString(role.permissions);
         const matched = allPerms.filter(p => codesFromRole.includes(p.code));
         this.rolePermissions.set(matched);
@@ -179,7 +179,7 @@ export class RolePermissionComponent implements OnInit {
         }
         this.savingAssign.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.notify.error(err.error?.message || 'Gán permission thất bại');
         this.savingAssign.set(false);
       }
@@ -198,7 +198,7 @@ export class RolePermissionComponent implements OnInit {
         }
         this.savingRemove.set(null);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.notify.error(err.error?.message || 'Gỡ permission thất bại');
         this.savingRemove.set(null);
       }

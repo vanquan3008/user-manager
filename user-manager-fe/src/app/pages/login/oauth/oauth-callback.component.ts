@@ -7,6 +7,7 @@ import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../cor
 @Component({
   selector: 'app-oauth-callback',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule],
   template: `
     <div class="h-full overflow-y-auto">
@@ -64,7 +65,7 @@ export class OauthCallbackComponent implements OnInit {
 
           this.error.set(res.message || res.error?.message || 'OAuth token exchange that bai.');
         },
-        error: (err) => {
+        error: (err: any) => {
           this.error.set(getHttpErrorMessage(err, 'OAuth token exchange that bai.', UNREACHABLE_SERVER_MESSAGE_VI));
         }
       });

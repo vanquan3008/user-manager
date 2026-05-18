@@ -1,4 +1,4 @@
-import type { SsoApplication } from '../models/api-response';
+import type { SsoApplication } from '../models';
 
 /**
  * Role names that are allowed to access the User Admin UI (dashboard, users, roles, subscriptions, etc.).

@@ -58,7 +58,7 @@ export class ChangePasswordComponent implements OnInit {
         this.form.reset();
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error = getHttpErrorMessage(err, 'Đổi mật khẩu thất bại.', UNREACHABLE_SERVER_MESSAGE_VI);
         this.notify.error(this.error);
         this.loading = false;

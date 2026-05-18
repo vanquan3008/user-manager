@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import type { SsoUserApplication } from '../../../core/models/api-response';
+import type { SsoUserApplication } from '../../../core/models';
 import { DropdownComponent, type DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 

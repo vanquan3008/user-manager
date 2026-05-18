@@ -3,7 +3,7 @@ import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { hasAdminRole } from '../../../core/constants/roles';
-import type { AuthResponse } from '../../../core/models/api-response';
+import type { AuthResponse } from '../../../core/models';
 
 @Component({
   selector: 'app-magic-login-callback',
@@ -65,7 +65,7 @@ export class MagicLoginCallbackComponent implements OnInit {
 
         this.error = res.message || res.error?.message || 'The sign-in link is invalid or expired.';
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error = err.error?.message || err.error?.error?.message || 'The sign-in link is invalid or expired.';
       }
     });

@@ -23,254 +23,562 @@
 } @else {
   @let appData = app();
   @if (appData) {
-  <div class="main main-layout">
-    <div class="app-toolbar-row flex flex-wrap items-center justify-between gap-2">
-      <a
-        routerLink="/applications"
-        class="inline-flex items-center gap-1.5 text-sm font-medium transition"
-        [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
-      >
-        <span class="material-symbols-outlined text-lg">arrow_back</span>
-        Applications
-      </a>
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
-          [disabled]="!canAddUsers()"
-          (click)="quickAddUser()"
+    <div class="main main-layout">
+      <div class="app-toolbar-row flex flex-wrap items-center justify-between gap-3">
+        <a
+          routerLink="/applications"
+          class="inline-flex items-center gap-1.5 text-sm font-medium transition"
+          [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
         >
-          <span class="material-symbols-outlined text-[18px]">person_add</span>
-          Add user
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-white transition"
-          [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
-          (click)="openAddRoleModal()"
-        >
-          <span class="material-symbols-outlined text-[18px]">add</span>
-          Add role
-        </button>
-      </div>
-    </div>
+          <span class="material-symbols-outlined text-lg">arrow_back</span>
+          Applications
+        </a>
 
-    <section class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-      <div
-        class="relative overflow-hidden rounded-3xl border p-6"
-        [ngClass]="theme() === 'light'
-          ? 'border-slate-200 bg-white shadow-sm'
-          : 'border-slate-700/70 bg-slate-800/85 shadow-slate-950/30'"
-      >
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+            [disabled]="!canAddUsers()"
+            (click)="quickAddUser()"
+          >
+            <span class="material-symbols-outlined text-[18px]">person_add</span>
+            Assign user
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-white transition"
+            [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
+            (click)="openAddRoleModal()"
+          >
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            Add role
+          </button>
+        </div>
+      </div>
+
+      <section class="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <div
-          class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-br"
+          class="relative overflow-hidden rounded-3xl border p-6"
           [ngClass]="theme() === 'light'
-            ? 'from-sky-100 via-cyan-50 to-transparent'
-            : 'from-sky-500/15 via-cyan-400/10 to-transparent'"
-        ></div>
-        <div class="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-          <div class="flex min-w-0 items-center gap-4">
-            <img
-              [src]="appData.logoUrl || defaultAppLogoDataUri"
-              alt="Application logo"
-              class="h-16 w-16 rounded-3xl border object-cover shadow-sm"
-              [ngClass]="theme() === 'light' ? 'border-white/80 bg-white' : 'border-slate-700 bg-slate-900/70'"
-            />
-            <div class="min-w-0">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                Application identity
-              </p>
-              <p class="mt-2 truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
-                {{ appData.name }}
-              </p>
-              <p class="mt-1 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                {{ appData.id }}
-              </p>
+            ? 'border-slate-200 bg-white shadow-sm'
+            : 'border-slate-700/70 bg-slate-800/85 shadow-slate-950/30'"
+        >
+          <div
+            class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-br"
+            [ngClass]="theme() === 'light'
+              ? 'from-sky-100 via-cyan-50 to-transparent'
+              : 'from-sky-500/15 via-cyan-400/10 to-transparent'"
+          ></div>
+
+          <div class="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div class="flex min-w-0 items-start gap-4">
+              <img
+                [src]="appData.logoUrl || defaultAppLogoDataUri"
+                alt="Application logo"
+                class="h-16 w-16 rounded-3xl border object-cover shadow-sm"
+                [ngClass]="theme() === 'light' ? 'border-white/80 bg-white' : 'border-slate-700 bg-slate-900/70'"
+              />
+
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span
+                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                    [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
+                  >
+                    Application workspace
+                  </span>
+                  <span
+                    class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'"
+                  >
+                    {{ appData.clientType || 'Public' }}
+                  </span>
+                </div>
+
+                <h1 class="mt-4 text-2xl font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">
+                  {{ appData.name }}
+                </h1>
+                <p class="mt-2 max-w-3xl text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+                  {{ appData.description || 'This workspace centralizes application identity, branding and access control.' }}
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
+                (click)="copyText(appData.id, 'Application ID')"
+              >
+                <span class="material-symbols-outlined text-[18px]">content_copy</span>
+                Copy ID
+              </button>
+
+              <label
+                class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition"
+                [class.pointer-events-none]="updatingLogo()"
+                [class.opacity-60]="updatingLogo()"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
+              >
+                <span class="material-symbols-outlined text-[18px]">{{ updatingLogo() ? 'progress_activity' : 'upload' }}</span>
+                <input type="file" accept="image/*" class="hidden" [disabled]="updatingLogo()" (change)="onLogoFileSelected($event)" />
+                {{ updatingLogo() ? 'Updating...' : 'Update logo' }}
+              </label>
             </div>
           </div>
 
-          <label
-            class="inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition"
-            [class.pointer-events-none]="updatingLogo()"
-            [class.opacity-60]="updatingLogo()"
-            [ngClass]="theme() === 'light'
-              ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-              : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-          >
-            <span class="material-symbols-outlined text-[18px]">{{ updatingLogo() ? 'progress_activity' : 'upload' }}</span>
-            <input type="file" accept="image/*" class="hidden" [disabled]="updatingLogo()" (change)="onLogoFileSelected($event)" />
-            {{ updatingLogo() ? 'Updating logo...' : 'Update logo' }}
-          </label>
-        </div>
-      </div>
+          <div class="relative mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Owner</p>
+              <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ ownerLabel() }}</p>
+              <p class="mt-1 font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ appData.ownerId || 'No owner id' }}</p>
+            </div>
 
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-        <app-stat-card
-          label="Application users"
-          [value]="totalUsers()"
-          sublabel="Users assigned to this workspace"
-          icon="group"
-          variant="primary"
-          [theme]="theme()"
-        />
-        <app-stat-card
-          label="Application roles"
-          [value]="totalRoles()"
-          sublabel="Roles available for assignment"
-          icon="shield_person"
-          [theme]="theme()"
-        />
-        <app-stat-card
-          label="Branding"
-          [value]="appData.logoUrl ? 'Ready' : 'Missing'"
-          sublabel="Logo presence for consistent UI"
-          icon="imagesmode"
-          variant="success"
-          [theme]="theme()"
-        />
-        <app-stat-card
-          label="Owner"
-          [value]="appData.ownerId || 'Unassigned'"
-          sublabel="Current owning identity"
-          icon="badge"
-          variant="warning"
-          [theme]="theme()"
-        />
-      </div>
-    </section>
+            <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client identity</p>
+              <p class="mt-2 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ appData.clientId || 'No client id' }}</p>
+              <p class="mt-2 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ appData.id }}</p>
+            </div>
 
-    <section class="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-      <div
-        class="rounded-3xl border p-5 shadow-sm"
-        [ngClass]="theme() === 'light'
-          ? 'border-slate-200 bg-white'
-          : 'border-slate-700/70 bg-slate-800/85'"
-      >
-        <div class="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Assigned users</h3>
-            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">People currently mapped into this application.</p>
+            <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Redirect URIs</p>
+              <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ redirectUris().length }}</p>
+              <p class="mt-1 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                {{ redirectUris().length ? 'Configured for sign-in callbacks' : 'No redirect URI configured yet' }}
+              </p>
+            </div>
+
+            <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Backchannel logout</p>
+              <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
+                {{ credentials()?.backchannelLogoutUri || appData.backchannelLogoutUri ? 'Configured' : 'Not configured' }}
+              </p>
+              <p class="mt-1 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                {{ credentials()?.backchannelLogoutUri || appData.backchannelLogoutUri || 'Recommended for coordinated sign-out flows.' }}
+              </p>
+            </div>
           </div>
-          <button
-            type="button"
-            class="rounded-2xl border px-3.5 py-2 text-sm font-medium transition"
-            [ngClass]="theme() === 'light'
-              ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-              : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-            (click)="loadAppUsers(appData.id)"
-          >
-            Refresh
-          </button>
         </div>
 
-        @if (appUsers().length === 0) {
-          <app-empty-state
-            icon="group_off"
-            message="No users are assigned to this application yet."
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <app-stat-card
+            label="Assigned users"
+            [value]="totalUsers()"
+            sublabel="People with access in this workspace"
+            icon="group"
+            variant="primary"
             [theme]="theme()"
           />
-        } @else {
-          <div class="space-y-3">
-            @for (user of appUsers(); track user.userId) {
-              <div
-                class="flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all duration-200 hover:-translate-y-0.5"
-                [ngClass]="theme() === 'light'
-                  ? 'border-slate-200 bg-slate-50/70 hover:border-sky-200'
-                  : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30'"
-              >
-                <div class="flex min-w-0 items-center gap-3">
-                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-semibold text-white shadow-sm">
-                    {{ (user.email || user.userName || user.userId).charAt(0).toUpperCase() }}
+          <app-stat-card
+            label="Application roles"
+            [value]="totalRoles()"
+            sublabel="Roles available for assignment"
+            icon="shield_person"
+            [theme]="theme()"
+          />
+          <app-stat-card
+            label="Enabled features"
+            [value]="capabilityFeatureCount()"
+            sublabel="Feature flags currently active"
+            icon="bolt"
+            variant="success"
+            [theme]="theme()"
+          />
+          <app-stat-card
+            label="Enabled permissions"
+            [value]="capabilityPermissionCount()"
+            sublabel="Permissions exposed by capability API"
+            icon="verified_user"
+            variant="warning"
+            [theme]="theme()"
+          />
+        </div>
+      </section>
+
+      <section class="grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
+        <div class="space-y-5">
+          <div
+            class="rounded-3xl border p-5 shadow-sm"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white'
+              : 'border-slate-700/70 bg-slate-800/85'"
+          >
+            <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Authentication configuration</h3>
+                <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                  Core client settings used by integrations and sign-in flows.
+                </p>
+              </div>
+
+              @if (credentials()?.clientType === 'Confidential') {
+                <button
+                  type="button"
+                  class="rounded-2xl border px-3.5 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
+                  [disabled]="rotatingSecret()"
+                  [ngClass]="theme() === 'light'
+                    ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
+                  (click)="rotateClientSecret()"
+                >
+                  {{ rotatingSecret() ? 'Rotating...' : 'Rotate secret' }}
+                </button>
+              }
+            </div>
+
+            @if (credentials(); as credentialData) {
+              <div class="grid gap-4 xl:grid-cols-2">
+                <div class="space-y-4">
+                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client ID</p>
+                        <p class="mt-2 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ credentialData.clientId }}</p>
+                      </div>
+                      <button
+                        type="button"
+                        class="rounded-md border px-3 py-2 text-sm font-medium transition"
+                        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+                        (click)="copyText(credentialData.clientId, 'Client ID')"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
-                      {{ user.email || user.userName || user.userId }}
-                    </p>
-                    <p class="mt-1 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                      {{ user.userId }}
-                    </p>
+
+                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client type</p>
+                    <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ credentialData.clientType }}</p>
+                    @if (credentialData.lastClientSecretRotatedAt) {
+                      <p class="mt-2 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                        Last secret rotation: {{ credentialData.lastClientSecretRotatedAt | date:'medium' }}
+                      </p>
+                    } @else if (credentialData.clientType === 'Confidential') {
+                      <p class="mt-2 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                        Secret has not been rotated yet.
+                      </p>
+                    }
+                  </div>
+
+                  @if (credentialData.clientType === 'Confidential') {
+                    <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-amber-200 bg-amber-50/70' : 'border-amber-500/20 bg-amber-500/10'">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-amber-700' : 'text-amber-300'">One-time client secret</p>
+                          <p class="mt-2 break-all font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+                            {{ credentialData.clientSecret || 'Rotate the secret to reveal a new one-time value.' }}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          class="rounded-md border px-3 py-2 text-sm font-medium transition"
+                          [ngClass]="theme() === 'light' ? 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50' : 'border-amber-500/30 bg-slate-800 text-amber-200 hover:bg-slate-700'"
+                          (click)="copyText(credentialData.clientSecret, 'Client secret')"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  } @else {
+                    <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-emerald-200 bg-emerald-50/70' : 'border-emerald-500/20 bg-emerald-500/10'">
+                      <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-emerald-700' : 'text-emerald-300'">
+                        Public clients should rely on PKCE and do not store a client secret.
+                      </p>
+                    </div>
+                  }
+                </div>
+
+                <div class="space-y-4">
+                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                    <div class="flex items-center justify-between gap-3">
+                      <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Allowed redirect URIs</p>
+                      @if (redirectUris().length) {
+                        <button
+                          type="button"
+                          class="rounded-md border px-3 py-1.5 text-xs font-medium transition"
+                          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+                          (click)="copyText(redirectUris().join(', '), 'Redirect URIs')"
+                        >
+                          Copy all
+                        </button>
+                      }
+                    </div>
+
+                    @if (redirectUris().length) {
+                      <div class="mt-3 space-y-2">
+                        @for (uri of redirectUris(); track uri) {
+                          <div
+                            class="rounded-2xl border px-3 py-2 text-xs font-mono break-all"
+                            [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-700 bg-slate-800/80 text-slate-200'"
+                          >
+                            {{ uri }}
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <p class="mt-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                        No redirect URI has been configured.
+                      </p>
+                    }
+                  </div>
+
+                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Backchannel logout URI</p>
+                        <p class="mt-2 break-all font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+                          {{ credentialData.backchannelLogoutUri || appData.backchannelLogoutUri || 'No backchannel logout URI configured.' }}
+                        </p>
+                      </div>
+                      @if (credentialData.backchannelLogoutUri || appData.backchannelLogoutUri) {
+                        <button
+                          type="button"
+                          class="rounded-md border px-3 py-2 text-sm font-medium transition"
+                          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+                          (click)="copyText(credentialData.backchannelLogoutUri || appData.backchannelLogoutUri, 'Backchannel logout URI')"
+                        >
+                          Copy
+                        </button>
+                      }
+                    </div>
                   </div>
                 </div>
-                <span
-                  class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
-                  [ngClass]="theme() === 'light' ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300'"
-                >
-                  {{ user.role }}
-                </span>
+              </div>
+            } @else {
+              <app-empty-state icon="vpn_key_off" message="Credential metadata is unavailable for this application." [theme]="theme()" />
+            }
+          </div>
+
+          <div
+            class="rounded-3xl border p-5 shadow-sm"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white'
+              : 'border-slate-700/70 bg-slate-800/85'"
+          >
+            <div class="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Assigned users</h3>
+                <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                  Users currently mapped to this workspace and the role they receive.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="rounded-2xl border px-3.5 py-2 text-sm font-medium transition"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
+                (click)="loadAppUsers(appData.id)"
+              >
+                Refresh
+              </button>
+            </div>
+
+            @if (appUsers().length === 0) {
+              <app-empty-state
+                icon="group_off"
+                message="No users are assigned to this application yet."
+                [theme]="theme()"
+              />
+            } @else {
+              <div class="space-y-3">
+                @for (user of appUsers(); track user.userId) {
+                  <div
+                    class="flex flex-col gap-3 rounded-2xl border p-4 transition-all duration-200 md:flex-row md:items-center md:justify-between"
+                    [ngClass]="theme() === 'light'
+                      ? 'border-slate-200 bg-slate-50/70 hover:border-sky-200'
+                      : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30'"
+                  >
+                    <div class="flex min-w-0 items-center gap-3">
+                      <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-semibold text-white shadow-sm">
+                        {{ getUserInitial(user) }}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
+                          {{ getUserDisplayName(user) }}
+                        </p>
+                        <p class="mt-1 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                          {{ user.userId }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                      [ngClass]="theme() === 'light' ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300'"
+                    >
+                      {{ user.role }}
+                    </span>
+                  </div>
+                }
               </div>
             }
           </div>
-        }
-      </div>
-
-      <div class="space-y-5">
-        <div
-          class="rounded-3xl border p-5 shadow-sm"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white'
-            : 'border-slate-700/70 bg-slate-800/85'"
-        >
-          <div class="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Application roles</h3>
-              <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Roles that can be granted inside this workspace.</p>
-            </div>
-            <button
-              type="button"
-              class="rounded-2xl border px-3.5 py-2 text-sm font-medium transition"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-              (click)="loadRoles(appData.id)"
-            >
-              Refresh
-            </button>
-          </div>
-
-          @if (loadingRoles()) {
-            <app-loading-state message="Loading roles..." [theme]="theme()" />
-          } @else if (appRoles().length === 0) {
-            <app-empty-state
-              icon="shield"
-              message="No roles exist in this application yet."
-              [theme]="theme()"
-            />
-          } @else {
-            <div class="flex flex-wrap gap-2">
-              @for (role of appRoles(); track role.id) {
-                <span
-                  class="rounded-full px-3 py-1.5 text-xs font-medium transition duration-200 hover:-translate-y-0.5"
-                  [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                >
-                  {{ role.name }}
-                </span>
-              }
-            </div>
-          }
         </div>
 
-        <div
-          class="rounded-3xl border p-5 shadow-sm"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white'
-            : 'border-slate-700/70 bg-slate-800/85'"
-        >
-          <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Workspace notes</h3>
-          <div class="mt-4 space-y-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-            <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-              Add roles before inviting users. It keeps permissions predictable and avoids inconsistent access mappings.
+        <div class="space-y-5">
+          <div
+            class="rounded-3xl border p-5 shadow-sm"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white'
+              : 'border-slate-700/70 bg-slate-800/85'"
+          >
+            <div class="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Application roles</h3>
+                <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                  Roles available for access assignment inside this workspace.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="rounded-2xl border px-3.5 py-2 text-sm font-medium transition"
+                [ngClass]="theme() === 'light'
+                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
+                (click)="loadRoles(appData.id)"
+              >
+                Refresh
+              </button>
             </div>
-            <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-              Upload a logo early. It improves recognition across lists, dialogs and future tenant-level navigation.
+
+            @if (loadingRoles()) {
+              <app-loading-state message="Loading roles..." [theme]="theme()" />
+            } @else if (appRoles().length === 0) {
+              <app-empty-state
+                icon="shield"
+                message="No roles exist in this application yet."
+                [theme]="theme()"
+              />
+            } @else {
+              <div class="space-y-3">
+                @for (role of appRoles(); track role.id) {
+                  <div
+                    class="rounded-2xl border p-4"
+                    [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ role.name }}</p>
+                      <span
+                        class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                        [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
+                      >
+                        Role
+                      </span>
+                    </div>
+                    <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+                      {{ role.description || 'No description provided for this role yet.' }}
+                    </p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <div
+            class="rounded-3xl border p-5 shadow-sm"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white'
+              : 'border-slate-700/70 bg-slate-800/85'"
+          >
+            <div class="mb-4">
+              <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Capabilities</h3>
+              <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                Feature and permission exposure returned by the capability endpoint.
+              </p>
+            </div>
+
+            @if (capabilities(); as capabilityData) {
+              <div class="space-y-4">
+                <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Enabled features</p>
+                    <span
+                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      [ngClass]="theme() === 'light' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300'"
+                    >
+                      {{ capabilityData.enabledFeatures.length }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (feature of capabilityData.enabledFeatures; track feature) {
+                      <span
+                        class="rounded-full px-3 py-1 text-xs font-medium"
+                        [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
+                      >
+                        {{ feature }}
+                      </span>
+                    } @empty {
+                      <span class="text-sm italic" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                        No feature is currently enabled.
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Enabled permissions</p>
+                    <span
+                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      [ngClass]="theme() === 'light' ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300'"
+                    >
+                      {{ capabilityData.enabledPermissions.length }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (permission of capabilityData.enabledPermissions; track permission) {
+                      <span
+                        class="rounded-full px-3 py-1 text-xs font-medium"
+                        [ngClass]="theme() === 'light' ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-100' : 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/20'"
+                      >
+                        {{ permission }}
+                      </span>
+                    } @empty {
+                      <span class="text-sm italic" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+                        No permission is currently enabled.
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <app-empty-state icon="lock" message="Capability metadata is not available for this application." [theme]="theme()" />
+            }
+          </div>
+
+          <div
+            class="rounded-3xl border p-5 shadow-sm"
+            [ngClass]="theme() === 'light'
+              ? 'border-slate-200 bg-white'
+              : 'border-slate-700/70 bg-slate-800/85'"
+          >
+            <h3 class="text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Operational notes</h3>
+            <div class="mt-4 space-y-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
+              <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                Define roles before assigning many users so workspace access remains predictable.
+              </div>
+              <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                Keep redirect URIs and logout endpoints aligned with production domains to avoid broken sign-in flows.
+              </div>
+              <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
+                {{ appData.logoUrl ? 'Branding is configured and ready to be reused across admin surfaces.' : 'Upload a logo so the workspace is easier to recognize in catalog and access screens.' }}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  </div>
+      </section>
+    </div>
   }
 }
 
@@ -375,7 +683,7 @@
         </div>
 
         @if (loadingUsers()) {
-          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 text-slate-500 bg-slate-50' : 'border-slate-600 text-slate-400 bg-slate-900/50'">
+          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-600 bg-slate-900/50 text-slate-400'">
             Loading users...
           </div>
         }
@@ -386,7 +694,7 @@
             <span class="ml-1 font-mono opacity-80">({{ selectedUser.id }})</span>
           </div>
         } @else if (!loadingUsers() && apiUsers().length === 0) {
-          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 text-slate-500 bg-slate-50' : 'border-slate-600 text-slate-400 bg-slate-900/50'">
+          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-600 bg-slate-900/50 text-slate-400'">
             No users available.
           </div>
         }

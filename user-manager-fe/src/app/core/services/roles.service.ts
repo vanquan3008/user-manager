@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { ApiResponse } from '../models/api-response';
-import type { RoleDto } from '../models/api-response';
+import type { ApiResponse, SuccessResponse } from '../models/http.model';
+import type { RoleDto } from '../models';
 
 function str(v: unknown, fallback = ''): string {
   if (v == null) return fallback;
@@ -72,6 +72,6 @@ export class RolesService {
   }
 
   deleteRole(id: string) {
-    return this.http.delete<ApiResponse<unknown>>(`${this.api}/${id}`);
+    return this.http.delete<ApiResponse<SuccessResponse>>(`${this.api}/${id}`);
   }
 }

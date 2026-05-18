@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { OauthService } from '../../../core/services/oauth.service';
-import type { OAuthAuthorizeRequest, OAuthAuthorizeResponse } from '../../../core/models/api-response';
+import type { OAuthAuthorizeRequest, OAuthAuthorizeResponse } from '../../../core/models';
 import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../core/utils/http-error.utils';
 
 @Component({
   selector: 'app-oauth-authorize',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule],
   template: `
     <div class="h-full overflow-y-auto">
@@ -89,7 +90,7 @@ export class OauthAuthorizeComponent implements OnInit {
         this.consentRequired.set(!!res.data.requiresConsent);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.loading.set(false);
         this.error.set(getHttpErrorMessage(err, 'Authorize thất bại.', UNREACHABLE_SERVER_MESSAGE_VI));
       }
@@ -113,7 +114,7 @@ export class OauthAuthorizeComponent implements OnInit {
         }
         this.redirectToClient(request.redirectUri, { code: res.data.code, state: res.data.state ?? request.state ?? undefined });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.loading.set(false);
         this.error.set(getHttpErrorMessage(err, 'Consent thất bại.', UNREACHABLE_SERVER_MESSAGE_VI));
       }

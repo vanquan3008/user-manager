@@ -9,6 +9,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './forgot-password.component.html'
 })
@@ -48,7 +49,7 @@ export class ForgotPasswordComponent implements OnInit {
         this.notify.success('Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.');
         this.loading.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         this.success.set(true);
         this.notify.info('Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu.');
         this.loading.set(false);
