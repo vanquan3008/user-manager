@@ -13,27 +13,10 @@ public record ActivateSubscriptionCommand(
     int MaxMembers = 1
 ) : IRequest<SubscriptionDto>;
 
-public record ActivateLicensePackageCommand(
-    Guid UserId,
-    Guid ApplicationId,
-    Guid LicensePackageId,
-    SubscriptionType SubscriptionType,
-    DateTime? ExpiresAt = null,
-    int MaxMembers = 1
-) : IRequest<SubscriptionDto>;
-
 public record UpgradeSubscriptionCommand(
     Guid UserId,
     Guid ApplicationId,
     Guid NewSubscriptionPlanId,
-    SubscriptionType NewType,
-    DateTime? ExpiresAt = null
-) : IRequest<SubscriptionDto>;
-
-public record UpgradeLicensePackageCommand(
-    Guid UserId,
-    Guid ApplicationId,
-    Guid NewLicensePackageId,
     SubscriptionType NewType,
     DateTime? ExpiresAt = null
 ) : IRequest<SubscriptionDto>;

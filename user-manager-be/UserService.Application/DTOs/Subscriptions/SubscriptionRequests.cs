@@ -10,25 +10,10 @@ public record ActivateSubscriptionRequest(
     DateTime? ExpiresAt,
     int MaxMembers = 1);
 
-public record ActivateLicensePackageRequest(
-    Guid? UserId,
-    Guid ApplicationId,
-    Guid LicensePackageId,
-    SubscriptionType SubscriptionType,
-    DateTime? ExpiresAt,
-    int MaxMembers = 1);
-
 public record UpgradeSubscriptionRequest(
     Guid? UserId,
     Guid ApplicationId,
     Guid NewSubscriptionPlanId,
-    SubscriptionType NewType,
-    DateTime? ExpiresAt);
-
-public record UpgradeLicensePackageRequest(
-    Guid? UserId,
-    Guid ApplicationId,
-    Guid NewLicensePackageId,
     SubscriptionType NewType,
     DateTime? ExpiresAt);
 
