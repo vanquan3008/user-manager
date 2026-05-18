@@ -8,7 +8,7 @@ import type {
   OAuthConsentRequest,
   OAuthTokenRequest,
   OAuthTokenResponse
-} from '../models/api-response';
+} from '../models';
 import { generateCodeChallenge, generateCodeVerifier } from '../utils/oauth-pkce';
 import { SessionStorageService } from './session-storage.service';
 

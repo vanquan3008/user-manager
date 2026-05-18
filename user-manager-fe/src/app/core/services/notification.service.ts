@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type NotificationType = 'success' | 'error' | 'info' | 'validation';
+export type NotificationType = 'success' | 'error' | 'info' | 'warning' | 'validation';
 
 export interface Notification {
   id: number;
@@ -45,6 +45,10 @@ export class NotificationService {
 
   validation(message: string, durationMs?: number) {
     this.show('validation', message, durationMs);
+  }
+
+  warning(message: string, durationMs?: number) {
+    this.show('warning', message, durationMs);
   }
 }
 

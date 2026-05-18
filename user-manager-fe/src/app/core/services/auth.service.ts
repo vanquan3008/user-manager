@@ -4,20 +4,21 @@ import { Router } from '@angular/router';
 import { throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { hasAdminRole } from '../constants/roles';
-import type { ApiResponse, AuthResponse, SsoApplication } from '../models/api-response';
+import type { ApiResponse, SuccessResponse } from '../models/http.model';
+import type {
+  AuthResponse,
+  AuthenticatedUser,
+  SsoApplication,
+  SsoAuthorizeRequest,
+  SsoAuthorizeResponse,
+  SsoConsentRequest,
+  SsoExchangeTokenRequest
+} from '../models';
 import { SessionStorageService } from './session-storage.service';
 
 const TOKEN_KEY = 'access_token';
 const USER_KEY = 'user';
 const APPLICATIONS_KEY = 'sso_applications';
-
-type AuthenticatedUser = {
-  id: string;
-  email: string;
-  username: string;
-  displayName?: string;
-  roles: string[];
-};
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -30,6 +31,7 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.hasValidSession());
   readonly user = computed(() => this.userSignal());
   readonly isAdmin = computed(() => hasAdminRole(this.userSignal()?.roles));
+  readonly permissions = computed(() => this.userSignal()?.permissions ?? []);
   readonly token = computed(() => this.tokenSignal());
   readonly applications = computed(() => this.applicationsSignal());
 
@@ -113,6 +115,20 @@ export class AuthService {
     return this.http.post<ApiResponse<AuthResponse>>(`${this.api}/sso/login`, { email, password });
   }
 
+  ssoAuthorize(request: SsoAuthorizeRequest) {
+    return this.http.post<ApiResponse<SsoAuthorizeResponse>>(`${this.api}/sso/authorize`, request);
+  }
+
+  ssoConsent(request: SsoConsentRequest) {
+    return this.http.post<ApiResponse<SsoAuthorizeResponse>>(`${this.api}/sso/consent`, request);
+  }
+
+  ssoExchangeToken(request: SsoExchangeTokenRequest) {
+    return this.http.post<ApiResponse<AuthResponse>>(`${this.api}/sso/exchange-token`, request, {
+      withCredentials: true
+    });
+  }
+
   requestMagicLink(email: string) {
     return this.http.post<ApiResponse<{ success: boolean }>>(`${this.api}/passwordless/request`, {
       email,
@@ -125,16 +141,23 @@ export class AuthService {
   }
 
   resetPassword(email: string, token: string, newPassword: string) {
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/password/reset`, { email, token, newPassword });
+    return this.http.post<ApiResponse<SuccessResponse>>(`${this.api}/password/reset`, { email, token, newPassword });
   }
 
-  verifyEmail(token: string, userId?: string) {
-    const body = userId ? { userId, token } : { token };
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/verify-email`, body);
+  verifyEmail(token: string) {
+    return this.http.get<ApiResponse<SuccessResponse>>(`${this.api}/verify-email`, { params: { token } });
+  }
+
+  resendMagicLink(email: string, purpose = 'EmailVerification', clientId?: string | null) {
+    return this.http.post<ApiResponse<SuccessResponse>>(`${this.api}/magic-link/resend`, {
+      email,
+      purpose,
+      clientId: clientId ?? this.clientId
+    });
   }
 
   changePassword(currentPassword: string, newPassword: string) {
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/password/change`, { currentPassword, newPassword });
+    return this.http.post<ApiResponse<SuccessResponse>>(`${this.api}/password/change`, { currentPassword, newPassword });
   }
 
   verifyMagicLink(token: string, purpose: string, clientId?: string) {
@@ -145,25 +168,31 @@ export class AuthService {
     });
   }
 
+  hasPermission(code: string): boolean {
+    const p = this.permissions();
+    if (!p.length) return false;
+    return p.some(x => x.toLowerCase() === code.toLowerCase());
+  }
+
+  hasAnyPermission(codes: string[]): boolean {
+    const p = this.permissions();
+    if (!p.length) return false;
+    const set = new Set(p.map(x => x.toLowerCase()));
+    return codes.some(c => set.has(c.toLowerCase()));
+  }
+
   setSession(res: AuthResponse) {
     this.sessionStorage.set(TOKEN_KEY, res.accessToken);
     this.tokenSignal.set(res.accessToken);
 
-    const user = res.user as {
-      id: string;
-      email: string;
-      username?: string;
-      userName?: string;
-      displayName?: string;
-      roles: string[];
-    };
-
+    const u = res.user as any;
     const normalized: AuthenticatedUser = {
-      id: user.id,
-      email: user.email,
-      username: user.username ?? user.userName ?? user.email,
-      displayName: user.displayName,
-      roles: user.roles ?? []
+      id: u.id,
+      email: u.email,
+      username: u.username ?? u.userName ?? u.email,
+      displayName: u.displayName,
+      roles: u.roles ?? [],
+      permissions: u.permissions ?? []
     };
 
     this.sessionStorage.setJson(USER_KEY, normalized);
@@ -180,7 +209,7 @@ export class AuthService {
 
   logout(options?: { queryParams?: Record<string, string> }) {
     const token = this.tokenSignal();
-    this.http.post<ApiResponse<unknown>>(
+    this.http.post<ApiResponse<SuccessResponse>>(
       `${this.api}/logout`,
       {},
       token ? { headers: { Authorization: `Bearer ${token}` } } : {}
