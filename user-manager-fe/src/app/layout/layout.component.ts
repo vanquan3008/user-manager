@@ -121,10 +121,6 @@ export class LayoutComponent {
       },
       roles: { title: t.layoutPageRoles, eyebrow: t.layoutEyebrowAuthModel },
       subscriptions: { title: t.layoutPageSubscriptions, eyebrow: t.layoutEyebrowCommerce },
-      'subscription-catalog': {
-        title: t.layoutPageSubscriptionCatalog,
-        eyebrow: t.layoutEyebrowPlanCatalogShort
-      },
       'package-catalog': { title: t.layoutPagePackageCatalog, eyebrow: t.layoutEyebrowPackages },
       permissions: { title: t.layoutPagePermissions, eyebrow: t.layoutEyebrowAccessControl },
       'role-permission': { title: t.layoutPageRoleMapping, eyebrow: t.layoutEyebrowPermAssignment },

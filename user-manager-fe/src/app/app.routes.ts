@@ -41,19 +41,12 @@ export const routes: Routes = [
       },
       {
         path: 'subscriptions',
-        loadComponent: () => import('./pages/subscriptions/subscriptions.component').then(m => m.SubscriptionsComponent)
-      },
-      {
-        path: 'subscription-catalog',
-        loadComponent: () =>
-          import('./pages/subscription-catalog/subscription-catalog.component').then(m => m.SubscriptionCatalogComponent)
+        loadComponent: () => import('./pages/billing/subscriptions/subscriptions.component').then(m => m.SubscriptionsComponent)
       },
       {
         path: 'package-catalog',
-        loadComponent: () => import('./pages/package-catalog/package-catalog.component').then(m => m.PackageCatalogComponent)
+        loadComponent: () => import('./pages/billing/catalog/package-catalog.component').then(m => m.PackageCatalogComponent)
       },
-      { path: 'plan-catalog', redirectTo: 'package-catalog' },
-      { path: 'application-package-catalog', redirectTo: 'package-catalog' },
       {
         path: 'role-permission',
         loadComponent: () => import('./pages/role-permission/role-permission.component').then(m => m.RolePermissionComponent)
