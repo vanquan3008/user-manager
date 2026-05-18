@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, input } from '@angular/core';
-import type { IdentityUser } from '../../../core/models/api-response';
+import type { IdentityUser } from '../../../core/models';
 
 @Component({
   selector: 'app-user-access-overview',

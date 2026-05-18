@@ -1,7 +1,7 @@
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import type { ApplicationListItem } from '../../../core/services/applications.service';
+import type { ApplicationListItem } from '../../../core/models';
 
 @Component({
   selector: 'app-application-summary-card',

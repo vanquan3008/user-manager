@@ -11,6 +11,7 @@ import { RolesService } from '../../core/services/roles.service';
 import { UsersService } from '../../core/services/users.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { environment } from '../../../environments/environment';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
@@ -19,9 +20,15 @@ import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-import type { ApplicationListItem } from '../../core/services/applications.service';
-import type { ApplicationRoleDto, RoleDto } from '../../core/models/api-response';
-import type { IdentityUser } from '../../core/models/api-response';
+import type {
+  ApplicationCapabilitiesDto,
+  ApplicationCredentialItem,
+  ApplicationListItem,
+  ApplicationRoleDto,
+  ApplicationUserDto,
+  IdentityUser,
+  RoleDto
+} from '../../core/models';
 
 @Component({
   selector: 'app-application-detail',
@@ -47,13 +54,16 @@ export class ApplicationDetailComponent implements OnInit {
   private readonly rolesService = inject(RolesService);
   private readonly usersService = inject(UsersService);
   private readonly notify = inject(NotificationService);
+  private readonly confirm = inject(ConfirmService);
   private readonly pageToolbar = inject(PageToolbarService);
   readonly theme = inject(ThemeService).theme;
 
   readonly app = signal<ApplicationListItem | null>(null);
+  readonly credentials = signal<ApplicationCredentialItem | null>(null);
+  readonly capabilities = signal<ApplicationCapabilitiesDto | null>(null);
   readonly appRoles = signal<ApplicationRoleDto[]>([]);
   readonly globalRoles = signal<RoleDto[]>([]);
-  readonly appUsers = signal<Array<{ userId: string; role: string; email?: string; userName?: string }>>([]);
+  readonly appUsers = signal<ApplicationUserDto[]>([]);
   readonly apiUsers = signal<IdentityUser[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
@@ -69,11 +79,18 @@ export class ApplicationDetailComponent implements OnInit {
   readonly showAddRoleModal = signal(false);
   readonly closingAddRole = signal(false);
   readonly updatingLogo = signal(false);
+  readonly rotatingSecret = signal(false);
   readonly selectedGlobalRoleId = signal('');
   readonly defaultAppLogoDataUri = environment.defaultAppLogoDataUri;
 
   readonly totalUsers = computed(() => this.appUsers().length);
   readonly totalRoles = computed(() => this.appRoles().length);
+  readonly ownerLabel = computed(() => this.app()?.ownerDisplayName?.trim() || this.app()?.ownerId?.trim() || 'Unassigned');
+  readonly redirectUris = computed(() =>
+    this.parseDelimitedValues(this.credentials()?.allowedRedirectUris || this.app()?.allowedRedirectUris || '')
+  );
+  readonly capabilityFeatureCount = computed(() => this.capabilities()?.enabledFeatures.length ?? 0);
+  readonly capabilityPermissionCount = computed(() => this.capabilities()?.enabledPermissions.length ?? 0);
   readonly userOptions = computed(() => [
     { value: '', label: '-- Select user --' },
     ...this.apiUsers().map(user => ({ value: user.id, label: this.getUserLabel(user) }))
@@ -107,21 +124,25 @@ export class ApplicationDetailComponent implements OnInit {
 
     forkJoin({
       app: this.applicationsService.getApplication(applicationId),
+      credentials: this.applicationsService.getApplicationCredentials(applicationId).pipe(catchError(() => of(null))),
+      capabilities: this.applicationsService.getApplicationCapabilities(applicationId).pipe(catchError(() => of(null))),
       roles: this.applicationsService.getApplicationRoles(applicationId).pipe(catchError(() => of([] as ApplicationRoleDto[]))),
-      users: this.applicationsService.getApplicationUsers(applicationId).pipe(catchError(() => of([] as Array<{ userId: string; role: string; email?: string; userName?: string }>)))
+      users: this.applicationsService.getApplicationUsers(applicationId).pipe(catchError(() => of([] as ApplicationUserDto[])))
     })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: ({ app, roles, users }) => {
+        next: ({ app, credentials, capabilities, roles, users }) => {
           if (!app.success || !app.data) {
             this.error.set(app.message || 'Application not found.');
             return;
           }
 
           this.app.set(app.data);
+          this.credentials.set(credentials?.success ? credentials.data : null);
+          this.capabilities.set(capabilities);
           this.appRoles.set(roles);
           this.appUsers.set(users);
           const a = app.data;
@@ -134,7 +155,7 @@ export class ApplicationDetailComponent implements OnInit {
               'Manage roles, branding and user access for this application workspace.'
           });
         },
-        error: err => {
+        error: (err: any) => {
           this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load application details.');
         }
       });
@@ -154,7 +175,7 @@ export class ApplicationDetailComponent implements OnInit {
             this.addUserRole.set(this.getDefaultAppRoleName() ?? '');
           }
         },
-        error: () => {
+        error: (err: any) => {
           this.notify.error('Failed to load application roles.');
         }
       });
@@ -165,7 +186,7 @@ export class ApplicationDetailComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: users => this.appUsers.set(users),
-        error: () => this.notify.error('Failed to load application users.')
+        error: (err: any) => this.notify.error('Failed to load application users.')
       });
   }
 
@@ -180,7 +201,7 @@ export class ApplicationDetailComponent implements OnInit {
         next: response => {
           this.apiUsers.set(response.data || []);
         },
-        error: () => {
+        error: (err: any) => {
           this.notify.error('Failed to load users.');
         }
       });
@@ -229,7 +250,7 @@ export class ApplicationDetailComponent implements OnInit {
           this.closeAddUserModal();
           this.loadAppUsers(app.id);
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Failed to add user.');
         }
       });
@@ -268,6 +289,29 @@ export class ApplicationDetailComponent implements OnInit {
     return `${user.email || user.userName || 'Unknown user'} (${user.id})`;
   }
 
+  getUserDisplayName(user: ApplicationUserDto): string {
+    return user.email || user.userName || user.userId;
+  }
+
+  getUserInitial(user: ApplicationUserDto): string {
+    return this.getUserDisplayName(user).charAt(0).toUpperCase();
+  }
+
+  private parseDelimitedValues(raw: string): string[] {
+    if (!raw.trim()) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        raw
+          .split(/[\r\n,]+/)
+          .map(value => value.trim())
+          .filter(Boolean)
+      )
+    );
+  }
+
   private getGuestRoleName(): string | null {
     const guestRole = this.appRoles().find(role => role.name.toLowerCase() === 'guest');
     return guestRole?.name ?? null;
@@ -300,7 +344,7 @@ export class ApplicationDetailComponent implements OnInit {
         next: roles => {
           this.globalRoles.set(roles);
         },
-        error: () => {
+        error: (err: any) => {
           this.notify.error('Failed to load global roles.');
         }
       });
@@ -361,7 +405,7 @@ export class ApplicationDetailComponent implements OnInit {
           this.loadRoles(app.id);
           this.closeAddRoleModal();
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Failed to add role.');
         }
       });
@@ -418,15 +462,69 @@ export class ApplicationDetailComponent implements OnInit {
                   this.notify.error(response.message || 'Failed to update logo.');
                 }
               },
-              error: err => {
+              error: (err: any) => {
                 this.notify.error(err.error?.message || 'Failed to update logo.');
               }
             });
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Logo upload failed.');
           this.updatingLogo.set(false);
         }
       });
+  }
+
+  async rotateClientSecret() {
+    const app = this.app();
+    const credentials = this.credentials();
+    if (!app || !credentials || credentials.clientType !== 'Confidential') {
+      this.notify.error('This application does not use a confidential client secret.');
+      return;
+    }
+
+    const confirmed = await this.confirm.confirm({
+      title: 'Rotate client secret',
+      message: 'Rotate the client secret now? The previous secret will stop working after this action.',
+      confirmText: 'Rotate',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.rotatingSecret.set(true);
+    this.applicationsService.rotateApplicationClientSecret(app.id)
+      .pipe(
+        finalize(() => this.rotatingSecret.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: response => {
+          if (!response.success || !response.data) {
+            this.notify.error(response.message || 'Failed to rotate client secret.');
+            return;
+          }
+
+          this.credentials.set(response.data);
+          this.notify.success('Client secret rotated. Copy the new value now.');
+        },
+        error: (err: any) => {
+          this.notify.error(err.error?.message || 'Failed to rotate client secret.');
+        }
+      });
+  }
+
+  copyText(value: string | null | undefined, label: string) {
+    const normalized = (value || '').trim();
+    if (!normalized) {
+      this.notify.error(`No ${label.toLowerCase()} available to copy.`);
+      return;
+    }
+
+    navigator.clipboard.writeText(normalized)
+      .then(() => this.notify.success(`${label} copied.`))
+      .catch(() => this.notify.error(`Failed to copy ${label.toLowerCase()}.`));
   }
 }

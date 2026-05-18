@@ -13,7 +13,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { TranslateService } from '../../core/services/translate.service';
 import { ConfirmService } from '../../core/services/confirm.service';
-import type { PermissionDto, RoleDto } from '../../core/models/api-response';
+import type { PermissionDto, RoleDto } from '../../core/models';
 import { PermissionsService } from '../../core/services/permissions.service';
 import {
   SearchableMultiSelectComponent,
@@ -75,7 +75,7 @@ export class RolesComponent implements OnInit {
     this.sortedPermissions().map((p) => ({
       value: p.code,
       label: p.code,
-      description: [p.name, p.resource, p.action, p.category].filter(Boolean).join(' · ') || undefined
+      description: [p.description, p.category].filter(Boolean).join(' · ') || undefined
     }))
   );
 
@@ -133,11 +133,11 @@ export class RolesComponent implements OnInit {
   loadPermissionsCatalog() {
     this.permissionsLoading.set(true);
     this.permissionsService.getPermissions().subscribe({
-      next: (list) => {
+      next: (list: PermissionDto[]) => {
         this.permissionsCatalog.set(list);
         this.permissionsLoading.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         this.permissionsCatalog.set([]);
         this.permissionsLoading.set(false);
       }
@@ -173,11 +173,11 @@ export class RolesComponent implements OnInit {
   loadRoles() {
     this.loading.set(true);
     this.rolesService.getRoles().subscribe({
-      next: (list) => {
+      next: (list: RoleDto[]) => {
         this.roles.set(list);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(err.error?.message || 'Không thể tải danh sách roles');
         this.loading.set(false);
       }
@@ -235,7 +235,7 @@ export class RolesComponent implements OnInit {
           }
           this.saving.set(false);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Tạo role thất bại');
           this.saving.set(false);
         }
@@ -262,7 +262,7 @@ export class RolesComponent implements OnInit {
           }
           this.saving.set(false);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Cập nhật thất bại');
           this.saving.set(false);
         }
@@ -293,7 +293,7 @@ export class RolesComponent implements OnInit {
         }
         this.deleting.set(null);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.notify.error(err.error?.message || 'Xóa thất bại');
         this.deleting.set(null);
       }

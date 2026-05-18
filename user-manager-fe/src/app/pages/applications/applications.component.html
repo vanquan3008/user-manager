@@ -297,6 +297,23 @@
         placeholder="Explain what this workspace is for"
         [theme]="theme()"
       />
+      <div class="space-y-2">
+        <label class="block text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+          Client type
+        </label>
+        <select
+          class="w-full rounded-md border px-3 py-2.5 text-sm outline-none transition focus:ring-2 focus:ring-sky-500/30"
+          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-800' : 'border-slate-600 bg-slate-900 text-slate-100'"
+          [ngModel]="form.clientType"
+          (ngModelChange)="updateClientType($event)"
+        >
+          <option value="Public">Public client</option>
+          <option value="Confidential">Confidential client</option>
+        </select>
+        <p class="text-xs leading-5" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
+          Public clients use PKCE only. Confidential clients also get a one-time client secret and can rotate it later.
+        </p>
+      </div>
       <app-form-field
         label="Logo URL"
         [model]="form.logoUrl"
@@ -359,6 +376,75 @@
       [loading]="saving() || uploadingLogo()"
       (cancel)="closeModal()"
       (save)="saveCreate()"
+    />
+  </app-drawer>
+}
+
+@if (showCreatedCredentials() && createdCredentials(); as credentials) {
+  <app-drawer
+    [title]="'Client credentials'"
+    [closing]="closingCreatedCredentials()"
+    [theme]="theme()"
+    (close)="closeCreatedCredentialsDrawer()"
+  >
+    <div class="space-y-5">
+      <div
+        class="rounded-md border p-4"
+        [ngClass]="theme() === 'light' ? 'border-amber-200 bg-amber-50/70' : 'border-amber-500/20 bg-amber-500/10'"
+      >
+        <p class="text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
+          Save this secret now. It is shown only once and cannot be retrieved again.
+        </p>
+      </div>
+
+      <div class="space-y-3">
+        <div class="rounded-md border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/40'">
+          <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Application</p>
+          <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ credentials.applicationName }}</p>
+        </div>
+
+        <div class="rounded-md border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/40'">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client ID</p>
+              <p class="mt-2 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ credentials.clientId }}</p>
+            </div>
+            <button
+              type="button"
+              class="rounded-md border px-3 py-2 text-sm font-medium transition"
+              [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+              (click)="copyText(credentials.clientId, 'Client ID')"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-md border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/40'">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client Secret</p>
+              <p class="mt-2 break-all font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">{{ credentials.clientSecret || 'No secret returned' }}</p>
+            </div>
+            <button
+              type="button"
+              class="rounded-md border px-3 py-2 text-sm font-medium transition"
+              [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
+              (click)="copyText(credentials.clientSecret, 'Client secret')"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <app-drawer-footer-actions
+      [theme]="theme()"
+      cancelLabel="Close"
+      saveLabel="Copy client secret"
+      [loading]="false"
+      (cancel)="closeCreatedCredentialsDrawer()"
+      (save)="copyText(credentials.clientSecret, 'Client secret')"
     />
   </app-drawer>
 }

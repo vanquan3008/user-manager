@@ -53,7 +53,7 @@
           @for (p of paginatedPermissions(); track p.id) {
             <tr>
               <td class="app-table-td-code text-sm">{{ p.code }}</td>
-              <td class="max-w-[200px] truncate text-[var(--app-text-secondary)]">{{ p.description || p.name || '—' }}</td>
+              <td class="max-w-[200px] truncate text-[var(--app-text-secondary)]">{{ p.description || '—' }}</td>
               <td class="text-[var(--app-text-secondary)]">{{ categoryDisplayLabel(p.category) }}</td>
               <td>
                 @if (p.isSystemPermission !== false) {
@@ -112,28 +112,19 @@
         [theme]="theme()"
       />
       <app-form-field
-        label="Tên"
-        [model]="form.name"
-        (modelChange)="form.name = $event"
-        placeholder="Xem users"
+        label="Category"
+        [model]="form.category"
+        (modelChange)="form.category = $event"
+        placeholder="Users"
         [theme]="theme()"
       />
-      <div class="grid grid-cols-2 gap-4">
-        <app-form-field
-          [label]="translate.t().permissionsResource"
-          [model]="form.resource"
-          (modelChange)="form.resource = $event"
-          placeholder="users"
-          [theme]="theme()"
-        />
-        <app-form-field
-          [label]="translate.t().permissionsAction"
-          [model]="form.action"
-          (modelChange)="form.action = $event"
-          placeholder="view"
-          [theme]="theme()"
-        />
-      </div>
+      <app-form-field
+        label="Scope"
+        [model]="form.scope"
+        (modelChange)="form.scope = $event"
+        placeholder="global"
+        [theme]="theme()"
+      />
       <app-form-field
         [label]="translate.t().description"
         [model]="form.description"
