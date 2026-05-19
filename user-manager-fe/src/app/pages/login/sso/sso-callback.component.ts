@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { hasAdminRole } from '../../../core/constants/roles';
-import { AuthResponse, OAuthTokenResponse } from '../../../core/models/api-response';
+import type { AuthResponse } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { OauthService } from '../../../core/services/oauth.service';
@@ -81,7 +81,8 @@ export class SsoCallbackComponent implements OnInit {
               email: '',
               username: '',
               displayName: '',
-              roles: []
+              roles: [],
+              permissions: []
             }
           };
 
@@ -98,7 +99,7 @@ export class SsoCallbackComponent implements OnInit {
           const targetUrl = state?.startsWith('/') ? state : '/';
           void this.router.navigateByUrl(targetUrl, { replaceUrl: true });
         },
-        error: (err) => {
+        error: (err: any) => {
           const errorMsg = err.error?.message || err.error?.error?.message || 'Đăng nhập SSO thất bại.';
           this.notify.error(errorMsg);
           void this.router.navigate(['/login'], { replaceUrl: true });

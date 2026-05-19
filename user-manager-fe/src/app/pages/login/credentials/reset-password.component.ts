@@ -10,6 +10,7 @@ import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../cor
 @Component({
   selector: 'app-reset-password',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './reset-password.component.html'
 })
@@ -67,7 +68,7 @@ export class ResetPasswordComponent implements OnInit {
         this.loading.set(false);
         setTimeout(() => this.router.navigate(['/login'], { replaceUrl: true }), 2000);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(getHttpErrorMessage(err, 'Password reset failed.', UNREACHABLE_SERVER_MESSAGE_VI));
         this.notify.error(this.error());
         this.loading.set(false);

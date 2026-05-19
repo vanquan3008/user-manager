@@ -9,6 +9,7 @@ import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../cor
 @Component({
   selector: 'app-verify-email',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule, RouterLink],
   templateUrl: './verify-email.component.html'
 })
@@ -28,7 +29,6 @@ export class VerifyEmailComponent implements OnInit {
   ngOnInit() {
     const params = this.readLinkParams();
     const token = params.get('token');
-    const userId = params.get('userId');
 
     this.clearSensitiveUrlState();
 
@@ -38,14 +38,14 @@ export class VerifyEmailComponent implements OnInit {
       return;
     }
 
-    this.auth.verifyEmail(token, userId ?? undefined).subscribe({
-      next: (res) => {
+    this.auth.verifyEmail(token).subscribe({
+      next: (res: any) => {
         this.success.set(res.success !== false);
         this.notify.success(this.success() ? 'Email verified successfully.' : res.message || 'Verification handled.');
         this.loading.set(false);
         setTimeout(() => this.router.navigate(['/login']), 1500);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(getHttpErrorMessage(err, 'Email verification failed.', UNREACHABLE_SERVER_MESSAGE_VI));
         this.notify.error(this.error());
         this.loading.set(false);
@@ -66,9 +66,7 @@ export class VerifyEmailComponent implements OnInit {
 
     const params = new URLSearchParams();
     const queryToken = this.route.snapshot.queryParamMap.get('token');
-    const queryUserId = this.route.snapshot.queryParamMap.get('userId');
     if (queryToken) params.set('token', queryToken);
-    if (queryUserId) params.set('userId', queryUserId);
     return params;
   }
 
