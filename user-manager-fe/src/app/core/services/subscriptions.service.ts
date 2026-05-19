@@ -2,18 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { ApiResponse } from '../models/api-response';
+import type { ApiResponse, SuccessResponse } from '../models/http.model';
 import type {
+  SubscriptionType,
   SubscriptionDto,
-  SubscriptionPlanCatalogDto,
-  LicensePackageCatalogDto
-} from '../models/api-response';
+  SubscriptionPlanCatalogDto
+} from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class SubscriptionsService {
   private readonly api = `${environment.apiUrl}/api/subscriptions`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getActive(applicationId: string, userId?: string | null) {
     let params = new HttpParams().set('applicationId', applicationId);
@@ -32,38 +32,37 @@ export class SubscriptionsService {
   activate(data: {
     userId?: string | null;
     applicationId: string;
-    licensePackageId: string;
-    subscriptionType: 'Free' | 'Premium' | 'Family' | 'Student';
+    subscriptionPlanId: string;
+    subscriptionType: SubscriptionType;
     expiresAt: string;
     maxMembers: number;
   }) {
     const payload: Record<string, unknown> = {
       applicationId: data.applicationId,
-      licensePackageId: data.licensePackageId,
+      subscriptionPlanId: data.subscriptionPlanId,
       subscriptionType: data.subscriptionType,
       expiresAt: data.expiresAt,
       maxMembers: data.maxMembers
     };
     if (data.userId) payload['userId'] = data.userId;
-    // Note: hitting /activate-package specifically as FE now prioritizes packets
-    return this.http.post<ApiResponse<SubscriptionDto>>(`${this.api}/activate-package`, payload);
+    return this.http.post<ApiResponse<SubscriptionDto>>(`${this.api}/activate`, payload);
   }
 
   upgrade(data: {
     userId?: string | null;
     applicationId: string;
-    newLicensePackageId: string;
-    newType: 'Free' | 'Premium' | 'Family' | 'Student';
+    newSubscriptionPlanId: string;
+    newType: SubscriptionType;
     expiresAt: string;
   }) {
     const payload: Record<string, unknown> = {
       applicationId: data.applicationId,
-      newLicensePackageId: data.newLicensePackageId,
+      newSubscriptionPlanId: data.newSubscriptionPlanId,
       newType: data.newType,
       expiresAt: data.expiresAt
     };
     if (data.userId) payload['userId'] = data.userId;
-    return this.http.post<ApiResponse<SubscriptionDto>>(`${this.api}/upgrade-package`, payload);
+    return this.http.post<ApiResponse<SubscriptionDto>>(`${this.api}/upgrade`, payload);
   }
 
   extend(data: { userId?: string | null; applicationId: string; newExpiresAt: string }) {
@@ -80,10 +79,10 @@ export class SubscriptionsService {
       applicationId: data.applicationId
     };
     if (data.userId) payload['userId'] = data.userId;
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/cancel`, payload);
+    return this.http.post<ApiResponse<SuccessResponse>>(`${this.api}/cancel`, payload);
   }
 
-  // ---------------- Catalog: plans / packages ----------------
+  // ---------------- Plans Catalog ----------------
 
   getPlans(applicationId?: string | null) {
     let params = new HttpParams();
@@ -98,15 +97,11 @@ export class SubscriptionsService {
     monthlyPrice: number;
     yearlyPrice: number;
     maxUsers: number;
-    /** Không giới hạn / không nhập: luôn gửi -1 */
     maxApiCalls: number;
-    includeAnalytics: boolean;
-    includeSupport: boolean;
-    includeAdvancedSecurity: boolean;
-    includeCustomDomain: boolean;
+    features: string[];
+    permissions: string[];
     isActive: boolean;
     displayOrder: number;
-    assignedRoleIds: string[];
     icon: string | null;
   }) {
     return this.http.post<ApiResponse<SubscriptionPlanCatalogDto>>(`${this.api}/plans`, data);
@@ -119,80 +114,18 @@ export class SubscriptionsService {
     monthlyPrice: number;
     yearlyPrice: number;
     maxUsers: number;
-    /** Không giới hạn / không nhập: luôn gửi -1 */
     maxApiCalls: number;
-    includeAnalytics: boolean;
-    includeSupport: boolean;
-    includeAdvancedSecurity: boolean;
-    includeCustomDomain: boolean;
+    features: string[];
+    permissions: string[];
     isActive: boolean;
     displayOrder: number;
-    assignedRoleIds: string[];
     icon: string | null;
   }) {
     return this.http.put<ApiResponse<SubscriptionPlanCatalogDto>>(`${this.api}/plans/${planId}`, data);
   }
 
-  getPackages(applicationId: string, subscriptionPlanId?: string | null) {
-    let params = new HttpParams().set('applicationId', applicationId);
-    if (subscriptionPlanId) params = params.set('subscriptionPlanId', subscriptionPlanId);
-    return this.http.get<ApiResponse<LicensePackageCatalogDto[]>>(`${this.api}/packages`, { params });
-  }
-
-  createPackage(data: {
-    applicationId: string;
-    subscriptionPlanId: string;
-    name: string;
-    description: string | null;
-    features: string[];
-    seatLimit: number;
-    isActive: boolean;
-    displayOrder: number;
-    assignedRole: string;
-  }) {
-    return this.http.post<ApiResponse<LicensePackageCatalogDto>>(`${this.api}/packages`, data);
-  }
-
-  updatePackage(packageId: string, data: {
-    applicationId: string;
-    name: string;
-    description: string | null;
-    features: string[];
-    seatLimit: number;
-    isActive: boolean;
-    displayOrder: number;
-    assignedRole: string;
-  }) {
-    return this.http.put<ApiResponse<LicensePackageCatalogDto>>(`${this.api}/packages/${packageId}`, data);
-  }
-
-  // Activate using a license package (packet)
-  activatePackage(data: {
-    userId?: string | null;
-    applicationId: string;
-    licensePackageId: string;
-    subscriptionType: 'Free' | 'Premium' | 'Family' | 'Student';
-    expiresAt: string | null;
-    maxMembers: number;
-  }) {
-    const payload: Record<string, unknown> = {
-      applicationId: data.applicationId,
-      licensePackageId: data.licensePackageId,
-      subscriptionType: data.subscriptionType,
-      expiresAt: data.expiresAt,
-      maxMembers: data.maxMembers
-    };
-    if (data.userId) payload['userId'] = data.userId;
-    return this.http.post<ApiResponse<SubscriptionDto>>(`${this.api}/activate-package`, payload);
-  }
-
-  addMember(data: { subscriptionId: string; userId: string; roleTypeId: string }) {
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/members`, data);
-  }
-
-  removeMember(subscriptionId: string, userId: string) {
-    const params = new HttpParams().set('subscriptionId', subscriptionId).set('userId', userId);
-    return this.http.delete<ApiResponse<unknown>>(`${this.api}/members`, { params });
+  deletePlan(planId: string) {
+    return this.http.delete<ApiResponse<SuccessResponse>>(`${this.api}/plans/${planId}`);
   }
 }
 
