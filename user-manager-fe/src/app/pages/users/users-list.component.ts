@@ -17,7 +17,7 @@ import { IconButtonComponent } from '../../shared/components/icon-button/icon-bu
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { ThemeService } from '../../core/services/theme.service';
 import { hasAdminRole } from '../../core/constants/roles';
-import type { IdentityUser } from '../../core/models/api-response';
+import type { IdentityUser } from '../../core/models';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { TablePaginationComponent } from '../../shared/components/table-pagination/table-pagination.component';
 
@@ -95,7 +95,7 @@ export class UsersListComponent implements OnInit {
         this.totalCount.set(res.totalCount ?? 0);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load users');
         this.loading.set(false);
       }
@@ -172,7 +172,7 @@ export class UsersListComponent implements OnInit {
         }
         this.ssoSaving.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.notify.error(err.error?.message || err.error?.error?.message || 'Tạo SSO user thất bại.');
         this.ssoSaving.set(false);
       }

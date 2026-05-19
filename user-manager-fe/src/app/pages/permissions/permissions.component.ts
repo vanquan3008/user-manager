@@ -12,7 +12,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { TranslateService } from '../../core/services/translate.service';
 import { DropdownComponent, type DropdownOption } from '../../shared/components/dropdown/dropdown.component';
-import type { PermissionDto } from '../../core/models/api-response';
+import type { PermissionDto } from '../../core/models';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { paginateSlice, totalListPages } from '../../core/utils/pagination';
 import { TablePaginationComponent } from '../../shared/components/table-pagination/table-pagination.component';
@@ -51,13 +51,13 @@ export class PermissionsComponent implements OnInit {
   closing = signal(false);
   saving = signal(false);
 
-  form = { code: '', name: '', resource: '', action: '', description: '' };
+  form = { code: '', category: '', scope: '', description: '' };
 
   categories = computed(() => {
     const list = this.permissions();
     const set = new Set<string>();
     for (const p of list) {
-      const cat = p.category || (p.code?.split('.')[0] || p.resource || '').replace(/^./, c => c.toUpperCase());
+      const cat = p.category || (p.code?.split('.')[0] || '').replace(/^./, (c: string) => c.toUpperCase());
       if (cat) set.add(cat);
     }
     return Array.from(set).sort();
@@ -84,17 +84,14 @@ export class PermissionsComponent implements OnInit {
       list = list.filter(
         p =>
           (p.code || '').toLowerCase().includes(term) ||
-          (p.name || '').toLowerCase().includes(term) ||
-          (p.resource || '').toLowerCase().includes(term) ||
-          (p.action || '').toLowerCase().includes(term) ||
+          (p.description || '').toLowerCase().includes(term) ||
           (p.category || '').toLowerCase().includes(term)
       );
     }
     if (cat) {
       list = list.filter(
         p =>
-          (p.category || (p.code?.split('.')[0] || '')).toLowerCase() === cat.toLowerCase() ||
-          (p.resource || '').toLowerCase() === cat.toLowerCase()
+          (p.category || (p.code?.split('.')[0] || '')).toLowerCase() === cat.toLowerCase()
       );
     }
     return list;
@@ -151,7 +148,7 @@ export class PermissionsComponent implements OnInit {
         this.permissions.set(list);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.error.set(err.error?.message || 'Không thể tải danh sách permissions');
         this.loading.set(false);
       }
@@ -159,7 +156,7 @@ export class PermissionsComponent implements OnInit {
   }
 
   openCreate() {
-    this.form = { code: '', name: '', resource: '', action: '', description: '' };
+    this.form = { code: '', category: '', scope: '', description: '' };
     this.closing.set(false);
     this.showModal.set(true);
   }
@@ -182,10 +179,9 @@ export class PermissionsComponent implements OnInit {
     this.permissionsService
       .createPermission({
         code: this.form.code.trim(),
-        name: this.form.name.trim() || undefined,
-        resource: this.form.resource.trim() || undefined,
-        action: this.form.action.trim() || undefined,
-        description: this.form.description.trim() || undefined
+        category: this.form.category.trim(),
+        scope: this.form.scope.trim() || null,
+        description: this.form.description.trim()
       })
       .subscribe({
         next: (res) => {
@@ -198,7 +194,7 @@ export class PermissionsComponent implements OnInit {
           }
           this.saving.set(false);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Tạo permission thất bại');
           this.saving.set(false);
         }

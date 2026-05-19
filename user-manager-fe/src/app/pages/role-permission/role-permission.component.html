@@ -116,7 +116,7 @@
           type="search"
           [ngModel]="searchPermission()"
           (ngModelChange)="searchPermission.set($event)"
-          placeholder="Tìm permission (code, resource)…"
+          placeholder="Tìm permission (code, description)…"
           class="flex-1 rounded-xl border px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-sky-500/50"
           [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-900' : 'border-slate-600 bg-slate-900 text-slate-100'"
         />
@@ -131,7 +131,7 @@
               [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/80 hover:bg-slate-100/80' : 'border-slate-600 bg-slate-900/50 hover:bg-slate-700/50'"
             >
               <span class="font-mono font-medium" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-100'">{{ p.code }}</span>
-              <p class="mt-0.5 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ p.name || '—' }} · {{ p.resource || '—' }} / {{ p.action || '—' }}</p>
+              <p class="mt-0.5 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ p.description || '—' }} · {{ p.category || '—' }} / {{ p.scope || '—' }}</p>
             </div>
           }
         </div>

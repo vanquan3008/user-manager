@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import type { ApiResponse, PagedResponse, SuccessResponse } from '../models/http.model';
 import type {
-  ApiResponse,
-  PagedResponse,
   IdentityUser,
   UserWithRoles,
   SsoUserApplication
-} from '../models/api-response';
+} from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -64,7 +63,7 @@ export class UsersService {
 
   /** Gán SSO user vào application (Admin only) */
   grantSsoUserApplication(ssoUserId: string, applicationId: string, role: string) {
-    return this.http.post<ApiResponse<unknown>>(`${this.api}/sso/${ssoUserId}/applications`, {
+    return this.http.post<ApiResponse<SuccessResponse>>(`${this.api}/sso/${ssoUserId}/applications`, {
       applicationId,
       role
     });
@@ -72,7 +71,7 @@ export class UsersService {
 
   /** Thu hồi quyền SSO user khỏi application (Admin only) */
   revokeSsoUserApplication(ssoUserId: string, applicationId: string) {
-    return this.http.delete<ApiResponse<unknown>>(
+    return this.http.delete<ApiResponse<SuccessResponse>>(
       `${this.api}/sso/${ssoUserId}/applications/${applicationId}`
     );
   }
