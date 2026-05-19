@@ -8,7 +8,7 @@ namespace UserService.Application.Mapping;
 
 public static class IdentityUserMapper
 {
-    public static IdentityUserDto ToDto(Guid id, string userName, string email, bool emailConfirmed, bool isActive, bool isBanned, string? banReason, DateTime createdAt, Guid? userProfileId, bool isSsoAccount) =>
+    public static IdentityUserDto ToDto(Guid id, string userName, string email, bool emailConfirmed, bool isActive, bool isBanned, string? banReason, DateTime createdAt, Guid? userProfileId, bool isSSOAccount) =>
         new IdentityUserDto(
             id,
             userName,
@@ -21,7 +21,7 @@ public static class IdentityUserMapper
             RefreshTokenExpiryTime: null,
             createdAt,
             userProfileId,
-            IsSsoAccount: isSsoAccount
+            IsSSOAccount: isSSOAccount
         );
 }
 

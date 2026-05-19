@@ -83,7 +83,7 @@ public class ApplicationManagerSeeder
         await _db.SaveChangesAsync(cancellationToken);
         await EnsureDefaultOAuthScopesAsync(app.Id, onlyWhenMissing: true, cancellationToken);
         await EnsureDefaultApplicationRolesAsync(app.Id, cancellationToken);
-        await EnsureAdminUserApplicationAsync(app.Id, cancellationToken);
+        await EnsureAdminMembershipAsync(app.Id, cancellationToken);
         Log.Information("Application '{AppName}' configuration completed. ApiKey: {ApiKey}", AppName, AppApiKey);
     }
 
@@ -103,7 +103,7 @@ public class ApplicationManagerSeeder
             return;
         }
 
-        await EnsureSsoEnabledAsync(adminUser, cancellationToken);
+        await EnsureSSOEnabledAsync(adminUser, cancellationToken);
         Log.Information("Using user {UserId} ({Email}) as application owner", adminUser.Id, adminUser.Email.Value);
         var plainSecret = GenerateRandomSecret();
         var apiKey = ApiKey.Create(AppApiKey);
@@ -116,6 +116,7 @@ public class ApplicationManagerSeeder
             description: UserService.Domain.ValueObjects.AppDescription.Create(AppDescription),
             apiKey,
             apiSecretHash,
+            ApplicationClientTypes.Confidential,
             _clock.UtcNow);
         
         foreach (var uri in GetDefaultAllowedRedirectUris())
@@ -134,7 +135,7 @@ public class ApplicationManagerSeeder
 
         await EnsureDefaultOAuthScopesAsync(app.Id, onlyWhenMissing: false, cancellationToken);
         await EnsureDefaultApplicationRolesAsync(app.Id, cancellationToken);
-        await EnsureAdminUserApplicationAsync(app.Id, cancellationToken);
+        await EnsureAdminMembershipAsync(app.Id, cancellationToken);
     }
 
     private void ApplyDefaults(AppApplication app)
@@ -264,40 +265,50 @@ public class ApplicationManagerSeeder
             AppName);
     }
 
-    private async Task EnsureAdminUserApplicationAsync(Guid applicationId, CancellationToken cancellationToken)
+    private async Task EnsureAdminMembershipAsync(Guid applicationId, CancellationToken cancellationToken)
     {
         var adminUser = await GetPreferredUserAsync(cancellationToken);
         if (adminUser == null)
             return;
 
-        var existingUserApp = await _db.UserApplications
+        var existingMembership = await _db.ApplicationMemberships
             .AsNoTracking()
             .FirstOrDefaultAsync(
-                ua => ua.UserId == adminUser.Id && ua.ApplicationId == applicationId,
+                membership => membership.UserId == adminUser.Id && membership.ApplicationId == applicationId,
                 cancellationToken);
 
-        if (existingUserApp != null)
+        if (existingMembership != null)
         {
             Log.Information("Admin user {UserId} already in application '{AppName}'", adminUser.Id, AppName);
             return;
         }
 
-        await AddAdminUserApplicationAsync(applicationId, adminUser.Id, cancellationToken);
+        await AddAdminMembershipAsync(applicationId, adminUser.Id, cancellationToken);
         Log.Information("Added admin user {UserId} to application '{AppName}'", adminUser.Id, AppName);
     }
 
-    private async Task AddAdminUserApplicationAsync(
+    private async Task AddAdminMembershipAsync(
         Guid applicationId,
         Guid userId,
         CancellationToken cancellationToken)
     {
-        var userApp = UserApplication.Create(
-            id: Guid.NewGuid(),
-            userId: userId,
-            applicationId: applicationId,
-            role: AdminRole);
+        var role = await _db.Set<AppRole>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Name == AdminRole, cancellationToken);
+        if (role is null)
+        {
+            Log.Warning("Admin role not found. Skipping admin membership seeding for application '{AppName}'", AppName);
+            return;
+        }
 
-        await _db.UserApplications.AddAsync(userApp, cancellationToken);
+        var membership = ApplicationMembership.Join(
+            Guid.NewGuid(),
+            userId,
+            applicationId,
+            role.Id,
+            DateTime.UtcNow);
+
+        await _db.ApplicationMemberships.AddAsync(membership, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
@@ -310,7 +321,7 @@ public class ApplicationManagerSeeder
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task EnsureSsoEnabledAsync(User adminUser, CancellationToken cancellationToken)
+    private async Task EnsureSSOEnabledAsync(User adminUser, CancellationToken cancellationToken)
     {
         if (adminUser.IsSSOAccount)
             return;

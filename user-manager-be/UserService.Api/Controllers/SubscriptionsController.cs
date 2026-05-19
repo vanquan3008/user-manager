@@ -16,7 +16,7 @@ namespace UserService.Api.Controllers;
 public class SubscriptionsController(IMediator mediator) : ApiControllerBase
 {
     [HttpPost("activate")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.ActivateSubscription)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> Activate(
@@ -36,29 +36,8 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
         return OkResponse(subscription);
     }
 
-    [HttpPost("activate-package")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
-    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ApiResponse<SuccessResponse>>> ActivatePackage(
-        [FromBody] ActivateLicensePackageRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var userId = ResolveRequestedUserId(request.UserId);
-        var command = new ActivateLicensePackageCommand(
-            userId,
-            request.ApplicationId,
-            request.LicensePackageId,
-            request.SubscriptionType,
-            request.ExpiresAt,
-            request.MaxMembers);
-
-        var subscription = await mediator.Send(command, cancellationToken);
-        return OkResponse(subscription);
-    }
-
     [HttpPost("upgrade")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.UpgradeSubscription)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> Upgrade(
@@ -77,39 +56,19 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
         return OkResponse(subscription);
     }
 
-    [HttpPost("upgrade-package")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
-    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ApiResponse<SuccessResponse>>> UpgradePackage(
-        [FromBody] UpgradeLicensePackageRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var userId = ResolveRequestedUserId(request.UserId);
-        var command = new UpgradeLicensePackageCommand(
-            userId,
-            request.ApplicationId,
-            request.NewLicensePackageId,
-            request.NewType,
-            request.ExpiresAt);
-
-        var subscription = await mediator.Send(command, cancellationToken);
-        return OkResponse(subscription);
-    }
-
     [HttpGet("plans")]
-    [Authorize(Policy = AuthorizationPolicies.ViewApplications)]
+    [Authorize(Policy = AuthorizationPolicies.ViewSubscriptions)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SubscriptionPlanCatalogDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<SubscriptionPlanCatalogDto>>>> GetPlans(
         [FromQuery] Guid? applicationId,
         CancellationToken cancellationToken = default)
     {
-        if (!applicationId.HasValue && !(User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.SuperAdmin)))
+        if (!applicationId.HasValue && !User.IsInRole(RoleNames.SuperAdmin))
         {
             applicationId = User.TryGetTokenApplicationId();
             if (!applicationId.HasValue)
             {
-                var ssoAppIds = User.GetAuthorizedSsoApplicationIds();
+                var ssoAppIds = User.GetAuthorizedSSOApplicationIds();
                 if (ssoAppIds.Count == 1)
                 {
                     applicationId = ssoAppIds.First();
@@ -127,10 +86,10 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
     }
 
     /// <summary>
-    /// Create a subscription plan (subplan) with an assigned application-scoped role.
+    /// Create a subscription plan (subplan). User roles are assigned through application memberships.
     /// </summary>
     [HttpPost("plans")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.ManageSubscriptions)]
     [ProducesResponseType(typeof(ApiResponse<SubscriptionPlanCatalogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SubscriptionPlanCatalogDto>>> CreatePlan(
@@ -145,13 +104,10 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
             request.YearlyPrice,
             request.MaxUsers,
             request.MaxApiCalls,
-            request.IncludeAnalytics,
-            request.IncludeSupport,
-            request.IncludeAdvancedSecurity,
-            request.IncludeCustomDomain,
+            request.Features,
+            request.Permissions,
             request.IsActive,
             request.DisplayOrder,
-            request.AssignedRoleIds,
             request.Icon);
 
         var created = await mediator.Send(command, cancellationToken);
@@ -162,7 +118,7 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
     /// Update a subscription plan.
     /// </summary>
     [HttpPut("plans/{planId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.ManageSubscriptions)]
     [ProducesResponseType(typeof(ApiResponse<SubscriptionPlanCatalogDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SubscriptionPlanCatalogDto>>> UpdatePlan(
@@ -179,13 +135,10 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
             request.YearlyPrice,
             request.MaxUsers,
             request.MaxApiCalls,
-            request.IncludeAnalytics,
-            request.IncludeSupport,
-            request.IncludeAdvancedSecurity,
-            request.IncludeCustomDomain,
+            request.Features,
+            request.Permissions,
             request.IsActive,
             request.DisplayOrder,
-            request.AssignedRoleIds,
             request.Icon);
 
         var updated = await mediator.Send(command, cancellationToken);
@@ -193,79 +146,25 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
     }
 
     /// <summary>
-    /// Get all license packages (packets) for an application.
+    /// Deactivate a subscription plan (soft-delete).
     /// </summary>
-    [HttpGet("packages")]
-    [Authorize(Policy = AuthorizationPolicies.ViewApplications)]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<LicensePackageCatalogDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<LicensePackageCatalogDto>>>> GetPackages(
-        [FromQuery] Guid applicationId,
-        [FromQuery] Guid? subscriptionPlanId = null,
+    [HttpDelete("plans/{planId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.ManageSubscriptions)]
+    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<SuccessResponse>>> DeletePlan(
+        Guid planId,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetLicensePackagesQuery(applicationId, subscriptionPlanId);
-        var packages = await mediator.Send(query, cancellationToken);
-        return OkResponse(packages);
-    }
-
-    /// <summary>
-    /// Create a license package (packet) with an assigned application-scoped role.
-    /// </summary>
-    [HttpPost("packages")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
-    [ProducesResponseType(typeof(ApiResponse<LicensePackageCatalogDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ApiResponse<LicensePackageCatalogDto>>> CreatePackage(
-        [FromBody] CreateLicensePackageRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new CreateLicensePackageCommand(
-            request.ApplicationId,
-            request.SubscriptionPlanId,
-            request.Name,
-            request.Description,
-            request.Features,
-            request.SeatLimit,
-            request.IsActive,
-            request.DisplayOrder,
-            request.AssignedRole);
-
-        var created = await mediator.Send(command, cancellationToken);
-        return OkResponse(created);
-    }
-
-    /// <summary>
-    /// Update a license package (packet).
-    /// </summary>
-    [HttpPut("packages/{packageId:guid}")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
-    [ProducesResponseType(typeof(ApiResponse<LicensePackageCatalogDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ApiResponse<LicensePackageCatalogDto>>> UpdatePackage(
-        Guid packageId,
-        [FromBody] UpdateLicensePackageRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new UpdateLicensePackageCommand(
-            packageId,
-            request.ApplicationId,
-            request.Name,
-            request.Description,
-            request.Features,
-            request.SeatLimit,
-            request.IsActive,
-            request.DisplayOrder,
-            request.AssignedRole);
-
-        var updated = await mediator.Send(command, cancellationToken);
-        return OkResponse(updated);
+        var command = new DeactivateSubscriptionPlanCommand(planId);
+        await mediator.Send(command, cancellationToken);
+        return OkSuccess("Subscription plan deactivated successfully");
     }
 
     /// <summary>
     /// Extend the expiration date of the active subscription.
     /// </summary>
     [HttpPost("extend")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.ExtendSubscription)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> Extend(
@@ -286,7 +185,7 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
     /// Cancel the active subscription of a user.
     /// </summary>
     [HttpPost("cancel")]
-    [Authorize(Policy = AuthorizationPolicies.ManageApplications)]
+    [Authorize(Policy = AuthorizationPolicies.CancelSubscription)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> Cancel(
@@ -331,37 +230,6 @@ public class SubscriptionsController(IMediator mediator) : ApiControllerBase
         var query = new GetSubscriptionHistoryQuery(targetUserId, applicationId);
         var history = await mediator.Send(query, cancellationToken);
         return OkResponse(history);
-    }
-
-    [HttpPost("members")]
-    [Authorize(Policy = AuthorizationPolicies.ManageUsers)]
-    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<SuccessResponse>>> AddMember(
-        [FromBody] AddSubscriptionMemberRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new AddSubscriptionMemberCommand(
-            request.SubscriptionId,
-            request.ApplicationId,
-            request.UserId,
-            request.RoleTypeId);
-        await mediator.Send(command, cancellationToken);
-        return OkSuccess("Member added to subscription successfully");
-    }
-
-    [HttpDelete("members")]
-    [Authorize(Policy = AuthorizationPolicies.ManageUsers)]
-    [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<SuccessResponse>>> RemoveMember(
-        [FromBody] RemoveSubscriptionMemberRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new RemoveSubscriptionMemberCommand(
-            request.SubscriptionId,
-            request.ApplicationId,
-            request.UserId);
-        await mediator.Send(command, cancellationToken);
-        return OkSuccess("Member removed from subscription successfully");
     }
 
     private Guid ResolveRequestedUserId(Guid? requestedUserId)

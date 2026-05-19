@@ -19,14 +19,17 @@ export interface ApplicationRoleDto {
 export interface PermissionDto {
   id: string;
   code: string;
-  name?: string;
-  resource?: string;
-  action?: string;
-  description?: string;
-  category?: string;
-  isSystemPermission?: boolean;
-  isActive?: boolean;
-  scope?: string | null;
-  createdAt?: string;
-  updatedAt?: string | null;
+  description: string;
+  category: string;
+  isSystemPermission: boolean;
+  isActive: boolean;
+  scope: string | null;
+  createdAt: string;
+}
+export interface RoleWithPermissionsDto {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystemRole: boolean;
+  permissions: PermissionDto[];
 }

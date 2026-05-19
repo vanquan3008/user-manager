@@ -27,9 +27,9 @@ public static class ClaimsPrincipalExtensions
         return Guid.TryParse(appIdRaw, out var appId) ? appId : null;
     }
 
-    public static HashSet<Guid> GetAuthorizedSsoApplicationIds(this ClaimsPrincipal? principal)
+    public static HashSet<Guid> GetAuthorizedSSOApplicationIds(this ClaimsPrincipal? principal)
     {
-        var raw = principal?.FindFirst(JwtClaimNames.SsoAppIds)?.Value;
+        var raw = principal?.FindFirst(JwtClaimNames.SSOAppIds)?.Value;
         var result = new HashSet<Guid>();
         if (string.IsNullOrWhiteSpace(raw))
             return result;

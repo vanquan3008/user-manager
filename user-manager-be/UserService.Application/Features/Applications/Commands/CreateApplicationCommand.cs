@@ -6,7 +6,7 @@ public record CreateApplicationCommand(
     string Name,
     string? Description,
     Guid OwnerId,
-    Guid? DefaultLicensePackageId = null,
+    string ClientType = "Public",
     Guid? SubscriptionPlanId = null,
     string? LogoUrl = null,
     string? AllowedRedirectUris = null,

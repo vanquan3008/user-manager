@@ -31,14 +31,12 @@ public static class AuthorizationPolicies
     public const string ExportReports = PermissionPolicyPrefix + PermissionCodes.ExportReports;
     // Audit & Logs
     public const string ViewAuditLogs = PermissionPolicyPrefix + PermissionCodes.ViewAuditLogs;
-    // Subscriptions catalog (plans / packages)
+    // Subscriptions catalog and plan operations
     public const string ViewSubscriptions = PermissionPolicyPrefix + PermissionCodes.ViewSubscriptions;
     public const string ManageSubscriptions = PermissionPolicyPrefix + PermissionCodes.ManageSubscriptions;
-    // Subscription operations (each API separate)
+    // Subscription operations
     public const string ActivateSubscription = PermissionPolicyPrefix + PermissionCodes.ActivateSubscription;
-    public const string ActivateSubscriptionPackage = PermissionPolicyPrefix + PermissionCodes.ActivateSubscriptionPackage;
     public const string UpgradeSubscription = PermissionPolicyPrefix + PermissionCodes.UpgradeSubscription;
-    public const string UpgradeSubscriptionPackage = PermissionPolicyPrefix + PermissionCodes.UpgradeSubscriptionPackage;
     public const string ExtendSubscription = PermissionPolicyPrefix + PermissionCodes.ExtendSubscription;
     public const string CancelSubscription = PermissionPolicyPrefix + PermissionCodes.CancelSubscription;
     public static string FromPermissionCode(string permissionCode) => PermissionPolicyPrefix + permissionCode;

@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { environment } from '../../../../environments/environment';
+import type { SsoAuthorizeRequest, SsoAuthorizeResponse, SsoConsentRequest } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { OauthService } from '../../../core/services/oauth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -11,6 +12,7 @@ import { ThemeService } from '../../../core/services/theme.service';
 type SsoLocale = 'vi' | 'en' | 'zh';
 
 interface SsoTranslation {
+  code: string;
   title: string;
   subtitle: string;
   emailLabel: string;
@@ -35,29 +37,9 @@ interface SsoTranslation {
   securityOAuth: string;
 }
 
-interface SsoAuthorizeRequest {
-  email: string;
-  password: string;
-  clientId?: string;
-  redirectUri: string;
-  scopes: string[];
-  state?: string;
-  codeChallenge: string;
-  codeChallengeMethod?: string;
-}
-
-interface SsoAuthorizeResponse {
-  requiresConsent: boolean;
-  code?: string;
-  redirectUri: string;
-  state?: string;
-  clientName?: string;
-  requestedScopes?: string[];
-  missingScopes?: string[];
-}
-
 const SSO_TRANSLATIONS: Record<SsoLocale, SsoTranslation> = {
   vi: {
+    code: 'VI',
     title: 'SSO Enterprise',
     subtitle: 'Đăng nhập an toàn với tài khoản doanh nghiệp',
     emailLabel: 'Email SSO',
@@ -82,6 +64,7 @@ const SSO_TRANSLATIONS: Record<SsoLocale, SsoTranslation> = {
     securityOAuth: 'OAuth 2.0 Standard'
   },
   en: {
+    code: 'EN',
     title: 'SSO Enterprise',
     subtitle: 'Secure sign-in with your business account',
     emailLabel: 'SSO Email',
@@ -106,6 +89,7 @@ const SSO_TRANSLATIONS: Record<SsoLocale, SsoTranslation> = {
     securityOAuth: 'OAuth 2.0 Standard'
   },
   zh: {
+    code: '中文',
     title: 'SSO Enterprise',
     subtitle: 'Secure sign-in with your business account',
     emailLabel: 'SSO Email',
@@ -134,13 +118,14 @@ const SSO_TRANSLATIONS: Record<SsoLocale, SsoTranslation> = {
 @Component({
   selector: 'app-sso-login',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './sso-login.component.html'
 })
 export class SsoLoginComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
-  private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
   private readonly oauth = inject(OauthService);
   private readonly themeService = inject(ThemeService);
@@ -151,6 +136,7 @@ export class SsoLoginComponent implements OnInit {
   readonly showConsent = signal(false);
   readonly consentData = signal<SsoAuthorizeResponse | null>(null);
   readonly language = signal<SsoLocale>('vi');
+  readonly showPassword = signal(false);
 
   readonly t = computed(() => SSO_TRANSLATIONS[this.language()]);
 
@@ -227,6 +213,10 @@ export class SsoLoginComponent implements OnInit {
     this.themeService.toggleTheme();
   }
 
+  togglePasswordVisibility() {
+    this.showPassword.update(value => !value);
+  }
+
   submit() {
     if (this.form.invalid || this.loading()) {
       return;
@@ -256,8 +246,8 @@ export class SsoLoginComponent implements OnInit {
       codeChallengeMethod: this.codeChallengeMethod
     };
 
-    this.http
-      .post<{ success: boolean; data: SsoAuthorizeResponse }>(`${environment.apiUrl}/api/auth/sso/authorize`, request)
+    this.auth
+      .ssoAuthorize(request)
       .subscribe({
         next: (res) => {
           if (!res.success || !res.data) {
@@ -279,7 +269,7 @@ export class SsoLoginComponent implements OnInit {
 
           this.redirectWithCode(res.data.code, res.data.state);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.handleError(err.error?.error?.message || err.error?.message || this.t().errorFailed);
         }
       });
@@ -295,7 +285,7 @@ export class SsoLoginComponent implements OnInit {
 
     const { email, password } = this.form.getRawValue();
 
-    const body: any = {
+    const body: SsoConsentRequest = {
       email,
       password,
       clientId: this.clientId,
@@ -307,8 +297,8 @@ export class SsoLoginComponent implements OnInit {
       approve: true
     };
 
-    this.http
-      .post<{ success: boolean; data: SsoAuthorizeResponse }>(`${environment.apiUrl}/api/auth/sso/consent`, body)
+    this.auth
+      .ssoConsent(body)
       .subscribe({
         next: (res) => {
           if (!res.success || !res.data?.code) {
@@ -318,7 +308,7 @@ export class SsoLoginComponent implements OnInit {
 
           this.redirectWithCode(res.data.code, res.data.state);
         },
-        error: (err) => {
+        error: (err: any) => {
           this.handleError(err.error?.error?.message || err.error?.message || this.t().errorConsentFailed);
         }
       });

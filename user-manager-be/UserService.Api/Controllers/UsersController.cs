@@ -125,12 +125,12 @@ public class UsersController(IMediator mediator) : ApiControllerBase
 
     [HttpGet("sso/{ssoUserId:guid}/applications")]
     [Authorize(Policy = AuthorizationPolicies.ManageUsers)]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SsoUserApplicationDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SsoUserApplicationDto>>>> GetSsoUserApplications(
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SSOUserApplicationDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SSOUserApplicationDto>>>> GetSSOUserApplications(
         Guid ssoUserId,
         CancellationToken cancellationToken = default)
     {
-        var applications = await mediator.Send(new GetSsoUserApplicationsQuery(ssoUserId), cancellationToken);
+        var applications = await mediator.Send(new GetSSOUserApplicationsQuery(ssoUserId), cancellationToken);
         return OkResponse(applications);
     }
 

@@ -83,9 +83,6 @@ public class RolesController(IMediator mediator) : ApiControllerBase
         return OkSuccess("Role updated successfully");
     }
 
-    /// <summary>
-    /// Xóa role. Chỉ Admin và SuperAdmin.
-    /// </summary>
     [HttpDelete("{roleId:guid}")]
     [Authorize(Policy = AuthorizationPolicies.ManageRoles)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]

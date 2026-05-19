@@ -30,17 +30,17 @@ public sealed class OAuthRedirectUriPolicy : IOAuthRedirectUriPolicy
 
         if (!string.IsNullOrWhiteSpace(appAllowedUris))
         {
-            var allowedUris = appAllowedUris.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var allowedUris = appAllowedUris
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(allowed => Uri.TryCreate(allowed, UriKind.Absolute, out var allowedUri) ? allowedUri : null)
+                .Where(allowedUri => allowedUri != null)
+                .Cast<Uri>()
+                .ToArray();
 
-            foreach (var allowed in allowedUris)
-            {
-                if (!Uri.TryCreate(allowed, UriKind.Absolute, out var allowedUri))
-                    continue;
-
-                if (IsExactMatch(uri, allowedUri))
-                    return true;
-            }
+            if (allowedUris.Any())
+                return allowedUris.Any(allowedUri => IsExactMatch(uri, allowedUri));
         }
+
         var allowedHosts = _appSettings.OAuth.AllowedRedirectUriHosts
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())

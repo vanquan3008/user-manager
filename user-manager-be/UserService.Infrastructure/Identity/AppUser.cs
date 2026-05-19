@@ -24,12 +24,8 @@ public sealed class AppUser : IdentityUser<Guid>
     public DateTime? RefreshTokenExpiryTime { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public string? LastLoginIp { get; set; }
-
-    // Audit
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
-
-    // Navigation properties
     public ICollection<AppUserRole> UserRoles { get; set; } = new List<AppUserRole>();
 }

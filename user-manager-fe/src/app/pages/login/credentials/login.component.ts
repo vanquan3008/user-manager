@@ -72,7 +72,7 @@ const LOGIN_TRANSLATIONS: Record<LoginLocale, LoginTranslation> = {
     errorEmailRequired: 'Vui lòng nhập đúng định dạng email',
     errorPasswordRequired: 'Vui lòng nhập mật khẩu',
     forgotPassword: 'Quên mật khẩu?',
-    socialOr: 'Hoặc tiếp tục với',
+    socialOr: 'Hoặc tiếp tục with',
     socialGoogle: 'Google',
     socialFacebook: 'Facebook',
     socialGoogleMsg: 'Đăng nhập Google chưa được cấu hình. Vui lòng dùng mật khẩu hoặc liên kết xác thực email.',
@@ -158,6 +158,7 @@ const LOGIN_TRANSLATIONS: Record<LoginLocale, LoginTranslation> = {
 @Component({
   selector: 'app-login',
   standalone: true,
+  host: { class: 'app-host-fill' },
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html'
 })
@@ -176,6 +177,7 @@ export class LoginComponent implements OnInit {
   readonly mode = signal<'password' | 'magic'>('password');
   readonly magicMessage = signal('');
   readonly language = signal<LoginLocale>('vi');
+  readonly showPassword = signal(false);
   private returnUrl: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
@@ -204,6 +206,10 @@ export class LoginComponent implements OnInit {
 
   toggleTheme() {
     this.themeService.toggleTheme();
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword.update(value => !value);
   }
 
   onForgotPassword() {
@@ -256,7 +262,7 @@ export class LoginComponent implements OnInit {
         }
         this.loading.set(false);
       },
-      error: (err) => {
+      error: (err: any) => {
         if (this.isSsoLoginRequired(err)) {
           this.loading.set(false);
           this.navigateToSsoLogin(email);
@@ -311,7 +317,7 @@ export class LoginComponent implements OnInit {
         this.notify.info(this.t.magicDefaultMessage);
         this.loading.set(false);
       },
-      error: () => {
+      error: (err: any) => {
         this.magicMessage.set(this.t.magicDefaultMessage);
         this.notify.info(this.t.magicDefaultMessage);
         this.loading.set(false);

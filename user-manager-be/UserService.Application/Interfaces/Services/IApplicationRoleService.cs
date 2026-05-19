@@ -18,4 +18,6 @@ public interface IApplicationRoleService
     Task<ApplicationRoleResult> DeleteRoleAsync(Guid applicationId, string roleName, CancellationToken cancellationToken = default);
 
     Task<bool> RoleExistsForUserAssignmentAsync(Guid applicationId, string roleName, CancellationToken cancellationToken = default);
+
+    Task<Guid?> GetRoleIdForUserAssignmentAsync(Guid applicationId, string roleName, CancellationToken cancellationToken = default);
 }

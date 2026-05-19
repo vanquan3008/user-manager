@@ -3,9 +3,9 @@ using UserService.Application.Features.Auth.Commands;
 
 namespace UserService.Application.Features.Auth.Validators;
 
-public class SsoConsentCommandValidator : AbstractValidator<SsoConsentCommand>
+public class SSOConsentCommandValidator : AbstractValidator<SSOConsentCommand>
 {
-    public SsoConsentCommandValidator()
+    public SSOConsentCommandValidator()
     {
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")

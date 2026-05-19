@@ -12,7 +12,7 @@ public class UserRepository : Repository<User>, IUserRepository
       
     }
 
-    public async Task<IReadOnlyDictionary<Guid, bool>> GetIsSsoAccountByProfileIdsAsync(
+    public async Task<IReadOnlyDictionary<Guid, bool>> GetIsSSOAccountByProfileIdsAsync(
         IEnumerable<Guid> profileIds,
         CancellationToken cancellationToken = default)
     {

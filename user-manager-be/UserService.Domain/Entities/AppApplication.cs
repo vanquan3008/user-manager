@@ -1,12 +1,12 @@
 using UserService.Domain.Exceptions;
 using UserService.Domain.ValueObjects;
 using UserService.Domain.Events;
+using UserService.Domain.Constants;
 
 namespace UserService.Domain.Entities;
 
 public sealed class AppApplication : AuditableAggregateRoot<Guid>
 {
-    private readonly HashSet<UserApplication> _users = new();
     private readonly HashSet<UrlValue> _allowedRedirectUris = new();
 
     private AppApplication() : base() { }
@@ -18,9 +18,9 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         AppDescription description,
         ApiKey apiKey,
         ApiSecretHash apiSecretHash,
+        string clientType,
         UrlValue? logoUrl,
         Guid? subscriptionPlanId,
-        Guid? defaultLicensePackageId,
         DateTime createdAt) : base()
     {
         Id = id;
@@ -29,11 +29,10 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         Description = description;
         ApiKey = apiKey;
         ApiSecretHash = apiSecretHash;
+        ClientType = ApplicationClientTypes.Normalize(clientType);
         LogoUrl = logoUrl;
         SubscriptionPlanId = subscriptionPlanId;
-        DefaultLicensePackageId = defaultLicensePackageId;
         IsActive = true;
-        
         MarkCreated();
     }
 
@@ -44,10 +43,10 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         AppDescription description,
         ApiKey apiKey,
         ApiSecretHash apiSecretHash,
+        string clientType,
         DateTime createdAt,
         UrlValue? logoUrl = null,
-        Guid? subscriptionPlanId = null,
-        Guid? defaultLicensePackageId = null)
+        Guid? subscriptionPlanId = null)
     {
         var app = new AppApplication(
             id,
@@ -56,12 +55,11 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
             description,
             apiKey,
             apiSecretHash,
+            clientType,
             logoUrl,
             subscriptionPlanId,
-            defaultLicensePackageId,
             createdAt);
 
-        app.AddUser(ownerId, "Admin", createdAt);
         app.AddDomainEvent(new AppApplicationCreatedDomainEvent(app.Id, ownerId, createdAt));
 
         return app;
@@ -73,14 +71,12 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
     public Guid OwnerId { get; private set; }
     public User Owner { get; private set; } = null!;
 
-    public Guid? DefaultLicensePackageId { get; private set; }
-    public LicensePackage? DefaultLicensePackage { get; private set; }
-
     public Guid? SubscriptionPlanId { get; private set; }
     public SubscriptionPlan? SubscriptionPlan { get; private set; }
 
     public ApiKey ApiKey { get; private set; } = null!;
     public ApiSecretHash ApiSecretHash { get; private set; } = null!;
+    public string ClientType { get; private set; } = ApplicationClientTypes.Public;
     
     public UrlValue? LogoUrl { get; private set; }
     public DateTime? LastApiKeyRotatedAt { get; private set; }
@@ -92,8 +88,6 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
     public bool IsActive { get; private set; }
 
     public IReadOnlyCollection<UrlValue> AllowedRedirectUris => _allowedRedirectUris;
-    public IReadOnlyCollection<UserApplication> Users => _users;
-
     public void UpdateInfo(AppName name, AppDescription description)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
@@ -104,12 +98,6 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
     public void SetLogoUrl(UrlValue? logoUrl)
     {
         LogoUrl = logoUrl;
-        Touch();
-    }
-
-    public void SetDefaultLicensePackage(Guid? licensePackageId)
-    {
-        DefaultLicensePackageId = licensePackageId;
         Touch();
     }
 
@@ -125,36 +113,17 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         Touch();
     }
 
+    public void SetClientType(string clientType)
+    {
+        ClientType = ApplicationClientTypes.Normalize(clientType);
+        Touch();
+    }
+
     public void UpdateSubscriptionPlan(Guid? newPlanId)
     {
         SubscriptionPlanId = newPlanId;
         Touch();
     }
-
-    public void AddUser(Guid userId, string role, DateTime occurredOn)
-    {
-        if (_users.Any(u => u.UserId == userId))
-            throw new DomainOperationNotAllowedException("AddUser", "User already exists in this application");
-
-        _users.Add(UserApplication.Create(Guid.NewGuid(), userId, this.Id, role));
-        
-        AddDomainEvent(new UserAddedToApplicationDomainEvent(this.Id, userId, role, occurredOn));
-        Touch();
-    }
-
-    public void RemoveUser(Guid userId)
-    {
-        var user = _users.FirstOrDefault(u => u.UserId == userId);
-        if (user == null)
-            throw new DomainOperationNotAllowedException("RemoveUser", "User not found in this application");
-
-        if (user.Role == "Admin" && _users.Count(u => u.Role == "Admin") <= 1)
-            throw new DomainOperationNotAllowedException("RemoveUser", "Cannot remove the last admin user");
-
-        _users.Remove(user);
-        Touch();
-    }
-
     public void RotateApiKeys(ApiKey newApiKey, ApiSecretHash newSecretHash, DateTime rotatedAt, out string generatedPlainApiSecret)
     {
         ApiKey = newApiKey;
@@ -166,6 +135,16 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         AddDomainEvent(new ApiKeyRotatedDomainEvent(this.Id, rotatedAt));
         Touch();
     }
+
+    public void RotateClientSecret(ApiSecretHash newSecretHash, DateTime rotatedAt)
+    {
+        ApiSecretHash = newSecretHash ?? throw new ArgumentNullException(nameof(newSecretHash));
+        LastApiKeyRotatedAt = rotatedAt;
+        Touch();
+    }
+
+    public bool UsesClientSecret()
+        => ApplicationClientTypes.UsesClientSecret(ClientType);
 
     public void SetWebhook(UrlValue webhookUrl, bool enabled)
     {
@@ -194,19 +173,21 @@ public sealed class AppApplication : AuditableAggregateRoot<Guid>
         BackchannelLogoutUri = backchannelLogoutUri;
         Touch();
     }
-
+    public void EnsureActive()
+    {
+        if (!IsActive)
+            throw new ApplicationInactiveException(Id);
+    }
     public void Activate()
     {
         IsActive = true;
         Touch();
     }
-
     public void Deactivate()
     {
         IsActive = false;
         Touch();
     }
-
     public void Delete()
     {
         MarkDeleted();

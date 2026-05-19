@@ -12,11 +12,8 @@ public record UpdateSubscriptionPlanCommand(
     decimal YearlyPrice,
     int MaxUsers,
     int? MaxApiCalls,
-    bool IncludeAnalytics,
-    bool IncludeSupport,
-    bool IncludeAdvancedSecurity,
-    bool IncludeCustomDomain,
+    IReadOnlyList<string> Features,
+    IReadOnlyList<string>? Permissions,
     bool IsActive,
     int DisplayOrder,
-    IReadOnlyList<Guid> AssignedRoleIds,
     string? Icon) : IRequest<SubscriptionPlanCatalogDto>;

@@ -4,7 +4,8 @@ import { finalize } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ApplicationsService, ApplicationListItem } from '../../core/services/applications.service';
+import { ApplicationsService } from '../../core/services/applications.service';
+import type { ApplicationCredentialItem, ApplicationListItem } from '../../core/models';
 import { FileUploadService } from '../../core/services/file-upload.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -72,10 +73,14 @@ export class ApplicationsComponent implements OnInit {
   readonly uploadingLogo = signal(false);
   readonly uploadedLogoPreview = signal<string | null>(null);
   readonly deletingId = signal<string | null>(null);
+  readonly createdCredentials = signal<ApplicationCredentialItem | null>(null);
+  readonly showCreatedCredentials = signal(false);
+  readonly closingCreatedCredentials = signal(false);
 
   form = {
     name: '',
     description: '',
+    clientType: 'Public',
     logoUrl: '',
     backchannelLogoutUri: '',
     allowedRedirectUris: ''
@@ -92,10 +97,7 @@ export class ApplicationsComponent implements OnInit {
     const sortMode = this.sortMode();
 
     const filtered = this.apps().filter(app => {
-      if (!query) {
-        return true;
-      }
-
+      if (!query) return true;
       return [app.name, app.description, app.ownerId, app.ownerDisplayName, app.id]
         .filter((value): value is string => !!value)
         .some(value => value.toLowerCase().includes(query));
@@ -107,11 +109,9 @@ export class ApplicationsComponent implements OnInit {
         const rightLabel = (right.ownerDisplayName || right.ownerId || '').toLowerCase();
         return leftLabel.localeCompare(rightLabel);
       }
-
       if (sortMode === 'branding') {
         return Number(!!right.logoUrl) - Number(!!left.logoUrl);
       }
-
       return left.name.localeCompare(right.name);
     });
   });
@@ -175,7 +175,7 @@ export class ApplicationsComponent implements OnInit {
           this.apps.set(list);
           this.loading.set(false);
         },
-        error: err => {
+        error: (err: any) => {
           this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load applications.');
           this.loading.set(false);
         }
@@ -183,9 +183,7 @@ export class ApplicationsComponent implements OnInit {
   }
 
   async deleteApp(app: ApplicationListItem) {
-    if (!app.id) {
-      return;
-    }
+    if (!app.id) return;
 
     const ok = await this.confirm.confirm({
       title: 'Delete application',
@@ -195,9 +193,7 @@ export class ApplicationsComponent implements OnInit {
       variant: 'danger'
     });
 
-    if (!ok) {
-      return;
-    }
+    if (!ok) return;
 
     this.deletingId.set(app.id);
     this.applicationsService.deleteApplication(app.id)
@@ -210,10 +206,9 @@ export class ApplicationsComponent implements OnInit {
           } else {
             this.notify.error(res.message || 'Delete failed.');
           }
-
           this.deletingId.set(null);
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || err.error?.error?.message || 'Delete failed.');
           this.deletingId.set(null);
         }
@@ -221,7 +216,7 @@ export class ApplicationsComponent implements OnInit {
   }
 
   openCreate() {
-    this.form = { name: '', description: '', logoUrl: '', backchannelLogoutUri: '', allowedRedirectUris: '' };
+    this.form = { name: '', description: '', clientType: 'Public', logoUrl: '', backchannelLogoutUri: '', allowedRedirectUris: '' };
     this.createAttempted.set(false);
     this.uploadingLogo.set(false);
     this.uploadedLogoPreview.set(null);
@@ -257,6 +252,7 @@ export class ApplicationsComponent implements OnInit {
         name,
         description: this.form.description.trim() || undefined,
         ownerId,
+        clientType: this.form.clientType,
         logoUrl: this.form.logoUrl.trim() || undefined,
         backchannelLogoutUri: this.form.backchannelLogoutUri.trim() || undefined,
         allowedRedirectUris: this.form.allowedRedirectUris.trim() || undefined
@@ -267,14 +263,27 @@ export class ApplicationsComponent implements OnInit {
           if (res.success && res.data) {
             this.apps.update(list => [res.data!, ...list]);
             this.closeModal();
+            if (res.data.clientType === 'Confidential') {
+              this.createdCredentials.set({
+                applicationId: res.data.id,
+                applicationName: res.data.name,
+                clientId: res.data.clientId || '',
+                clientType: res.data.clientType || 'Confidential',
+                clientSecret: res.data.clientSecret ?? null,
+                lastClientSecretRotatedAt: res.data.lastClientSecretRotatedAt ?? null,
+                allowedRedirectUris: res.data.allowedRedirectUris,
+                backchannelLogoutUri: res.data.backchannelLogoutUri
+              });
+              this.showCreatedCredentials.set(true);
+              this.closingCreatedCredentials.set(false);
+            }
             this.notify.success('Application created.');
           } else {
             this.notify.error(res.message || 'Create application failed.');
           }
-
           this.saving.set(false);
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || err.error?.error?.message || 'Create application failed.');
           this.saving.set(false);
         }
@@ -284,9 +293,7 @@ export class ApplicationsComponent implements OnInit {
   onLogoFileSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     if (!file.type.startsWith('image/')) {
       this.notify.error('Please choose a valid image file.');
@@ -325,7 +332,7 @@ export class ApplicationsComponent implements OnInit {
             this.notify.error(res.message || 'Upload failed.');
           }
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(err.error?.message || 'Upload failed.');
         }
       });
@@ -333,13 +340,15 @@ export class ApplicationsComponent implements OnInit {
 
   updateName(value: string) {
     this.form.name = value;
-    if (value.trim()) {
-      this.createAttempted.set(false);
-    }
+    if (value.trim()) this.createAttempted.set(false);
   }
 
   updateDescription(value: string) {
     this.form.description = value;
+  }
+
+  updateClientType(value: string) {
+    this.form.clientType = value === 'Confidential' ? 'Confidential' : 'Public';
   }
 
   updateLogoUrl(value: string) {
@@ -356,5 +365,26 @@ export class ApplicationsComponent implements OnInit {
 
   isNameInvalid(): boolean {
     return this.createAttempted() && !this.form.name.trim();
+  }
+
+  closeCreatedCredentialsDrawer() {
+    if (this.closingCreatedCredentials()) return;
+    this.closingCreatedCredentials.set(true);
+    setTimeout(() => {
+      this.showCreatedCredentials.set(false);
+      this.closingCreatedCredentials.set(false);
+      this.createdCredentials.set(null);
+    }, 250);
+  }
+
+  copyText(value: string | null | undefined, label: string) {
+    const normalized = (value || '').trim();
+    if (!normalized) {
+      this.notify.error(`No ${label.toLowerCase()} available to copy.`);
+      return;
+    }
+    navigator.clipboard.writeText(normalized)
+      .then(() => this.notify.success(`${label} copied.`))
+      .catch(() => this.notify.error(`Failed to copy ${label.toLowerCase()}.`));
   }
 }

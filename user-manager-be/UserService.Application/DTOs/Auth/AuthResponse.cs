@@ -5,13 +5,7 @@ namespace UserService.Application.DTOs.Auth;
 public record ApplicationInfoDto(
     Guid Id,
     string Name,
-    string? Description,
-    string Role,
-    bool CanRead,
-    bool CanWrite,
-    bool CanDelete,
-    bool CanManageUsers,
-    bool CanManageSubscription);
+    string? Description);
 
 public record AuthResponse(
     string AccessToken,

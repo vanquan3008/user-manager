@@ -10,7 +10,7 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/cdk": "^19.2.19",
+    "@angular/cdk": "^19.2.0",
     "@angular/common": "^19.2.0",
     "@angular/compiler": "^19.2.0",
     "@angular/core": "^19.2.0",
@@ -23,8 +23,9 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^19.2.21",
-    "@angular/cli": "^19.2.21",
+    "@angular/build": "^19.2.0",
+    "@angular-devkit/build-angular": "^19.2.0",
+    "@angular/cli": "^19.2.0",
     "@angular/compiler-cli": "^19.2.0",
     "@ngx-env/builder": "^19.1.0",
     "@types/jasmine": "~5.1.0",
@@ -39,5 +40,12 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.13",
     "typescript": "~5.7.2"
+  },
+  "overrides": {
+    "tar": "^7.5.10",
+    "serialize-javascript": "^7.0.4",
+    "braces": "^3.0.3",
+    "micromatch": "^4.0.8",
+    "cross-spawn": "^7.0.5"
   }
 }

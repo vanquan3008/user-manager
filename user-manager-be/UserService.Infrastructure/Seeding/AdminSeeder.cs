@@ -42,10 +42,17 @@ namespace UserService.Infrastructure.Seeding
             var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
             var configuration = services.GetRequiredService<IConfiguration>();
 
-            var adminEmail = configuration["Admin:Email"] 
-                ?? Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-            var adminPassword = configuration["Admin:Password"] 
-                ?? Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+            var adminEmail = configuration["ADMIN_EMAIL"];
+            if (string.IsNullOrWhiteSpace(adminEmail))
+            {
+                adminEmail = configuration["Admin:Email"];
+            }
+
+            var adminPassword = configuration["ADMIN_PASSWORD"];
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                adminPassword = configuration["Admin:Password"];
+            }
             var adminUserName = "admin";
 
             if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))

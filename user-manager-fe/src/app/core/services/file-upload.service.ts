@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import type { ApiResponse } from '../models/api-response';
+import type { ApiResponse, SuccessResponse } from '../models';
 import type { Observable } from 'rxjs';
 
 export interface UploadFileDto {
@@ -28,6 +28,15 @@ export class FileUploadService {
     formData.append('file', file);
     formData.append('folder', folder);
     return this.http.post<ApiResponse<UploadFileDto>>(`${this.api}/upload`, formData);
+  }
+
+  /**
+   * Delete uploaded file by URL.
+   * @param fileUrl The full URL of the file to delete
+   */
+  deleteFile(fileUrl: string): Observable<ApiResponse<SuccessResponse>> {
+    const params = new HttpParams().set('fileUrl', fileUrl);
+    return this.http.delete<ApiResponse<SuccessResponse>>(this.api, { params });
   }
 }
 

@@ -151,7 +151,7 @@
             [options]="permissionSelectOptions()"
             [theme]="theme()"
             placeholder="Chọn permissions…"
-            searchPlaceholder="Tìm theo code, tên, resource…"
+            searchPlaceholder="Tìm theo code, mô tả…"
             [disabled]="permissionsLoading()"
             [ngModel]="selectedPermissionCodes()"
             (ngModelChange)="selectedPermissionCodes.set($event)"

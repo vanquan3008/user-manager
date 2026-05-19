@@ -9,25 +9,9 @@ public record SubscriptionPlanCatalogDto(
     decimal YearlyPrice,
     int MaxUsers,
     int? MaxApiCalls,
-    bool IncludeAnalytics,
-    bool IncludeSupport,
-    bool IncludeAdvancedSecurity,
-    bool IncludeCustomDomain,
+    IReadOnlyList<string> Features,
+    IReadOnlyList<string> Permissions,
     bool IsActive,
     int DisplayOrder,
-    IReadOnlyList<Guid> AssignedRoleIds,
-    string AssignedRole,
     string? Icon);
 
-public record LicensePackageCatalogDto(
-    Guid Id,
-    Guid ApplicationId,
-    Guid? SubscriptionPlanId,
-    string Name,
-    string? Description,
-    string FeatureJson,
-    int SeatLimit,
-    bool IsActive,
-    int DisplayOrder,
-    string AssignedRole,
-    IReadOnlyList<string> Features);

@@ -51,13 +51,12 @@ public class RequestLoggingMiddleware
     private void LogRequestStarted(HttpContext context, string requestId)
     {
         _logger.LogInformation(
-            "[{RequestId}] {Method} {Scheme}://{Host}{Path}{QueryString} started from {RemoteIp}",
+            "[{RequestId}] {Method} {Scheme}://{Host}{Path} started from {RemoteIp}",
             requestId,
             context.Request.Method,
             context.Request.Scheme,
             context.Request.Host,
             context.Request.Path,
-            context.Request.QueryString,
             context.Connection.RemoteIpAddress);
     }
 

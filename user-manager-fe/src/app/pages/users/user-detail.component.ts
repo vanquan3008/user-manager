@@ -6,11 +6,12 @@ import { catchError, finalize, forkJoin, of } from 'rxjs';
 import type {
   ApplicationRoleDto,
   IdentityUser,
+  ApplicationListItem,
   RoleDto,
   SsoUserApplication,
   UserWithRoles
-} from '../../core/models/api-response';
-import { ApplicationsService, type ApplicationListItem } from '../../core/services/applications.service';
+} from '../../core/models';
+import { ApplicationsService } from '../../core/services/applications.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { RolesService } from '../../core/services/roles.service';
 import { ThemeService } from '../../core/services/theme.service';
@@ -128,7 +129,7 @@ export class UserDetailComponent implements OnInit {
           this.appRoles.set(roles);
           this.grantRole.set(roles[0]?.name ?? '');
         },
-        error: () => {
+        error: (err: any) => {
           this.appRoles.set([]);
         }
       });
@@ -167,7 +168,7 @@ export class UserDetailComponent implements OnInit {
           this.actionMessage.set(response.data?.message || `Added ${role}.`);
           this.notify.success(`Role ${role} added.`);
         },
-        error: err => {
+        error: (err: any) => {
           const message = getHttpErrorMessage(err, 'Failed to add role.', UNREACHABLE_SERVER_MESSAGE_VI);
           this.actionMessage.set(message);
           this.notify.error(message);
@@ -203,7 +204,7 @@ export class UserDetailComponent implements OnInit {
           this.actionMessage.set(response.message || `Removed ${roleName}.`);
           this.notify.success(`Role ${roleName} removed.`);
         },
-        error: err => {
+        error: (err: any) => {
           const message = getHttpErrorMessage(err, 'Failed to remove role.', UNREACHABLE_SERVER_MESSAGE_VI);
           this.actionMessage.set(message);
           this.notify.error(message);
@@ -242,7 +243,7 @@ export class UserDetailComponent implements OnInit {
           this.appRoles.set([]);
           this.loadSsoApplications(uid);
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(
             getHttpErrorMessage(err, 'Failed to grant application access.', UNREACHABLE_SERVER_MESSAGE_VI)
           );
@@ -272,7 +273,7 @@ export class UserDetailComponent implements OnInit {
           this.notify.success('Application access revoked.');
           this.loadSsoApplications(uid);
         },
-        error: err => {
+        error: (err: any) => {
           this.notify.error(
             getHttpErrorMessage(err, 'Failed to revoke application access.', UNREACHABLE_SERVER_MESSAGE_VI)
           );
@@ -326,7 +327,7 @@ export class UserDetailComponent implements OnInit {
             this.grantRole.set('');
           }
         },
-        error: err => {
+        error: (err: any) => {
           this.error.set(
             getHttpErrorMessage(err, 'Failed to load user details', UNREACHABLE_SERVER_MESSAGE_VI)
           );
@@ -342,7 +343,7 @@ export class UserDetailComponent implements OnInit {
         next: response => {
           this.ssoApplications.set(response.success && response.data ? response.data : []);
         },
-        error: () => {
+        error: (err: any) => {
           this.ssoApplications.set([]);
         }
       });

@@ -6,13 +6,13 @@ namespace UserService.Application.Features.Auth.Handlers;
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Unit>
 {
     private readonly IIdentityService _identityService;
-    private readonly IUserApplicationAppService _userApplicationService;
+    private readonly IApplicationMembershipService _userApplicationService;
     private readonly IApplicationAppService _applicationService;
     private readonly IBackchannelLogoutService _backchannelLogoutService;
 
     public LogoutCommandHandler(
         IIdentityService identityService,
-        IUserApplicationAppService userApplicationService,
+        IApplicationMembershipService userApplicationService,
         IApplicationAppService applicationService,
         IBackchannelLogoutService backchannelLogoutService)
     {

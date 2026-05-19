@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using UserService.Application.Constants;
+using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
 using UserService.Domain.Constants;
 
@@ -8,62 +9,39 @@ namespace UserService.Application.Services;
 
 public class ClaimsFactory : IClaimsFactory
 {
-    public IReadOnlyList<Claim> CreateAccessTokenClaims(
-        Guid userId,
-        string email,
-        string? displayName,
-        IEnumerable<string> roles)
+    public IReadOnlyList<Claim> CreateAccessTokenClaims(AccessTokenRequest request)
     {
-        return CreateAccessTokenClaims(userId, email, displayName, roles, Enumerable.Empty<string>());
-    }
+        ArgumentNullException.ThrowIfNull(request);
 
-    public IReadOnlyList<Claim> CreateAccessTokenClaims(
-        Guid userId,
-        string email,
-        string? displayName,
-        IEnumerable<string> roles,
-        IEnumerable<string> permissions)
-    {
-        return CreateAccessTokenClaims(userId, email, displayName, roles, permissions, null, null);
-    }
-
-    public IReadOnlyList<Claim> CreateAccessTokenClaims(
-        Guid userId,
-        string email,
-        string? displayName,
-        IEnumerable<string> roles,
-        IEnumerable<string> permissions,
-        Guid? applicationId,
-        string? scope = null,
-        IEnumerable<Guid>? ssoAppIds = null,
-        IEnumerable<string>? oauthScopes = null)
-    {
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
-            new(JwtClaimNames.UserId, userId.ToString()),
-            new(JwtRegisteredClaimNames.Email, email),
-            new(ClaimTypes.Name, displayName ?? IdentityDefaults.FallbackDisplayName),
+            new(JwtRegisteredClaimNames.Sub, request.UserId.ToString()),
+            new(ClaimTypes.NameIdentifier, request.UserId.ToString()),
+            new(JwtClaimNames.UserId, request.UserId.ToString()),
+            new(JwtRegisteredClaimNames.Email, request.Email),
+            new(ClaimTypes.Name, request.DisplayName ?? IdentityDefaults.FallbackDisplayName),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
 
+        var roles = request.Roles ?? Enumerable.Empty<string>();
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-        var permissionsList = permissions as IList<string> ?? permissions.ToList();
+        var permissionsList = request.Permissions?.ToList() ?? new List<string>();
         if (permissionsList.Count > 0)
         {
             var permissionsValue = string.Join(",", permissionsList.Distinct(StringComparer.OrdinalIgnoreCase));
             claims.Add(new Claim(JwtClaimNames.Permissions, permissionsValue));
         }
-        if (applicationId.HasValue)
+
+        if (request.ApplicationId.HasValue)
         {
-            claims.Add(new Claim(JwtClaimNames.ApplicationId, applicationId.Value.ToString()));
+            claims.Add(new Claim(JwtClaimNames.ApplicationId, request.ApplicationId.Value.ToString()));
         }
+
         var combinedScopes = new List<string>();
-        if (!string.IsNullOrWhiteSpace(scope)) combinedScopes.Add(scope);
-        if (oauthScopes != null) combinedScopes.AddRange(oauthScopes);
+        if (!string.IsNullOrWhiteSpace(request.Scope)) combinedScopes.Add(request.Scope);
+        if (request.OAuthScopes != null) combinedScopes.AddRange(request.OAuthScopes);
 
         if (combinedScopes.Count > 0)
         {
@@ -71,17 +49,18 @@ public class ClaimsFactory : IClaimsFactory
                 .Select(s => (s ?? string.Empty).Trim())
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Distinct(StringComparer.OrdinalIgnoreCase));
-            
+
             if (!string.IsNullOrWhiteSpace(value))
                 claims.Add(new Claim(JwtClaimNames.Scope, value));
         }
 
-        if (ssoAppIds != null)
+        if (request.SSOAppIds != null)
         {
-            var ids = ssoAppIds as IList<Guid> ?? ssoAppIds.ToList();
+            var ids = request.SSOAppIds as IList<Guid> ?? request.SSOAppIds.ToList();
             if (ids.Count > 0)
-                claims.Add(new Claim(JwtClaimNames.SsoAppIds, string.Join(",", ids)));
+                claims.Add(new Claim(JwtClaimNames.SSOAppIds, string.Join(",", ids)));
         }
+
         return claims;
     }
 }

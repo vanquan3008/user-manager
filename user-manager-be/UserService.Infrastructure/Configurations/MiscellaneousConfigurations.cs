@@ -89,11 +89,11 @@ public sealed class MagicLinkTokenConfiguration : IEntityTypeConfiguration<Magic
         builder.Property(x => x.UserAgent)
               .HasMaxLength(500);
 
-        // Indexes for performance
         builder.HasOne(x => x.User)
               .WithMany()
               .HasForeignKey(x => x.UserId)
-              .OnDelete(DeleteBehavior.Restrict);
+              .OnDelete(DeleteBehavior.Restrict)
+              .IsRequired();
 
         builder.HasIndex(x => new { x.Token, x.Purpose, x.IsUsed });
         builder.HasIndex(x => new { x.UserId, x.Purpose });

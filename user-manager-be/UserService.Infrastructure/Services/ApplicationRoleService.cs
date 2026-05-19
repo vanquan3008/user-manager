@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using UserService.Application.Common;
-using UserService.Application.Services;
+using UserService.Application.Interfaces.Services;
+using UserService.Application.Mapping;
 using UserService.Domain.Constants;
 using UserService.Domain.Entities;
 using UserService.Domain.Repositories;
 using UserService.Infrastructure.Identity;
-using UserService.Application.Mapping;
-using UserService.Application.Interfaces.Services;
 
 namespace UserService.Infrastructure.Services;
 
@@ -191,5 +190,19 @@ public sealed class ApplicationRoleService : IApplicationRoleService
             return false;
 
         return await _applicationRoles.ExistsAsync(applicationId, role.Id, cancellationToken);
+    }
+
+    public async Task<Guid?> GetRoleIdForUserAssignmentAsync(Guid applicationId, string roleName, CancellationToken cancellationToken = default)
+    {
+        var trimmedRoleName = roleName?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmedRoleName))
+            return null;
+
+        var role = await _roleManager.FindByNameAsync(trimmedRoleName);
+        if (role is null)
+            return null;
+
+        var exists = await _applicationRoles.ExistsAsync(applicationId, role.Id, cancellationToken);
+        return exists ? role.Id : null;
     }
 }

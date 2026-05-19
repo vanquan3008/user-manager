@@ -1,24 +1,28 @@
 using MediatR;
 using UserService.Application.Features.Auth.Commands;
-using UserService.Application.Services;
+using UserService.Application.Interfaces.Services;
 using UserService.Domain.Exceptions;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
 public class RequestPasswordlessLoginCommandHandler : IRequestHandler<RequestPasswordlessLoginCommand, Unit>
 {
-    private readonly IAuthServices _authService;
+    private readonly IMagicLinkDeliveryService _magicLinkDeliveryService;
+    private readonly IApplicationAppService _applicationService;
 
-    public RequestPasswordlessLoginCommandHandler(IAuthServices authService)
+    public RequestPasswordlessLoginCommandHandler(IMagicLinkDeliveryService magicLinkDeliveryService, IApplicationAppService applicationService)
     {
-        _authService = authService;
+        _magicLinkDeliveryService = magicLinkDeliveryService;
+        _applicationService = applicationService;
     }
 
     public async Task<Unit> Handle(RequestPasswordlessLoginCommand command, CancellationToken cancellationToken)
     {
-        var succeeded = await _authService.RequestPasswordlessLoginAsync(
+        var applicationId = await _applicationService.ResolveApplicationIdAsync(command.ClientId, cancellationToken);
+        
+        var succeeded = await _magicLinkDeliveryService.RequestPasswordlessLoginAsync(
             command.Email,
-            command.ApplicationId,
+            applicationId,
             cancellationToken);
         
         if (!succeeded)

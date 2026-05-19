@@ -20,11 +20,10 @@ public static class AuthorizationServiceExtensions
             {
                 policy.RequireAuthenticatedUser();
                 policy.RequireAssertion(context =>
-                    context.User.IsInRole(RoleNames.Admin) ||
-                    context.User.IsInRole(RoleNames.SuperAdmin) ||
                     HasPermission(context.User, PermissionCodes.CreateApplication) ||
                     HasPermission(context.User, PermissionCodes.ManageApplications));
             });
+
         });
         
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
@@ -39,10 +38,11 @@ public static class AuthorizationServiceExtensions
         if (string.IsNullOrWhiteSpace(permissions))
             return false;
 
-        return permissions
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Any(permission =>
-                string.Equals(permission, permissionCode, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(permission, PermissionCodes.ApplicationsWildcard, StringComparison.OrdinalIgnoreCase));
+        var grantedPermissions = permissions
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        return PermissionCodeMapper.IsGranted(grantedPermissions, permissionCode) ||
+               PermissionCodeMapper.IsGranted(grantedPermissions, PermissionCodes.ApplicationsWildcard);
     }
+
 }

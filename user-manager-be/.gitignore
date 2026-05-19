@@ -9,6 +9,7 @@
 .env.development.with-prod-data
 .env.staging
 .env.production
+appsettings.json
 appsettings.Development.json
 appsettings.Staging.json
 appsettings.Production.json
