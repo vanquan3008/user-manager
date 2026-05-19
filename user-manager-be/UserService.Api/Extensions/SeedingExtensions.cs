@@ -24,12 +24,13 @@ public static class SeedingExtensions
         try
         {
             Log.Information("Starting database seeding");
-            await SubscriptionRoleTypeSeeder.SeedAsync(dbContext);
             var roleManager = services.GetRequiredService<RoleManager<AppRole>>();
             var systemRoleSeeder = new SystemRoleSeeder(roleManager);
             await systemRoleSeeder.SeedAsync(cancellationToken);
             var permissionSeeder = new PermissionSeeder(dbContext);
             await permissionSeeder.SeedPermissionsAsync(cancellationToken);
+            var featureSeeder = new FeatureSeeder(dbContext);
+            await featureSeeder.SeedAsync(cancellationToken);
             var adminRolePermissionSeeder = new AdminRolePermissionSeeder(dbContext);
             await adminRolePermissionSeeder.SeedAsync(cancellationToken);
 
@@ -51,8 +52,8 @@ public static class SeedingExtensions
                 services.GetRequiredService<IClock>()
             );
             await userSeeder.SeedUsersAsync(services);
-            //var oauthScopeSeeder = new OAuthScopeSeeder(dbContext);
-            //await oauthScopeSeeder.SeedAsync(cancellationToken);
+            var oauthScopeSeeder = new OAuthScopeSeeder(dbContext);
+            await oauthScopeSeeder.SeedAsync(cancellationToken);
 
             var applicationManagerSeeder = new ApplicationManagerSeeder(
                 dbContext,
@@ -79,39 +80,85 @@ public static class SeedingExtensions
         var manager = services.GetRequiredService<IOpenIddictApplicationManager>();
         var configuration = services.GetRequiredService<IConfiguration>();
 
-        if (await manager.FindByClientIdAsync("user-service-client", cancellationToken) != null)
-            return;
+        // Read from configuration
+        var clientId = configuration["OpenIddict:ClientId"]
+            ?? Environment.GetEnvironmentVariable("OPENIDDICT_CLIENT_ID")
+            ?? "user-service-client";
 
-        // Read from configuration (supports both appsettings.json and environment variables)
         var clientSecret = configuration["OpenIddict:ClientSecret"]
             ?? Environment.GetEnvironmentVariable("OPENIDDICT_CLIENT_SECRET")
             ?? Environment.GetEnvironmentVariable("OIDC_CLIENT_SECRET")
             ?? string.Empty;
 
+        var redirectUrisStr = configuration["OpenIddict:RedirectUris"]
+            ?? Environment.GetEnvironmentVariable("OPENIDDICT_REDIRECT_URIS")
+            ?? string.Empty;
+
+        var postLogoutRedirectUrisStr = configuration["OpenIddict:PostLogoutRedirectUris"]
+            ?? Environment.GetEnvironmentVariable("OPENIDDICT_POST_LOGOUT_REDIRECT_URIS")
+            ?? string.Empty;
+
+        if (await manager.FindByClientIdAsync(clientId, cancellationToken) != null)
+        {
+            Log.Information("OpenIddict client '{ClientId}' already exists, skipping seeding.", clientId);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(clientSecret) ||
             clientSecret.Contains("change-in-production", StringComparison.OrdinalIgnoreCase) ||
             clientSecret.Contains("change-this", StringComparison.OrdinalIgnoreCase))
         {
-            Log.Warning("OpenIddict client seeding skipped: OpenIddict:ClientSecret not properly configured. Using default for development only.");
+            Log.Warning("OpenIddict client seeding: ClientSecret not properly configured. Using default for development only.");
             clientSecret = "dev-only-secret-not-for-production-use";
         }
 
-        await manager.CreateAsync(new OpenIddictApplicationDescriptor
+        var descriptor = new OpenIddictApplicationDescriptor
         {
-            ClientId = "user-service-client",
+            ClientId = clientId,
             ClientSecret = clientSecret,
-            DisplayName = "User Service (OIDC client)",
+            DisplayName = "User Manager Web Application",
+            ClientType = OpenIddictConstants.ClientTypes.Confidential,
             Permissions =
             {
                 OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.Endpoints.Authorization,
+                OpenIddictConstants.Permissions.Endpoints.Logout,
+                OpenIddictConstants.Permissions.Endpoints.Introspection,
+                OpenIddictConstants.Permissions.Endpoints.Revocation,
+                
                 OpenIddictConstants.Permissions.GrantTypes.Password,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+                OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
+                OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
                 OpenIddictConstants.Permissions.Prefixes.GrantType + OAuthGrantTypes.MagicLink,
+                
+                OpenIddictConstants.Permissions.ResponseTypes.Code,
+                
                 OpenIddictConstants.Permissions.Prefixes.Scope + "openid",
-                OpenIddictConstants.Permissions.Prefixes.Scope + "profile"
+                OpenIddictConstants.Permissions.Prefixes.Scope + "profile",
+                OpenIddictConstants.Permissions.Prefixes.Scope + "email",
+                OpenIddictConstants.Permissions.Prefixes.Scope + "roles"
             }
-        }, cancellationToken);
+        };
 
-        Log.Information("OpenIddict client 'user-service-client' seeded.");
+        if (!string.IsNullOrWhiteSpace(redirectUrisStr))
+        {
+            foreach (var uri in redirectUrisStr.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                descriptor.RedirectUris.Add(new Uri(uri.Trim()));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(postLogoutRedirectUrisStr))
+        {
+            foreach (var uri in postLogoutRedirectUrisStr.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                descriptor.PostLogoutRedirectUris.Add(new Uri(uri.Trim()));
+            }
+        }
+
+        await manager.CreateAsync(descriptor, cancellationToken);
+
+        Log.Information("OpenIddict client '{ClientId}' seeded with SSO permissions.", clientId);
     }
 }

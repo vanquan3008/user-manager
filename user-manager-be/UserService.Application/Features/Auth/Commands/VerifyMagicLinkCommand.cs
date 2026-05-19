@@ -8,5 +8,5 @@ namespace UserService.Application.Features.Auth.Commands;
 public record VerifyMagicLinkCommand(
     string Token,
     string Purpose,
-    Guid? ApplicationId = null
+    string? ClientId = null
 ) : IRequest<AuthResponse>;

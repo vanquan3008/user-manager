@@ -1,22 +1,22 @@
 using MediatR;
+using UserService.Application.DTOs.Auth;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
-using UserService.Application.Services;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
-public class SsoLoginCommandHandler : IRequestHandler<SsoLoginCommand, AuthResponse>
+public class SSOLoginCommandHandler : IRequestHandler<SSOLoginCommand, AuthResponse>
 {
-    private readonly IAuthServices _authService;
+    private readonly ISSOAuthenticationService _ssoAuthenticationService;
 
-    public SsoLoginCommandHandler(IAuthServices authService)
+    public SSOLoginCommandHandler(ISSOAuthenticationService ssoAuthenticationService)
     {
-        _authService = authService;
+        _ssoAuthenticationService = ssoAuthenticationService;
     }
 
-    public async Task<AuthResponse> Handle(SsoLoginCommand command, CancellationToken cancellationToken)
+    public async Task<AuthResponse> Handle(SSOLoginCommand command, CancellationToken cancellationToken)
     {
-        return await _authService.SsoLoginAsync(command.Email, command.Password, cancellationToken);
+        var request = new SSOLoginRequest(command.Email, command.Password);
+        return await _ssoAuthenticationService.SSOLoginAsync(request, cancellationToken);
     }
 }
-

@@ -15,8 +15,5 @@ public record SubscriptionDto(
     int MaxMembers,
     int CurrentMemberCount,
     EntitlementSnapshotDto? EntitlementSnapshot,
-    Guid? LicensePackageId,
     DateTime CreatedAt,
-    DateTime? UpdatedAt,
-    IEnumerable<SubscriptionMemberDto>? Members = null);
-
+    DateTime? UpdatedAt);

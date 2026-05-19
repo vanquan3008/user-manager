@@ -1,26 +1,31 @@
 using MediatR;
+using UserService.Application.DTOs.Auth;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
-using UserService.Application.Services;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
 public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, AuthResponse>
 {
-    private readonly IAuthServices _authService;
+    private readonly ILoginService _loginService;
+    private readonly IApplicationAppService _applicationService;
 
-    public LoginUserCommandHandler(IAuthServices authService)
+    public LoginUserCommandHandler(ILoginService loginService, IApplicationAppService applicationService)
     {
-        _authService = authService;
+        _loginService = loginService;
+        _applicationService = applicationService;
     }
 
     public async Task<AuthResponse> Handle(LoginUserCommand command, CancellationToken cancellationToken)
     {
-        return await _authService.LoginUserAsync(
+        var applicationId = await _applicationService.ResolveApplicationIdAsync(command.ClientId, cancellationToken);
+
+        var request = new LoginUserRequest(
             command.Email,
             command.Password,
-            command.ApplicationId,
-            command.ReturnUrl,
-            cancellationToken);
+            applicationId,
+            command.ReturnUrl);
+
+        return await _loginService.LoginAsync(request, cancellationToken);
     }
 }

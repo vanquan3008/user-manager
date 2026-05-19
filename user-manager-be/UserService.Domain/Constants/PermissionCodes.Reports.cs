@@ -2,7 +2,7 @@ namespace UserService.Domain.Constants;
 
 public static partial class PermissionCodes
 {
-    public const string ViewReports = "reports.view";
-    public const string ExportReports = "reports.export";
+    public const string ViewReports = "REPORT.READ";
+    public const string ExportReports = "REPORT.EXPORT";
 }
 

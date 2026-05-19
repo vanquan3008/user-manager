@@ -1,8 +1,8 @@
 namespace UserService.Application.Exceptions;
 
-public sealed class SsoLoginRequiredException : UnauthorizedAccessException
+public sealed class SSOLoginRequiredException : UnauthorizedAccessException
 {
-    public SsoLoginRequiredException(
+    public SSOLoginRequiredException(
         string email,
         Guid? applicationId = null,
         string? returnUrl = null)

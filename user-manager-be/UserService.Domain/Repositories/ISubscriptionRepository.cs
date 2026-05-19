@@ -23,8 +23,6 @@ public interface ISubscriptionRepository : IRepository<Subscription>
     /// </summary>
     Task<IEnumerable<Subscription>> GetUserSubscriptionsAsync(Guid userId, Guid applicationId, CancellationToken cancellationToken = default);
 
-    Task<Subscription?> GetByIdWithMembersAsync(Guid id, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Get latest subscription for user within a specific application
     /// </summary>

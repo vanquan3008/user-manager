@@ -17,7 +17,7 @@ namespace UserService.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class AuthController(IMediator mediator, AppSettings appSettings, IApplicationCacheService applicationCacheService) : ApiControllerBase
+public class AuthController(IMediator mediator, AppSettings appSettings) : ApiControllerBase
 {
     private const string RefreshTokenCookieName = AuthCookieNames.RefreshToken;
 
@@ -29,7 +29,6 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
         [FromBody] RegisterRequest request,
         CancellationToken cancellationToken = default)
     {
-        var applicationId = await ResolveApplicationIdAsync(request.ClientId, cancellationToken);
         var command = new RegisterUserCommand(
             request.Email,
             request.Password,
@@ -37,7 +36,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
             request.FirstName,
             request.LastName,
             request.DateOfBirth,
-            applicationId);
+            request.ClientId);
 
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
@@ -52,11 +51,10 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken = default)
     {
-        var applicationId = await ResolveApplicationIdAsync(request.ClientId, cancellationToken);
         var command = new LoginUserCommand(
             request.Email,
             request.Password,
-            applicationId,
+            request.ClientId,
             request.ReturnUrl);
 
         var response = await mediator.Send(command, cancellationToken);
@@ -67,8 +65,8 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
     [HttpPost("sso/login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> SsoLogin(
-        [FromBody] SsoLoginCommand command,
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> SSOLogin(
+        [FromBody] SSOLoginCommand command,
         CancellationToken cancellationToken = default)
     {
         var response = await mediator.Send(command, cancellationToken);
@@ -77,11 +75,11 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
     }
 
     [HttpPost("sso/authorize")]
-    [ProducesResponseType(typeof(ApiResponse<SsoAuthorizeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SSOAuthorizeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<SsoAuthorizeResponse>>> SsoAuthorize(
-        [FromBody] SsoAuthorizeCommand command,
+    public async Task<ActionResult<ApiResponse<SSOAuthorizeResponse>>> SSOAuthorize(
+        [FromBody] SSOAuthorizeCommand command,
         CancellationToken cancellationToken = default)
     {
         var response = await mediator.Send(command, cancellationToken);
@@ -94,11 +92,11 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
     }
 
     [HttpPost("sso/consent")]
-    [ProducesResponseType(typeof(ApiResponse<SsoAuthorizeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SSOAuthorizeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<SsoAuthorizeResponse>>> SsoConsent(
-        [FromBody] SsoConsentCommand command,
+    public async Task<ActionResult<ApiResponse<SSOAuthorizeResponse>>> SSOConsent(
+        [FromBody] SSOConsentCommand command,
         CancellationToken cancellationToken = default)
     {
         var response = await mediator.Send(command, cancellationToken);
@@ -111,8 +109,8 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
     [HttpPost("sso/exchange-token")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> SsoExchangeToken(
-        [FromBody] SsoExchangeTokenCommand command,
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> SSOExchangeToken(
+        [FromBody] SSOExchangeTokenCommand command,
         CancellationToken cancellationToken = default)
     {
         var updatedCommand = command with { UserId = User.GetRequiredCurrentUserId() };
@@ -128,8 +126,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
         [FromBody] RequestPasswordlessLoginRequest request,
         CancellationToken cancellationToken = default)
     {
-        var applicationId = await ResolveApplicationIdAsync(request.ClientId, cancellationToken);
-        var command = new RequestPasswordlessLoginCommand(request.Email, applicationId);
+        var command = new RequestPasswordlessLoginCommand(request.Email, request.ClientId);
 
         await mediator.Send(command, cancellationToken);
         return OkSuccess("Send email successfully!");
@@ -145,8 +142,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
         [FromQuery] string? clientId,
         CancellationToken cancellationToken = default)
     {
-        var applicationId = await ResolveApplicationIdAsync(clientId, cancellationToken);
-        var command = new VerifyMagicLinkCommand(token, purpose, applicationId);
+        var command = new VerifyMagicLinkCommand(token, purpose, clientId);
 
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
@@ -290,29 +286,11 @@ public class AuthController(IMediator mediator, AppSettings appSettings, IApplic
         [FromBody] VerifyMagicLinkRequest request,
         CancellationToken cancellationToken = default)
     {
-        var applicationId = await ResolveApplicationIdAsync(request.ClientId, cancellationToken);
-        var command = new VerifyMagicLinkCommand(request.Token, request.Purpose, applicationId);
+        var command = new VerifyMagicLinkCommand(request.Token, request.Purpose, request.ClientId);
 
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
         return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
     }
 
-    // Application id / api key lookup is provided by HttpContextApplicationExtensions
-
-    private async Task<Guid?> ResolveApplicationIdAsync(string? clientId, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(clientId))
-        {
-            return null;
-        }
-
-        var app = await applicationCacheService.GetByApiKeyAsync(clientId.Trim(), cancellationToken);
-        if (app == null || !app.IsActive)
-        {
-            throw new AuthenticationException("Invalid or inactive client id.");
-        }
-
-        return app.Id;
-    }
 }

@@ -4,7 +4,9 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using UserService.Application.Configuration;
+using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
+using UserService.Domain.Exceptions;
 
 namespace UserService.Application.Services;
 
@@ -19,41 +21,12 @@ public class TokenService : ITokenService
         _appSettings = appSettings;
     }
 
-    public string GenerateAccessToken(Guid userId, string email, string? displayName, IEnumerable<string> roles)
+    public string GenerateAccessToken(AccessTokenRequest request)
     {
-        return GenerateAccessToken(userId, email, displayName, roles, Enumerable.Empty<string>());
-    }
+        ArgumentNullException.ThrowIfNull(request);
 
-    public string GenerateAccessToken(Guid userId, string email, string? displayName, IEnumerable<string> roles, IEnumerable<string> permissions)
-    {
-        return GenerateAccessToken(userId, email, displayName, roles, permissions, null, null);
-    }
+        var claims = _claimsFactory.CreateAccessTokenClaims(request);
 
-    public string GenerateAccessToken(Guid userId, string email, string? displayName, IEnumerable<string> roles, IEnumerable<string> permissions, Guid? applicationId, string? scope = null, IEnumerable<Guid>? ssoAppIds = null, IEnumerable<string>? oauthScopes = null)
-    {
-        roles ??= Enumerable.Empty<string>();
-        permissions ??= Enumerable.Empty<string>();
-
-        IReadOnlyList<Claim> claims;
-        var hasPermissions = permissions.Any();
-        var hasExtendedContext =
-            applicationId.HasValue ||
-            !string.IsNullOrWhiteSpace(scope) ||
-            (ssoAppIds?.Any() == true) ||
-            (oauthScopes?.Any() == true);
-
-        if (!hasPermissions && !hasExtendedContext)
-        {
-            claims = _claimsFactory.CreateAccessTokenClaims(userId, email, displayName, roles);
-        }
-        else if (!hasExtendedContext)
-        {
-            claims = _claimsFactory.CreateAccessTokenClaims(userId, email, displayName, roles, permissions);
-        }
-        else
-        {
-            claims = _claimsFactory.CreateAccessTokenClaims(userId, email, displayName, roles, permissions, applicationId, scope, ssoAppIds, oauthScopes);
-        }
         var jwt = _appSettings.Jwt;
         if (string.IsNullOrWhiteSpace(jwt.SecretKey))
             throw new InvalidOperationException("JWT SecretKey is missing.");
@@ -64,7 +37,7 @@ public class TokenService : ITokenService
         var token = new JwtSecurityToken(
             issuer: jwt.Issuer,
             audience: jwt.Audience,
-            claims: claims,
+            claims: claims.ToList(),
             expires: DateTime.UtcNow.AddMinutes(jwt.AccessTokenExpirationMinutes),
             signingCredentials: creds);
 

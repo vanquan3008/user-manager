@@ -33,6 +33,10 @@ public sealed class AppApplicationConfiguration : IEntityTypeConfiguration<AppAp
               .HasColumnName("ApiSecret")
               .HasMaxLength(500);
 
+        builder.Property(x => x.ClientType)
+              .IsRequired()
+              .HasMaxLength(50);
+
         builder.Property(x => x.WebhookUrl)
               .HasConversion(x => x != null ? x.Value : null, x => x != null ? UrlValue.Create(x) : null)
               .HasMaxLength(500);
@@ -61,65 +65,15 @@ public sealed class AppApplicationConfiguration : IEntityTypeConfiguration<AppAp
               .HasForeignKey(x => x.OwnerId)
               .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(x => x.DefaultLicensePackage)
-              .WithMany()
-              .HasForeignKey(x => x.DefaultLicensePackageId)
-              .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne(x => x.SubscriptionPlan)
               .WithMany()
               .HasForeignKey(x => x.SubscriptionPlanId)
               .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasMany(x => x.Users)
-              .WithOne(x => x.Application)
-              .HasForeignKey(x => x.ApplicationId)
-              .OnDelete(DeleteBehavior.Restrict);
-        
-        builder.Navigation(x => x.Users).HasField("_users");
-
         // Indexes
         builder.HasIndex(x => x.OwnerId);
-        builder.HasIndex(x => x.DefaultLicensePackageId);
         builder.HasIndex(x => x.ApiKey).IsUnique();
         builder.HasIndex(x => x.IsActive);
         builder.HasIndex(x => x.IsDeleted);
-    }
-}
-
-public sealed class UserApplicationConfiguration : IEntityTypeConfiguration<UserApplication>
-{
-    public void Configure(EntityTypeBuilder<UserApplication> builder)
-    {
-        builder.ToTable("UserApplications");
-        builder.HasKey(x => x.Id);
-
-        builder.Property(x => x.Role)
-              .IsRequired()
-              .HasMaxLength(50);
-              
-        builder.Property(x => x.LicenseAssignedRole)
-              .HasMaxLength(100);
-
-        builder.HasOne(x => x.User)
-              .WithMany()
-              .HasForeignKey(x => x.UserId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.Application)
-              .WithMany()
-              .HasForeignKey(x => x.ApplicationId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.LicensePackage)
-              .WithMany()
-              .HasForeignKey(x => x.LicensePackageId)
-              .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasIndex(x => new { x.UserId, x.ApplicationId }).IsUnique();
-        builder.HasIndex(x => x.ApplicationId);
-        builder.HasIndex(x => x.UserId);
-        builder.HasIndex(x => x.LicensePackageId);
-        builder.HasIndex(x => x.IsActive);
     }
 }

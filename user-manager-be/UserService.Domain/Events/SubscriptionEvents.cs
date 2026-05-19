@@ -26,18 +26,3 @@ public record SubscriptionExpiredEvent(Guid SubscriptionId, Guid UserId) : IDoma
 {
     public DateTime OccurredOn => DateTime.UtcNow;
 }
-
-public record SubscriptionMemberAddedEvent(Guid SubscriptionId, Guid OwnerId, Guid NewMemberId, Guid RoleTypeId) : IDomainEvent
-{
-    public DateTime OccurredOn => DateTime.UtcNow;
-}
-
-public record SubscriptionMemberRemovedEvent(Guid SubscriptionId, Guid OwnerId, Guid RemovedMemberId) : IDomainEvent
-{
-    public DateTime OccurredOn => DateTime.UtcNow;
-}
-
-public record SubscriptionMemberRoleChangedEvent(Guid SubscriptionId, Guid MemberId, Guid NewRoleTypeId) : IDomainEvent
-{
-    public DateTime OccurredOn => DateTime.UtcNow;
-}

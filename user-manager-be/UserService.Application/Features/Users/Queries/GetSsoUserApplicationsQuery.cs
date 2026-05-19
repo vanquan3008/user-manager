@@ -3,5 +3,5 @@ using UserService.Application.DTOs.Users;
 
 namespace UserService.Application.Features.Users.Queries;
 
-public sealed record GetSsoUserApplicationsQuery(Guid UserId)
-    : IRequest<IReadOnlyList<SsoUserApplicationDto>>;
+public sealed record GetSSOUserApplicationsQuery(Guid UserId)
+    : IRequest<IReadOnlyList<SSOUserApplicationDto>>;

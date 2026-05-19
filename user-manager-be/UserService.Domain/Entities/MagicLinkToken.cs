@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using UserService.Domain.ValueObjects;
 
 namespace UserService.Domain.Entities;
@@ -44,7 +43,6 @@ public sealed class MagicLinkToken : Entity<Guid>
 
     public Guid UserId { get; private set; }
 
-    [ForeignKey(nameof(UserId))]
     public User User { get; private set; } = null!;
     
     public TokenValue Token { get; private set; } = null!;

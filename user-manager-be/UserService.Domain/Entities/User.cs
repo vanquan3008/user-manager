@@ -36,7 +36,9 @@ public sealed class User : AuditableAggregateRoot<Guid>
         DateOnly dateOfBirth,
         DateTime utcNow)
     {
-        return new User(id, username, email, name, dateOfBirth, utcNow);
+        var user = new User(id, username, email, name, dateOfBirth, utcNow);
+        user.AddDomainEvent(new UserRegisteredEvent(user.Id, user.Email.Value, user.Username.Value));
+        return user;
     }
 
     public Username Username { get; private set; } = null!;

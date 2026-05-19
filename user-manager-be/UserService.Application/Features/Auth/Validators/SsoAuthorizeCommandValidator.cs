@@ -3,9 +3,9 @@ using UserService.Application.Features.Auth.Commands;
 
 namespace UserService.Application.Features.Auth.Validators;
 
-public class SsoAuthorizeCommandValidator : AbstractValidator<SsoAuthorizeCommand>
+public class SSOAuthorizeCommandValidator : AbstractValidator<SSOAuthorizeCommand>
 {
-    public SsoAuthorizeCommandValidator()
+    public SSOAuthorizeCommandValidator()
     {
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required")

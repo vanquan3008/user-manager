@@ -10,12 +10,6 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        if (context.User.IsInRole(RoleNames.Admin) || context.User.IsInRole(RoleNames.SuperAdmin))
-        {
-            context.Succeed(requirement);
-            return Task.CompletedTask;
-        }
- 
         if (HasEffectivePermission(context.User, requirement.Permission))
         {
             context.Succeed(requirement);
@@ -32,8 +26,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         if (permissions.Count == 0)
             return false;
 
-        var allowedByPermissions = permissions.Contains(requiredPermission, StringComparer.OrdinalIgnoreCase)
-            || HasWildcardPermission(permissions, requiredPermission);
+        var allowedByPermissions = PermissionCodeMapper.IsGranted(permissions, requiredPermission);
 
         if (!allowedByPermissions)
             return false;
@@ -45,15 +38,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         if (!HasPermissionLikeScopes(oauthScopes))
             return true;
 
-        return oauthScopes.Contains(requiredPermission, StringComparer.OrdinalIgnoreCase)
-            || HasWildcardPermission(oauthScopes, requiredPermission);
-    }
-
-    private static bool HasWildcardPermission(IReadOnlyCollection<string> items, string requiredPermission)
-    {
-        var requiredResource = requiredPermission.Split('.')[0];
-        var wildcardPermission = $"{requiredResource}.*";
-        return items.Contains(wildcardPermission, StringComparer.OrdinalIgnoreCase);
+        return PermissionCodeMapper.IsGranted(oauthScopes, requiredPermission);
     }
 
     private static HashSet<string> ReadCsvClaim(ClaimsPrincipal user, string claimType)

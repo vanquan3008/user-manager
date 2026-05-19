@@ -4,5 +4,5 @@ namespace UserService.Application.Features.Auth.Commands;
 
 public record RequestPasswordlessLoginCommand(
     string Email,
-    Guid? ApplicationId = null
+    string? ClientId = null
 ) : IRequest<Unit>;

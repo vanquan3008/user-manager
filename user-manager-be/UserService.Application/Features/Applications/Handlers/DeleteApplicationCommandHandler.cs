@@ -1,34 +1,21 @@
 using MediatR;
 using UserService.Application.Features.Applications.Commands;
-using UserService.Domain.Exceptions;
-using UserService.Domain.Repositories;
+using UserService.Application.Interfaces.Services;
 
 namespace UserService.Application.Features.Applications.Handlers;
 
 public sealed class DeleteApplicationCommandHandler : IRequestHandler<DeleteApplicationCommand, Unit>
 {
-    private readonly IApplicationRepository _applications;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IApplicationAppService _applicationService;
 
-    public DeleteApplicationCommandHandler(
-        IApplicationRepository applications,
-        IUnitOfWork unitOfWork)
+    public DeleteApplicationCommandHandler(IApplicationAppService applicationService)
     {
-        _applications = applications;
-        _unitOfWork = unitOfWork;
+        _applicationService = applicationService;
     }
 
     public async Task<Unit> Handle(DeleteApplicationCommand request, CancellationToken cancellationToken)
     {
-        var app = await _applications.GetByIdAsync(request.ApplicationId, cancellationToken);
-        if (app is null)
-            throw new ApplicationNotFoundException(request.ApplicationId);
-
-        // Soft-delete to keep referential integrity for memberships/subscriptions.
-        app.Deactivate();
-        app.Delete();
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _applicationService.DeleteAsync(request.ApplicationId, cancellationToken);
         return Unit.Value;
     }
 }
