@@ -6,12 +6,9 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      microsoft-packages:
+      backend-all-dependencies:
         patterns:
-          - "Microsoft.EntityFrameworkCore*"
-          - "Microsoft.Extensions*"
-          - "Microsoft.AspNetCore*"
-          - "Npgsql.EntityFrameworkCore.PostgreSQL*"
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/user-manager-fe"
@@ -19,24 +16,10 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      angular-packages:
+      frontend-all-dependencies:
         patterns:
-          - "@angular/*"
-          - "zone.js"
-          - "rxjs"
-          - "typescript"
-      testing-packages:
-        patterns:
-          - "jasmine*"
-          - "@types/jasmine*"
-          - "karma*"
-      style-packages:
-        patterns:
-          - "tailwindcss"
-          - "postcss"
-          - "autoprefixer"
+          - "*"
     ignore:
-      # Chặn tất cả các bản nâng cấp lớn (Major) cho NPM để tránh lỗi build
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 

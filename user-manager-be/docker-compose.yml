@@ -59,6 +59,7 @@ services:
       AppSettings__Cloudinary__CloudName: ${CLOUDINARY_CLOUD_NAME:-}
       AppSettings__Cloudinary__ApiKey: ${CLOUDINARY_API_KEY:-}
       AppSettings__Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET:-}
+      EmailSettings__ApplicationDisplayName: ${EMAIL_DISPLAY_NAME:-User Manager}
       EmailSettings__Smtp__Host: ${SMTP_HOST:-smtp.gmail.com}
       EmailSettings__Smtp__Port: ${SMTP_PORT:-587}
       EmailSettings__Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
