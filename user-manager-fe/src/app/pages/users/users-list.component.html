@@ -1,185 +1,206 @@
 <div class="main main-layout main-layout--table-page flex min-h-0 flex-1 flex-col overflow-hidden">
-  @if (canCreateSso()) {
-    <div class="app-toolbar-row flex flex-wrap items-center justify-end gap-2">
-      <app-icon-button
-        icon="person_add"
-        [theme]="theme()"
-        title="Tạo SSO user"
-        (click)="openSsoModal()"
-      />
+  <section class="motion-section rounded-[2rem] border border-[var(--app-card-border)] bg-[var(--app-card-bg)] p-5 shadow-[var(--app-card-shadow)] backdrop-blur-xl sm:p-6">
+    <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+      <div class="max-w-2xl">
+        <span class="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200" [ngClass]="theme() === 'dark' ? '!bg-sky-500/15 !text-sky-100 !ring-sky-400/20' : ''">
+          People directory
+        </span>
+        <h2 class="mt-4 text-3xl font-semibold tracking-tight sm:text-[2.35rem]" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-white'">
+          Calm by default. Full access controls when you open a profile.
+        </h2>
+        <p class="mt-3 max-w-2xl text-sm leading-7 text-[var(--app-text-secondary)] sm:text-[15px]">
+          Search people fast, scan status at a glance, and open the full access workspace in a drawer.
+        </p>
+      </div>
+
+      @if (canCreateSso()) {
+        <button
+          type="button"
+          class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-slate-800"
+          [ngClass]="theme() === 'dark' ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : ''"
+          (click)="openSsoModal()"
+        >
+          <span class="material-symbols-outlined text-[18px]">person_add</span>
+          Create SSO user
+        </button>
+      }
     </div>
-  }
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <app-stat-card
-      [label]="'Total users'"
-      [value]="totalCount()"
-      [sublabel]="'Across all pages'"
-      icon="group"
-      variant="primary"
-      [theme]="theme()"
-    />
-    <app-stat-card
-      [label]="'Active on this page'"
-      [value]="pageActive()"
-      [sublabel]="'Active & not banned (current page)'"
-      icon="person_check"
-      variant="success"
-      [theme]="theme()"
-    />
-    <app-stat-card
-      [label]="'Banned on this page'"
-      [value]="pageBanned()"
-      [sublabel]="'Quick view of blocked accounts'"
-      icon="block"
-      variant="warning"
-      [theme]="theme()"
-    />
-  </div>
+    <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <label class="flex min-h-14 w-full max-w-xl items-center gap-3 rounded-full border border-[var(--app-input-border)] bg-[var(--app-input-bg)] px-4 shadow-sm transition focus-within:border-sky-400 focus-within:shadow-[0_0_0_4px_var(--app-ring)]">
+        <span class="material-symbols-outlined text-[20px]" [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'">search</span>
+        <input
+          type="text"
+          class="w-full border-0 bg-transparent text-sm text-[var(--app-text-primary)] outline-none"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keyup.enter)="onSearch()"
+          placeholder="Search by email or username"
+        />
+        <button
+          type="button"
+          class="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+          [ngClass]="theme() === 'dark' ? 'bg-sky-500 text-slate-950 hover:bg-sky-400' : ''"
+          (click)="onSearch()"
+        >
+          Search
+        </button>
+      </label>
 
-  <div
-    class="rounded-2xl border px-4 py-3"
-    [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/50' : 'border-slate-700/70 bg-slate-800/70'"
-  >
-    <div class="mb-2 flex items-center justify-between text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-      <span>Active vs banned (current page)</span>
-      <span>{{ pageActive() }} active • {{ pageBanned() }} banned / {{ pageTotal() }} users</span>
+      <div class="flex flex-wrap gap-2">
+        <span class="inline-flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-sm text-[var(--app-text-secondary)]">
+          <strong class="text-[var(--app-text-primary)]">{{ totalCount() }}</strong>
+          people
+        </span>
+        <span class="inline-flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-sm text-[var(--app-text-secondary)]">
+          <strong class="text-[var(--app-text-primary)]">{{ pageActive() }}</strong>
+          active
+        </span>
+        <span class="inline-flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-sm text-[var(--app-text-secondary)]">
+          <strong class="text-[var(--app-text-primary)]">{{ pagePending() }}</strong>
+          pending email
+        </span>
+        <span class="inline-flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-2 text-sm text-[var(--app-text-secondary)]">
+          <strong class="text-[var(--app-text-primary)]">{{ pageSso() }}</strong>
+          SSO
+        </span>
+      </div>
     </div>
-    <div class="h-2 w-full overflow-hidden rounded-full" [ngClass]="theme() === 'light' ? 'bg-slate-200' : 'bg-slate-700'">
-      <div class="h-full bg-emerald-500 transition-[width] duration-300 ease-out" [style.width.%]="activePercent()"></div>
-      <div class="h-full bg-rose-500 transition-[width] duration-300 ease-out" [style.width.%]="bannedPercent()"></div>
+  </section>
+
+  <section class="motion-section motion-delay-1 flex min-h-0 flex-1 flex-col rounded-[2rem] border border-[var(--app-card-border)] bg-[var(--app-card-bg)] p-4 shadow-[var(--app-card-shadow)] backdrop-blur-xl sm:p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-card-border)] pb-4">
+      <div>
+        <h3 class="text-lg font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-white'">Users</h3>
+        <p class="mt-1 text-sm text-[var(--app-text-secondary)]">Only the essentials stay visible here.</p>
+      </div>
+      <span class="text-sm text-[var(--app-text-secondary)]">{{ users().length }} on this page</span>
     </div>
-  </div>
 
-  <div class="app-toolbar-row max-w-md">
-    <input
-      type="text"
-      [ngModel]="search()"
-      (ngModelChange)="search.set($event)"
-      (keyup.enter)="onSearch()"
-      placeholder="Search by email or username…"
-      class="app-input-plain min-w-0 flex-1 text-[var(--app-text-primary)]"
-    />
-    <button
-      type="button"
-      class="rounded-lg px-4 py-2 text-sm font-medium transition"
-      [ngClass]="theme() === 'light'
-        ? 'border border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200'
-        : 'border border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
-      (click)="onSearch()"
-    >
-      Search
-    </button>
-  </div>
+    @if (error()) {
+      <div class="mt-4 app-alert-error">{{ error() }}</div>
+    }
 
-  @if (error()) {
-    <div class="app-alert-error">{{ error() }}</div>
-  }
-
-  @if (loading()) {
-    <app-loading-state message="Loading users…" [theme]="theme()" />
-  } @else if (users().length === 0) {
-    <app-empty-state
-      [message]="'No users found. Try adjusting your search.'"
-      [theme]="theme()"
-    />
-  } @else {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div class="app-table-shell app-table-shell--fill overflow-x-auto">
-      <table class="min-w-full divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200' : 'divide-slate-700'">
-        <thead [ngClass]="theme() === 'light' ? 'bg-slate-50' : 'bg-slate-900/80'">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Email</th>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Username</th>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Account</th>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Status</th>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">Created</th>
-            <th class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y" [ngClass]="theme() === 'light' ? 'divide-slate-200 bg-white' : 'divide-slate-700 bg-slate-800/50'">
+    @if (loading()) {
+      <div class="mt-4">
+        <app-loading-state message="Loading people..." [theme]="theme()" />
+      </div>
+    } @else if (users().length === 0) {
+      <div class="mt-4">
+        <app-empty-state
+          [message]="'No people match this search yet.'"
+          [theme]="theme()"
+        />
+      </div>
+    } @else {
+      <div class="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="grid gap-3 overflow-y-auto pr-1">
           @for (u of users(); track trackByUserId($index, u)) {
-            <tr class="transition" [ngClass]="theme() === 'light' ? 'hover:bg-slate-50' : 'hover:bg-slate-700/50'">
-              <td class="px-4 py-3">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">{{ u.email }}</span>
-                  @if (u.emailConfirmed) {
-                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-emerald-100 text-emerald-800" [ngClass]="theme() === 'dark' ? '!bg-emerald-500/20 !text-emerald-200' : ''" title="Đã xác thực email">✓</span>
-                  } @else {
-                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800" [ngClass]="theme() === 'dark' ? '!bg-amber-500/20 !text-amber-200' : ''" title="Chưa xác thực email">—</span>
-                  }
+            <article
+              class="group flex flex-col gap-4 rounded-[1.6rem] border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] p-4 transition duration-200 hover:-translate-y-px hover:shadow-[0_20px_40px_-28px_rgba(14,165,233,0.32)] sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div class="flex min-w-0 items-start gap-4">
+                <div class="app-avatar-orb flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.25rem] text-sm font-semibold text-white">
+                  {{ (u.userName || u.email || '?').charAt(0).toUpperCase() }}
                 </div>
-              </td>
-              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-800' : 'text-slate-200'">{{ u.userName }}</td>
-              <td class="px-4 py-3">
-                @if (u.isSsoAccount) {
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800"
-                    [ngClass]="theme() === 'dark' ? '!bg-indigo-500/20 !text-indigo-200' : ''"
-                    >SSO</span
-                  >
-                } @else {
-                  <span
-                    class="text-xs"
-                    [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'"
-                    >Standard</span
-                  >
-                }
-              </td>
-              <td class="px-4 py-3">
-                <app-status-badge
-                  [status]="u.isBanned ? 'banned' : (u.isActive ? 'active' : 'inactive')"
-                  [theme]="theme()"
-                />
-              </td>
-              <td class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ u.createdAt | date:'short' }}</td>
-              <td class="px-4 py-3 text-right">
-                <a
-                  [routerLink]="['/users', u.id]"
-                  class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white bg-sky-500 transition hover:bg-sky-600"
+
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="truncate text-base font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-white'">
+                      {{ u.userName || 'Unnamed user' }}
+                    </h4>
+                    <span
+                      class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1"
+                      [ngClass]="u.isSsoAccount
+                        ? (theme() === 'light' ? 'bg-sky-100 text-sky-700 ring-sky-200' : 'bg-sky-500/15 text-sky-100 ring-sky-400/20')
+                        : (theme() === 'light' ? 'bg-slate-100 text-slate-600 ring-slate-200' : 'bg-slate-800 text-slate-200 ring-slate-700')"
+                    >
+                      {{ accountTypeLabel(u) }}
+                    </span>
+                    @if (u.emailConfirmed) {
+                      <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200" [ngClass]="theme() === 'dark' ? '!bg-emerald-500/15 !text-emerald-100 !ring-emerald-400/20' : ''">
+                        Verified
+                      </span>
+                    }
+                  </div>
+
+                  <p class="mt-1 truncate text-sm text-[var(--app-text-secondary)]">{{ u.email }}</p>
+
+                  <div class="mt-3 flex flex-wrap items-center gap-2.5 text-xs text-[var(--app-text-secondary)]">
+                    <app-status-badge
+                      [status]="u.isBanned ? 'banned' : (u.isActive ? 'active' : 'inactive')"
+                      [theme]="theme()"
+                    />
+                    <span>Joined {{ joinedLabel(u) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--app-card-border)] bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50"
+                  [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900 text-white hover:border-sky-400/30 hover:bg-slate-800' : ''"
+                  (click)="openUserDrawer(u)"
                 >
-                  <span class="material-symbols-outlined text-base">edit</span>
-                  Edit roles
-                </a>
-              </td>
-            </tr>
+                  Open profile
+                  <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+                </button>
+              </div>
+            </article>
           }
-        </tbody>
-      </table>
-    </div>
-    <app-table-pagination
-      [totalItems]="totalCount()"
-      [page]="page()"
-      [pageSize]="pageSize()"
-      [pageSizeOptions]="listPageSizeSvc.options"
+        </div>
+
+        <div class="mt-4">
+          <app-table-pagination
+            [totalItems]="totalCount()"
+            [page]="page()"
+            [pageSize]="pageSize()"
+            [pageSizeOptions]="listPageSizeSvc.options"
+            [theme]="theme()"
+            (pageChange)="setListPage($event)"
+            (pageSizeChange)="onListPageSizeChange($event)"
+          />
+        </div>
+      </div>
+    }
+  </section>
+
+  @if (showUserDrawer() && selectedUser(); as user) {
+    <app-drawer
+      [title]="selectedUserLabel()"
+      [closing]="closingUserDrawer()"
       [theme]="theme()"
-      (pageChange)="setListPage($event)"
-      (pageSizeChange)="onListPageSizeChange($event)"
-    />
-    </div>
+      (close)="closeUserDrawer()"
+    >
+      <app-user-detail
+        [userId]="user.id"
+        [embedded]="true"
+      />
+    </app-drawer>
   }
 
-@if (showSsoModal()) {
-  <app-drawer
-    title="Tạo SSO user"
-    [closing]="closingSso()"
-    [theme]="theme()"
-    (close)="closeSsoModal()"
-  >
-    <app-sso-create-form
-      [form]="ssoForm"
-      info="Tài khoản Admin hoặc SuperAdmin đều có thể tạo tài khoản SSO tại đây."
+  @if (showSsoModal()) {
+    <app-drawer
+      title="Create SSO user"
+      [closing]="closingSso()"
       [theme]="theme()"
-    />
-    <app-drawer-footer-actions
-      [theme]="theme()"
-      cancelLabel="Hủy"
-      saveLabel="Tạo SSO user"
-      loadingLabel="Đang tạo…"
-      [loading]="ssoSaving()"
-      (cancel)="closeSsoModal()"
-      (save)="createSsoUser()"
-    />
-  </app-drawer>
-}
+      (close)="closeSsoModal()"
+    >
+      <app-sso-create-form
+        [form]="ssoForm"
+        info="Admins can create a managed SSO account here."
+        [theme]="theme()"
+      />
+      <app-drawer-footer-actions
+        [theme]="theme()"
+        cancelLabel="Cancel"
+        saveLabel="Create SSO user"
+        loadingLabel="Creating user..."
+        [loading]="ssoSaving()"
+        (cancel)="closeSsoModal()"
+        (save)="createSsoUser()"
+      />
+    </app-drawer>
+  }
 </div>

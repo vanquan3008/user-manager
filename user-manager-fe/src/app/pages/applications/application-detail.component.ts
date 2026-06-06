@@ -17,7 +17,6 @@ import { DrawerComponent } from '../../shared/components/drawer/drawer.component
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
 import { DropdownComponent } from '../../shared/components/dropdown/dropdown.component';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import type {
@@ -40,7 +39,6 @@ import type {
     DrawerComponent,
     DrawerFooterActionsComponent,
     DropdownComponent,
-    StatCardComponent,
     LoadingStateComponent,
     EmptyStateComponent
   ],
@@ -80,17 +78,35 @@ export class ApplicationDetailComponent implements OnInit {
   readonly closingAddRole = signal(false);
   readonly updatingLogo = signal(false);
   readonly rotatingSecret = signal(false);
+  readonly showClientSecret = signal(false);
   readonly selectedGlobalRoleId = signal('');
   readonly defaultAppLogoDataUri = environment.defaultAppLogoDataUri;
 
   readonly totalUsers = computed(() => this.appUsers().length);
   readonly totalRoles = computed(() => this.appRoles().length);
   readonly ownerLabel = computed(() => this.app()?.ownerDisplayName?.trim() || this.app()?.ownerId?.trim() || 'Unassigned');
+  readonly clientTypeLabel = computed(() => this.credentials()?.clientType || this.app()?.clientType || 'Public');
   readonly redirectUris = computed(() =>
     this.parseDelimitedValues(this.credentials()?.allowedRedirectUris || this.app()?.allowedRedirectUris || '')
   );
+  readonly redirectHosts = computed(() =>
+    Array.from(
+      new Set(
+        this.redirectUris().map((uri) => {
+          try {
+            return new URL(uri).host;
+          } catch {
+            return uri;
+          }
+        })
+      )
+    )
+  );
+  readonly primaryRedirectHost = computed(() => this.redirectHosts()[0] || 'No redirect host');
   readonly capabilityFeatureCount = computed(() => this.capabilities()?.enabledFeatures.length ?? 0);
   readonly capabilityPermissionCount = computed(() => this.capabilities()?.enabledPermissions.length ?? 0);
+  readonly visibleClientSecret = computed(() => !!this.credentials()?.clientSecret?.trim());
+  readonly hasBackchannelLogout = computed(() => !!(this.credentials()?.backchannelLogoutUri || this.app()?.backchannelLogoutUri || '').trim());
   readonly userOptions = computed(() => [
     { value: '', label: '-- Select user --' },
     ...this.apiUsers().map(user => ({ value: user.id, label: this.getUserLabel(user) }))
@@ -140,6 +156,7 @@ export class ApplicationDetailComponent implements OnInit {
             return;
           }
 
+          this.showClientSecret.set(false);
           this.app.set(app.data);
           this.credentials.set(credentials?.success ? credentials.data : null);
           this.capabilities.set(capabilities);
@@ -295,6 +312,75 @@ export class ApplicationDetailComponent implements OnInit {
 
   getUserInitial(user: ApplicationUserDto): string {
     return this.getUserDisplayName(user).charAt(0).toUpperCase();
+  }
+
+  getAppInitials(): string {
+    const name = this.app()?.name?.trim() || '';
+    if (!name) return 'AP';
+
+    const parts = name
+      .split(/[\s-_]+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+  }
+
+  getSecretStatusLabel(): string {
+    if (this.clientTypeLabel().toLowerCase() !== 'confidential') {
+      return 'PKCE only';
+    }
+
+    if (this.visibleClientSecret()) {
+      return 'New secret ready';
+    }
+
+    if (this.credentials()?.lastClientSecretRotatedAt) {
+      return 'Managed secret';
+    }
+
+    return 'Needs rotation';
+  }
+
+  getSecretStatusDescription(): string {
+    if (this.clientTypeLabel().toLowerCase() !== 'confidential') {
+      return 'Public clients authenticate with PKCE and do not store a client secret.';
+    }
+
+    if (this.visibleClientSecret()) {
+      return 'This one-time value is visible now. Copy it before leaving the page.';
+    }
+
+    if (this.credentials()?.lastClientSecretRotatedAt) {
+      return 'The secret exists server-side, but its raw value is no longer readable from this screen.';
+    }
+
+    return 'Rotate once to reveal a fresh secret value for integrations.';
+  }
+
+  displayClientSecret(): string {
+    const value = this.credentials()?.clientSecret?.trim() || '';
+    if (!value) {
+      return 'Stored server-side only. Rotate to issue a fresh one-time value.';
+    }
+
+    if (this.showClientSecret()) {
+      return value;
+    }
+
+    return `${value.slice(0, 4)}${'•'.repeat(Math.max(12, value.length - 8))}${value.slice(-4)}`;
+  }
+
+  toggleClientSecretVisibility() {
+    if (!this.visibleClientSecret()) {
+      return;
+    }
+
+    this.showClientSecret.update((value) => !value);
   }
 
   private parseDelimitedValues(raw: string): string[] {
@@ -508,6 +594,7 @@ export class ApplicationDetailComponent implements OnInit {
           }
 
           this.credentials.set(response.data);
+          this.showClientSecret.set(false);
           this.notify.success('Client secret rotated. Copy the new value now.');
         },
         error: (err: any) => {

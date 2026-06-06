@@ -3,24 +3,31 @@
     <!-- Backdrop -->
     <button
       type="button"
-      class="absolute inset-0 cursor-default"
+      class="absolute inset-0 cursor-default animate-[fade-in_180ms_ease-out]"
       (click)="cancel()"
-      [ngClass]="theme() === 'light' ? 'bg-slate-900/40' : 'bg-black/60'"
+      [ngClass]="theme() === 'light' ? 'bg-sky-950/16 backdrop-blur-sm' : 'bg-black/62 backdrop-blur-sm'"
       aria-label="Close"
     ></button>
 
     <!-- Dialog -->
     <div
-      class="relative z-[99999] w-full max-w-[520px] rounded-2xl border p-5 shadow-2xl"
+      class="relative z-[99999] w-full max-w-[520px] rounded-[1.7rem] border p-5 shadow-2xl backdrop-blur-xl animate-[motion-float-in_240ms_cubic-bezier(0.22,1,0.36,1)]"
       [ngClass]="theme() === 'light'
-        ? 'border-slate-200 bg-white text-slate-900'
-        : 'border-slate-700 bg-slate-900/90 text-slate-100'"
+        ? 'border-sky-100/90 bg-white/97 text-slate-900'
+        : 'border-slate-700/80 bg-slate-900/92 text-slate-100'"
       role="dialog"
       aria-modal="true"
     >
-      <div class="flex items-start gap-4">
+      <div
+        class="pointer-events-none absolute inset-0 rounded-[inherit]"
+        [ngClass]="theme() === 'light'
+          ? 'bg-gradient-to-b from-white/70 to-transparent'
+          : 'bg-gradient-to-b from-white/5 to-transparent'"
+      ></div>
+
+      <div class="relative flex items-start gap-4">
         <div
-          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] border shadow-sm"
           [ngClass]="o.variant === 'danger'
             ? (theme() === 'light' ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-rose-500/40 bg-rose-500/10 text-rose-200')
             : (theme() === 'light' ? 'border-sky-200 bg-sky-50 text-sky-600' : 'border-sky-500/40 bg-sky-500/10 text-sky-200')"
@@ -36,13 +43,13 @@
         </div>
       </div>
 
-      <div class="mt-5 flex items-center justify-end gap-2">
+      <div class="relative mt-5 flex items-center justify-end gap-2">
         <button
           type="button"
-          class="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition"
+          class="inline-flex items-center justify-center rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-95"
           [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            : 'border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60'"
+            ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:shadow-lg'
+            : 'border-slate-700 bg-slate-800/60 text-slate-200 hover:bg-slate-700/60 hover:shadow-lg'"
           (click)="cancel()"
         >
           {{ o.cancelText }}
@@ -50,10 +57,10 @@
 
         <button
           type="button"
-          class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition"
+          class="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/35 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-95"
           [ngClass]="o.variant === 'danger'
-            ? (theme() === 'light' ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-rose-600 text-white hover:bg-rose-500')
-            : (theme() === 'light' ? 'bg-sky-600 text-white hover:bg-sky-700' : 'bg-sky-600 text-white hover:bg-sky-500')"
+            ? (theme() === 'light' ? 'bg-rose-600 text-white hover:bg-rose-700 hover:shadow-lg' : 'bg-rose-600 text-white hover:bg-rose-500 hover:shadow-lg')
+            : (theme() === 'light' ? 'bg-sky-600 text-white hover:bg-sky-700 hover:shadow-lg' : 'bg-sky-600 text-white hover:bg-sky-500 hover:shadow-lg')"
           (click)="accept()"
         >
           {{ o.confirmText }}

@@ -1,20 +1,27 @@
-<div class="main main-layout">
-  <div class="app-toolbar-row flex flex-wrap items-center gap-2">
-    <a
-      routerLink="/users"
-      class="inline-flex items-center gap-1.5 text-sm font-medium transition"
-      [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
-    >
-      <span class="material-symbols-outlined text-lg">arrow_back</span>
-      Users
-    </a>
+<div class="relative flex flex-col gap-4" [ngClass]="embedded() ? '' : 'main main-layout'">
+  <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 overflow-hidden">
+    <div class="absolute -left-12 top-3 h-32 w-32 rounded-full bg-cyan-400/14 blur-3xl"></div>
+    <div class="absolute right-0 top-10 h-40 w-40 rounded-full bg-indigo-500/16 blur-3xl"></div>
   </div>
 
+  @if (!embedded()) {
+    <div class="app-toolbar-row flex flex-wrap items-center gap-2">
+      <a
+        routerLink="/users"
+        class="inline-flex items-center gap-1.5 text-sm font-medium transition"
+        [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
+      >
+        <span class="material-symbols-outlined text-lg">arrow_back</span>
+        Users
+      </a>
+    </div>
+  }
+
   @if (loading()) {
-    <app-loading-state message="Loading user access details..." [theme]="theme()" />
+    <app-loading-state [message]="embedded() ? 'Loading profile...' : 'Loading user access details...'" [theme]="theme()" />
   } @else if (error()) {
     <div
-      class="rounded-3xl border px-5 py-4 text-sm"
+      class="rounded-[1.6rem] border px-5 py-4 text-sm"
       [ngClass]="theme() === 'light' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-rose-500/30 bg-rose-950/40 text-rose-100'"
     >
       {{ error() }}
@@ -22,53 +29,61 @@
   } @else {
     @let viewModel = userWithRoles();
     @if (viewModel) {
-    <app-user-access-overview
-      [user]="viewModel.user"
-      [assignedRoleCount]="assignedRoles().length"
-      [ssoAppCount]="ssoApplications().length"
-      [accountTypeLabel]="accountTypeLabel()"
-      [availabilityLabel]="availabilityLabel()"
-      [theme]="theme()"
-    />
+      <div class="space-y-4">
+        <app-user-access-overview
+          [user]="viewModel.user"
+          [assignedRoleCount]="assignedRoles().length"
+          [ssoAppCount]="ssoApplications().length"
+          [accountTypeLabel]="accountTypeLabel()"
+          [availabilityLabel]="availabilityLabel()"
+          [primaryRole]="primaryRoleLabel()"
+          [canToggleAccess]="canManageBan()"
+          [accessActionLoading]="banActionLoading()"
+          [theme]="theme()"
+          (copyId)="copyUserId()"
+          (copyEmail)="copyEmail()"
+          (toggleAccess)="toggleUserAccess()"
+        />
 
-    @if (actionMessage()) {
-      <div
-        class="rounded-3xl border px-5 py-4 text-sm"
-        [ngClass]="theme() === 'light' ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-sky-500/30 bg-sky-950/40 text-sky-100'"
-      >
-        {{ actionMessage() }}
+        @if (actionMessage()) {
+          <div
+            class="rounded-[1.4rem] border px-4 py-3 text-sm shadow-[0_18px_50px_-38px_rgba(34,211,238,0.55)]"
+            [ngClass]="theme() === 'light' ? 'border-sky-200 bg-sky-50/90 text-sky-800' : 'border-cyan-400/20 bg-cyan-400/10 text-cyan-50'"
+          >
+            {{ actionMessage() }}
+          </div>
+        }
+
+        <app-user-role-management
+          [roles]="assignedRoles()"
+          [roleOptions]="roleOptions()"
+          [selectedRole]="selectedRole()"
+          [addingRole]="addingRole()"
+          [removingRole]="removingRole()"
+          [theme]="theme()"
+          (selectedRoleChange)="selectedRole.set($event)"
+          (addRole)="addRole()"
+          (removeRole)="removeRole($event)"
+        />
+
+        @if (isSsoUser()) {
+          <app-user-sso-access
+            [applications]="ssoApplications()"
+            [applicationOptions]="applicationOptions()"
+            [roleOptions]="appRoleOptions()"
+            [selectedApplicationId]="grantAppId()"
+            [selectedRole]="grantRole()"
+            [granting]="granting()"
+            [revoking]="revoking()"
+            [hasAvailableApplications]="allApplications().length > 0"
+            [theme]="theme()"
+            (selectedApplicationIdChange)="onGrantAppChange($event)"
+            (selectedRoleChange)="grantRole.set($event)"
+            (grant)="grantSsoApplication()"
+            (revoke)="revokeSsoApplication($event)"
+          />
+        }
       </div>
-    }
-
-    <app-user-role-management
-      [roles]="assignedRoles()"
-      [roleOptions]="roleOptions()"
-      [selectedRole]="selectedRole()"
-      [addingRole]="addingRole()"
-      [removingRole]="removingRole()"
-      [theme]="theme()"
-      (selectedRoleChange)="selectedRole.set($event)"
-      (addRole)="addRole()"
-      (removeRole)="removeRole($event)"
-    />
-
-    @if (isSsoUser()) {
-      <app-user-sso-access
-        [applications]="ssoApplications()"
-        [applicationOptions]="applicationOptions()"
-        [roleOptions]="appRoleOptions()"
-        [selectedApplicationId]="grantAppId()"
-        [selectedRole]="grantRole()"
-        [granting]="granting()"
-        [revoking]="revoking()"
-        [hasAvailableApplications]="allApplications().length > 0"
-        [theme]="theme()"
-        (selectedApplicationIdChange)="onGrantAppChange($event)"
-        (selectedRoleChange)="grantRole.set($event)"
-        (grant)="grantSsoApplication()"
-        (revoke)="revokeSsoApplication($event)"
-      />
-    }
     }
   }
 </div>

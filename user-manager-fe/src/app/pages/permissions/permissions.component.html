@@ -37,60 +37,60 @@
     </div>
   } @else {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <div class="app-table-shell app-table-shell--fill">
-      <table>
-        <thead>
-          <tr>
-            <th>{{ translate.t().permissionsCode }}</th>
-            <th>{{ translate.t().description }}</th>
-            <th>{{ translate.t().permissionsCategory }}</th>
-            <th>{{ translate.t().permissionsSystem }}</th>
-            <th>{{ translate.t().active }}</th>
-            <th>{{ translate.t().permissionsScope }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of paginatedPermissions(); track p.id) {
+      <div class="app-table-shell app-table-shell--fill">
+        <table>
+          <thead>
             <tr>
-              <td class="app-table-td-code text-sm">{{ p.code }}</td>
-              <td class="max-w-[200px] truncate text-[var(--app-text-secondary)]">{{ p.description || '—' }}</td>
-              <td class="text-[var(--app-text-secondary)]">{{ categoryDisplayLabel(p.category) }}</td>
-              <td>
-                @if (p.isSystemPermission !== false) {
-                  <span class="app-badge-pill-warn">{{ translate.t().permissionsYes }}</span>
-                } @else {
-                  <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
-                }
-              </td>
-              <td>
-                @if (p.isActive !== false) {
-                  <span class="app-badge-pill-ok">{{ translate.t().permissionsYes }}</span>
-                } @else {
-                  <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
-                }
-              </td>
-              <td class="text-[var(--app-text-secondary)]">{{ p.scope ?? '—' }}</td>
+              <th>{{ translate.t().permissionsCode }}</th>
+              <th>{{ translate.t().description }}</th>
+              <th>{{ translate.t().permissionsCategory }}</th>
+              <th>{{ translate.t().permissionsSystem }}</th>
+              <th>{{ translate.t().active }}</th>
+              <th>{{ translate.t().permissionsScope }}</th>
             </tr>
-          } @empty {
-            <tr>
-              <td colspan="6" class="px-5 py-16 text-center text-[var(--app-text-secondary)]">
-                <span class="material-symbols-outlined text-4xl opacity-40">folder_off</span>
-                <p class="mt-2 text-sm">{{ translate.t().permissionsEmpty }} <strong class="font-semibold" [ngClass]="theme() === 'light' ? 'text-sky-600' : 'text-sky-400'">{{ translate.t().permissionsAddNew }}</strong> {{ translate.t().permissionsCreateNew }}</p>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-    <app-table-pagination
-      [totalItems]="totalFiltered()"
-      [page]="listPage()"
-      [pageSize]="pageSize()"
-      [pageSizeOptions]="listPageSizeSvc.options"
-      [theme]="theme()"
-      (pageChange)="setListPage($event)"
-      (pageSizeChange)="onListPageSizeChange($event)"
-    />
+          </thead>
+          <tbody>
+            @for (p of paginatedPermissions(); track p.id) {
+              <tr>
+                <td class="app-table-td-code text-sm">{{ p.code }}</td>
+                <td class="max-w-[200px] truncate text-[var(--app-text-secondary)]">{{ p.description || '-' }}</td>
+                <td class="text-[var(--app-text-secondary)]">{{ categoryDisplayLabel(p.category) }}</td>
+                <td>
+                  @if (p.isSystemPermission !== false) {
+                    <span class="app-badge-pill-warn">{{ translate.t().permissionsYes }}</span>
+                  } @else {
+                    <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
+                  }
+                </td>
+                <td>
+                  @if (p.isActive !== false) {
+                    <span class="app-badge-pill-ok">{{ translate.t().permissionsYes }}</span>
+                  } @else {
+                    <span class="text-xs text-[var(--app-text-secondary)]">{{ translate.t().permissionsNo }}</span>
+                  }
+                </td>
+                <td class="text-[var(--app-text-secondary)]">{{ p.scope ?? '-' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="px-5 py-16 text-center text-[var(--app-text-secondary)]">
+                  <span class="material-symbols-outlined text-4xl opacity-40">folder_off</span>
+                  <p class="mt-2 text-sm">{{ translate.t().permissionsEmpty }} <strong class="font-semibold" [ngClass]="theme() === 'light' ? 'text-sky-600' : 'text-sky-400'">{{ translate.t().permissionsAddNew }}</strong> {{ translate.t().permissionsCreateNew }}</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-table-pagination
+        [totalItems]="totalFiltered()"
+        [page]="listPage()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="listPageSizeSvc.options"
+        [theme]="theme()"
+        (pageChange)="setListPage($event)"
+        (pageSizeChange)="onListPageSizeChange($event)"
+      />
     </div>
   }
 </div>
@@ -104,32 +104,32 @@
   >
     <div class="space-y-5">
       <app-form-field
-        label="Code"
+        [label]="translate.t().permissionsCode"
         [model]="form.code"
         (modelChange)="form.code = $event"
-        placeholder="users.view"
+        [placeholder]="translate.t().permissionsCodePlaceholder"
         [required]="true"
         [theme]="theme()"
       />
       <app-form-field
-        label="Category"
+        [label]="translate.t().permissionsCategory"
         [model]="form.category"
         (modelChange)="form.category = $event"
-        placeholder="Users"
+        [placeholder]="translate.t().permissionsCategoryPlaceholder"
         [theme]="theme()"
       />
       <app-form-field
-        label="Scope"
+        [label]="translate.t().permissionsScope"
         [model]="form.scope"
         (modelChange)="form.scope = $event"
-        placeholder="global"
+        [placeholder]="translate.t().permissionsScopePlaceholder"
         [theme]="theme()"
       />
       <app-form-field
         [label]="translate.t().description"
         [model]="form.description"
         (modelChange)="form.description = $event"
-        placeholder="Cho phép xem danh sách users"
+        [placeholder]="translate.t().permissionsDescriptionPlaceholder"
         [theme]="theme()"
       />
     </div>

@@ -1,25 +1,22 @@
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { UsersService } from '../../core/services/users.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
-import { TranslateService } from '../../core/services/translate.service';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { SsoCreateFormComponent } from '../../shared/components/sso-create-form/sso-create-form.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
-import { IconButtonComponent } from '../../shared/components/icon-button/icon-button.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { ThemeService } from '../../core/services/theme.service';
 import { hasAdminRole } from '../../core/constants/roles';
 import type { IdentityUser } from '../../core/models';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { TablePaginationComponent } from '../../shared/components/table-pagination/table-pagination.component';
+import { UserDetailComponent } from './user-detail.component';
 
 @Component({
   selector: 'app-users-list',
@@ -27,17 +24,15 @@ import { TablePaginationComponent } from '../../shared/components/table-paginati
   host: { class: 'app-host-fill' },
   imports: [
     CommonModule,
-    RouterLink,
     FormsModule,
-    StatCardComponent,
     StatusBadgeComponent,
     EmptyStateComponent,
     DrawerComponent,
     SsoCreateFormComponent,
     DrawerFooterActionsComponent,
-    IconButtonComponent,
     LoadingStateComponent,
-    TablePaginationComponent
+    TablePaginationComponent,
+    UserDetailComponent
   ],
   templateUrl: './users-list.component.html'
 })
@@ -46,7 +41,6 @@ export class UsersListComponent implements OnInit {
   private auth = inject(AuthService);
   private notify = inject(NotificationService);
   theme = inject(ThemeService).theme;
-  private translate = inject(TranslateService);
   private pageToolbar = inject(PageToolbarService);
   readonly listPageSizeSvc = inject(ListPageSizeService);
 
@@ -54,6 +48,9 @@ export class UsersListComponent implements OnInit {
   showSsoModal = signal(false);
   closingSso = signal(false);
   ssoSaving = signal(false);
+  showUserDrawer = signal(false);
+  closingUserDrawer = signal(false);
+  selectedUser = signal<IdentityUser | null>(null);
   ssoForm = {
     email: '',
     password: '',
@@ -73,15 +70,16 @@ export class UsersListComponent implements OnInit {
   totalPages = computed(() => Math.max(1, Math.ceil(this.totalCount() / this.pageSize())));
 
   pageActive = computed(() => this.users().filter(u => u.isActive && !u.isBanned).length);
-  pageBanned = computed(() => this.users().filter(u => u.isBanned).length);
-  pageTotal = computed(() => Math.max(this.users().length, 1));
-  activePercent = computed(() => (this.pageActive() / this.pageTotal()) * 100);
-  bannedPercent = computed(() => (this.pageBanned() / this.pageTotal()) * 100);
+  pageSso = computed(() => this.users().filter(u => u.isSsoAccount).length);
+  pagePending = computed(() => this.users().filter(u => !u.emailConfirmed).length);
+  selectedUserLabel = computed(() =>
+    this.selectedUser()?.userName || this.selectedUser()?.email || 'User profile'
+  );
 
   ngOnInit() {
     this.pageToolbar.setMeta({
       badge: 'Identity',
-      description: this.translate.t().usersPageDesc
+      description: 'A lighter user directory with focused details on demand.'
     });
     this.load();
   }
@@ -134,6 +132,22 @@ export class UsersListComponent implements OnInit {
     this.showSsoModal.set(true);
   }
 
+  openUserDrawer(user: IdentityUser) {
+    this.selectedUser.set(user);
+    this.closingUserDrawer.set(false);
+    this.showUserDrawer.set(true);
+  }
+
+  closeUserDrawer() {
+    if (this.closingUserDrawer()) return;
+    this.closingUserDrawer.set(true);
+    setTimeout(() => {
+      this.showUserDrawer.set(false);
+      this.selectedUser.set(null);
+      this.closingUserDrawer.set(false);
+    }, 300);
+  }
+
   closeSsoModal() {
     if (this.closingSso()) return;
     this.closingSso.set(true);
@@ -177,5 +191,15 @@ export class UsersListComponent implements OnInit {
         this.ssoSaving.set(false);
       }
     });
+  }
+
+  accountTypeLabel(user: IdentityUser) {
+    return user.isSsoAccount ? 'SSO' : 'Standard';
+  }
+
+  joinedLabel(user: IdentityUser) {
+    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+      new Date(user.createdAt)
+    );
   }
 }

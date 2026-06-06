@@ -1,307 +1,186 @@
-<div class="min-h-screen overflow-hidden">
-  <div
-    class="relative flex min-h-screen items-center justify-center px-4 py-8 transition-colors duration-300 sm:px-6 lg:px-10"
-    [ngClass]="theme() === 'dark' ? 'bg-[#081320] text-slate-100' : 'bg-[#f2f8ff] text-slate-900'"
-  >
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-      <div class="absolute left-[-7rem] top-[-6rem] h-72 w-72 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-sky-500/18' : 'bg-sky-300/40'"></div>
-      <div class="absolute bottom-[-10rem] right-[-6rem] h-80 w-80 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-blue-400/12' : 'bg-blue-200/40'"></div>
-      <div class="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.18),transparent_55%)]"></div>
-      <div
-        class="absolute inset-0 opacity-[0.05]"
-        [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(rgba(255,255,255,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.16)_1px,transparent_1px)]' : 'bg-[linear-gradient(rgba(15,23,42,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.18)_1px,transparent_1px)]'"
-        style="background-size: 32px 32px;"
-      ></div>
+<div class="min-h-[100dvh] overflow-hidden" [ngClass]="theme() === 'dark' ? 'bg-[#0a1424] text-slate-100' : 'bg-[#f7fbff] text-slate-900'">
+  <div class="relative flex min-h-[100dvh] items-center justify-center overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute -left-10 top-8 h-52 w-52 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-sky-500/18' : 'bg-sky-200/90'"></div>
+      <div class="absolute right-[-3rem] top-[-1rem] h-56 w-56 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-blue-500/16' : 'bg-blue-200/80'"></div>
+      <div class="absolute bottom-[-3rem] left-[14%] h-56 w-56 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-cyan-500/14' : 'bg-cyan-100/90'"></div>
+      <div class="absolute bottom-[10%] right-[12%] h-40 w-40 rounded-full blur-3xl" [ngClass]="theme() === 'dark' ? 'bg-indigo-500/12' : 'bg-indigo-100/80'"></div>
+
+      <div class="absolute left-[9%] top-[16%] h-4 w-4 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-white/16' : 'bg-white/95 ring-1 ring-sky-200'"></div>
+      <div class="absolute left-[18%] top-[34%] h-2.5 w-2.5 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-sky-200/24' : 'bg-sky-300/70'"></div>
+      <div class="absolute right-[14%] top-[22%] h-3 w-3 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-blue-200/20' : 'bg-blue-300/70'"></div>
+      <div class="absolute right-[20%] bottom-[18%] h-3.5 w-3.5 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-cyan-200/20' : 'bg-cyan-300/70'"></div>
+
+      <div class="absolute inset-0 opacity-45" [ngClass]="theme() === 'dark' ? 'bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_1px,transparent_1px)]' : 'bg-[radial-gradient(circle_at_center,rgba(15,23,42,0.05)_1px,transparent_1px)]'" style="background-size: 24px 24px;"></div>
+      <div class="absolute inset-x-0 top-0 h-56" [ngClass]="theme() === 'dark' ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_60%)]' : 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),transparent_72%)]'"></div>
     </div>
 
-    <div
-      class="relative grid w-full max-w-6xl overflow-hidden rounded-[32px] border shadow-2xl lg:grid-cols-[1.06fr_0.94fr]"
-      [ngClass]="theme() === 'dark' ? 'border-slate-700/70 bg-slate-950/75 shadow-black/40' : 'border-white/70 bg-white/80 shadow-slate-900/10'"
-    >
-      <section
-        class="relative flex flex-col justify-between px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10"
-        [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(160deg,rgba(10,22,38,0.98),rgba(10,18,31,0.92))]' : 'bg-[linear-gradient(160deg,rgba(244,249,255,0.96),rgba(229,240,255,0.92))]'"
-      >
-        <div class="space-y-6">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div
-              class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em]"
-              [ngClass]="theme() === 'dark' ? 'border-sky-400/35 bg-sky-400/10 text-sky-100' : 'border-sky-500/25 bg-sky-500/10 text-sky-800'"
-            >
-              <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-              <span>Enterprise Identity</span>
-            </div>
-
-            <div
-              class="inline-flex items-center gap-1 rounded-full border p-1"
-              [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70' : 'border-slate-200 bg-white/90'"
-            >
-              <button
-                type="button"
-                class="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
-                [ngClass]="language() === 'vi'
-                  ? (theme() === 'dark' ? 'bg-sky-300 text-slate-950' : 'bg-sky-500 text-white')
-                  : (theme() === 'dark' ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-slate-900')"
-                (click)="setLanguage('vi')"
-              >
-                VI
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
-                [ngClass]="language() === 'en'
-                  ? (theme() === 'dark' ? 'bg-sky-300 text-slate-950' : 'bg-sky-500 text-white')
-                  : (theme() === 'dark' ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-slate-900')"
-                (click)="setLanguage('en')"
-              >
-                EN
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
-                [ngClass]="language() === 'zh'
-                  ? (theme() === 'dark' ? 'bg-sky-300 text-slate-950' : 'bg-sky-500 text-white')
-                  : (theme() === 'dark' ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-slate-900')"
-                (click)="setLanguage('zh')"
-              >
-                中文
-              </button>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <p class="text-[12px] font-semibold uppercase tracking-[0.22em]" [ngClass]="theme() === 'dark' ? 'text-sky-200/85' : 'text-sky-800/70'">
-              Secure OAuth Access
-            </p>
-            <h2 class="max-w-lg text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.8rem] lg:leading-[1.04]">
-              {{ t().title }}
-            </h2>
-            <p class="max-w-xl text-sm leading-7 sm:text-[15px]" [ngClass]="theme() === 'dark' ? 'text-slate-300' : 'text-slate-600'">
-              {{ t().subtitle }}
-            </p>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="rounded-2xl border px-4 py-4" [ngClass]="theme() === 'dark' ? 'border-slate-700/80 bg-white/[0.03]' : 'border-white bg-white/85'">
-              <p class="text-[11px] uppercase tracking-[0.18em]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">Protocol</p>
-              <p class="mt-2 text-sm font-semibold">{{ t().securityOAuth }}</p>
-            </div>
-            <div class="rounded-2xl border px-4 py-4" [ngClass]="theme() === 'dark' ? 'border-slate-700/80 bg-white/[0.03]' : 'border-white bg-white/85'">
-              <p class="text-[11px] uppercase tracking-[0.18em]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">Transport</p>
-              <p class="mt-2 text-sm font-semibold">{{ t().securitySsl }}</p>
-            </div>
-            <div class="rounded-2xl border px-4 py-4" [ngClass]="theme() === 'dark' ? 'border-slate-700/80 bg-white/[0.03]' : 'border-white bg-white/85'">
-              <p class="text-[11px] uppercase tracking-[0.18em]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">Status</p>
-              <p class="mt-2 text-sm font-semibold">PKCE Ready</p>
-            </div>
-          </div>
-
-          <div class="rounded-[28px] border p-5" [ngClass]="theme() === 'dark' ? 'border-slate-700/80 bg-slate-900/70' : 'border-white bg-white/90'">
-            <div class="grid gap-4 sm:grid-cols-[0.84fr_1.16fr]">
-              <div>
-                <div class="text-5xl font-semibold tracking-tight">SSO</div>
-                <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-600'">
-                  Dùng tài khoản doanh nghiệp để xác thực, lấy code OAuth và cấp quyền theo đúng scope được yêu cầu.
-                </p>
-              </div>
-              <ul class="space-y-3 text-sm leading-6">
-                <li class="flex items-start gap-3">
-                  <span class="mt-2 h-2 w-2 rounded-full bg-emerald-400"></span>
-                  <span>Kiểm soát consent rõ ràng theo từng scope.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="mt-2 h-2 w-2 rounded-full bg-sky-400"></span>
-                  <span>Hỗ trợ PKCE cho ứng dụng public và confidential.</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="mt-2 h-2 w-2 rounded-full bg-blue-400"></span>
-                  <span>Chuyển hướng an toàn về client sau khi xác thực.</span>
-                </li>
-              </ul>
-            </div>
-          </div>
+    <div class="relative grid w-full max-w-5xl overflow-hidden rounded-[2rem] border shadow-[0_32px_90px_-42px_rgba(37,99,235,0.22)] backdrop-blur-2xl lg:grid-cols-[0.95fr_1.05fr]"
+      [ngClass]="theme() === 'dark' ? 'border-slate-700/70 bg-slate-950/84' : 'border-white/90 bg-white/74'">
+      <section class="relative hidden min-h-full overflow-hidden lg:block">
+        <div class="absolute inset-0" [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(180deg,rgba(8,20,36,0.92),rgba(18,34,58,0.82))]' : 'bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(239,246,255,0.82))]'"></div>
+        <div class="absolute inset-0">
+          <div class="absolute left-8 top-10 h-32 w-32 rounded-[2rem] rotate-[-8deg]" [ngClass]="theme() === 'dark' ? 'bg-white/6' : 'bg-sky-100/90'"></div>
+          <div class="absolute right-10 top-24 h-28 w-28 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-sky-400/12' : 'bg-blue-100/90'"></div>
+          <div class="absolute bottom-20 left-16 h-40 w-40 rounded-full" [ngClass]="theme() === 'dark' ? 'bg-cyan-400/12' : 'bg-cyan-100/90'"></div>
+          <div class="absolute bottom-10 right-12 h-24 w-40 rounded-[999px]" [ngClass]="theme() === 'dark' ? 'bg-blue-300/10' : 'bg-blue-50/95'"></div>
         </div>
 
-        <div class="mt-8 flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-xs" [ngClass]="theme() === 'dark' ? 'border-slate-700/80 bg-white/[0.03] text-slate-400' : 'border-white bg-white/80 text-slate-500'">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">shield_lock</span>
-            <span>Enterprise only</span>
+        <div class="relative flex h-full flex-col justify-between p-10 xl:p-12">
+          <div class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold"
+            [ngClass]="theme() === 'dark' ? 'bg-white/8 text-slate-100 ring-1 ring-white/10' : 'bg-white/92 text-sky-800 ring-1 ring-sky-100'">
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+            Hosted auth flow
           </div>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-semibold transition"
-            [ngClass]="theme() === 'dark' ? 'bg-sky-300 text-slate-950 hover:bg-sky-200' : 'bg-sky-500 text-white hover:bg-sky-600'"
-            (click)="toggleTheme()"
-          >
-            <span class="material-symbols-outlined text-[16px]">{{ theme() === 'light' ? 'dark_mode' : 'light_mode' }}</span>
-            <span>{{ theme() === 'light' ? 'Dark' : 'Light' }}</span>
-          </button>
+
+          <div class="max-w-lg">
+            <div class="inline-flex rounded-full px-3 py-1 text-xs font-medium"
+              [ngClass]="theme() === 'dark' ? 'bg-sky-500/12 text-sky-100 ring-1 ring-sky-400/20' : 'bg-sky-100 text-sky-700 ring-1 ring-sky-200'">
+              Clean, calm, consistent
+            </div>
+            <h2 class="mt-6 max-w-md text-4xl font-semibold tracking-tight xl:text-[3.1rem] xl:leading-[1.03]">
+              Một bước xác thực gọn, rõ và nhẹ hơn.
+            </h2>
+            <p class="mt-4 max-w-md text-base leading-8" [ngClass]="theme() === 'dark' ? 'text-slate-300' : 'text-slate-600'">
+              Đây là bước đăng nhập trên auth server trước khi quay lại ứng dụng yêu cầu quyền truy cập.
+            </p>
+
+            <div class="mt-8 grid gap-3 sm:grid-cols-2">
+              <div class="rounded-[1.4rem] p-4" [ngClass]="theme() === 'dark' ? 'bg-white/6 ring-1 ring-white/10' : 'bg-white/88 ring-1 ring-white'">
+                <p class="text-xs text-[var(--app-text-secondary)]">Bước 1</p>
+                <p class="mt-2 text-sm font-semibold">Xác thực tài khoản trên auth server.</p>
+              </div>
+              <div class="rounded-[1.4rem] p-4" [ngClass]="theme() === 'dark' ? 'bg-white/6 ring-1 ring-white/10' : 'bg-white/88 ring-1 ring-white'">
+                <p class="text-xs text-[var(--app-text-secondary)]">Bước 2</p>
+                <p class="mt-2 text-sm font-semibold">Quay lại ứng dụng với phiên hợp lệ.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-3">
+            <div class="flex items-start gap-3 rounded-[1.6rem] p-4" [ngClass]="theme() === 'dark' ? 'bg-white/6 ring-1 ring-white/10' : 'bg-white/88 ring-1 ring-white'">
+              <span class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400 text-slate-950">
+                <span class="material-symbols-outlined text-[18px]">verified_user</span>
+              </span>
+              <p class="text-sm leading-7" [ngClass]="theme() === 'dark' ? 'text-slate-200' : 'text-slate-700'">
+                Phiên đăng nhập được tạo tại auth server trước khi ứng dụng nhận quyền truy cập.
+              </p>
+            </div>
+            <div class="flex items-start gap-3 rounded-[1.6rem] p-4" [ngClass]="theme() === 'dark' ? 'bg-white/6 ring-1 ring-white/10' : 'bg-white/88 ring-1 ring-white'">
+              <span class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-sky-300 text-slate-950">
+                <span class="material-symbols-outlined text-[18px]">sync_alt</span>
+              </span>
+              <p class="text-sm leading-7" [ngClass]="theme() === 'dark' ? 'text-slate-200' : 'text-slate-700'">
+                Sau khi xác thực xong, bạn sẽ được đưa trở lại ứng dụng gốc mà không cần thao tác thêm.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section class="relative flex flex-col justify-center px-5 py-6 sm:px-8 sm:py-8 lg:px-10" [ngClass]="theme() === 'dark' ? 'bg-slate-950/88' : 'bg-white/96'">
-        <div class="mx-auto w-full max-w-md">
-          <div class="mb-6 flex items-start justify-between gap-4">
+      <section class="relative flex min-h-full flex-col justify-center p-4 sm:p-6 lg:p-8">
+        <div class="mx-auto w-full max-w-md rounded-[2rem] p-5 sm:p-7"
+          [ngClass]="theme() === 'dark' ? 'bg-slate-950/72 ring-1 ring-white/10' : 'bg-white/92 ring-1 ring-sky-100/80'">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-[12px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'dark' ? 'text-sky-200/80' : 'text-sky-700/80'">
-                Enterprise SSO
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'dark' ? 'text-sky-200/80' : 'text-sky-700/75'">
+                Hosted SSO login
               </p>
-              <h1 class="mt-2 text-3xl font-semibold tracking-tight">{{ showConsent() ? t().consentTitle : t().title }}</h1>
-              <p class="mt-2 max-w-sm text-sm leading-6" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-600'">
-                {{ showConsent() ? t().consentRequested : t().subtitle }}
+              <h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-[2.2rem]">Sign in to continue</h1>
+              <p class="mt-3 max-w-sm text-sm leading-7" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-600'">
+                Enter your credentials on the auth server, then continue back to the requesting application.
               </p>
             </div>
+
+            <button
+              type="button"
+              class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition"
+              [ngClass]="theme() === 'dark' ? 'bg-white/6 text-slate-100 ring-1 ring-white/10 hover:bg-white/10' : 'bg-sky-50 text-sky-700 ring-1 ring-sky-100 hover:bg-sky-100'"
+              (click)="toggleTheme()"
+            >
+              <span class="material-symbols-outlined text-[18px]">{{ theme() === 'light' ? 'dark_mode' : 'light_mode' }}</span>
+            </button>
           </div>
 
           @if (error()) {
-            <div class="mb-4 rounded-2xl border px-4 py-3 text-sm" [ngClass]="theme() === 'dark' ? 'border-rose-500/40 bg-rose-500/10 text-rose-100' : 'border-rose-300 bg-rose-50 text-rose-700'">
+            <div class="mt-4 rounded-[1.2rem] border px-4 py-3 text-sm" [ngClass]="theme() === 'dark' ? 'border-rose-500/30 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-700'">
               {{ error() }}
             </div>
           }
 
-          @if (showConsent() && consentData()) {
-            <div class="space-y-5">
-              <div class="rounded-[24px] border p-5" [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70' : 'border-slate-200 bg-slate-50/80'">
-                <div class="flex items-start gap-4">
-                  <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-500 dark:bg-sky-500/20 dark:text-sky-300">
-                    <span class="material-symbols-outlined text-[28px]">verified_user</span>
-                  </div>
-                  <div class="min-w-0">
-                    <h3 class="text-base font-semibold" [ngClass]="theme() === 'dark' ? 'text-slate-100' : 'text-slate-900'">{{ consentData()?.clientName || 'OAuth Client' }}</h3>
-                    <p class="mt-1 text-sm" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-600'">{{ t().consentSubtitle }}</p>
-                  </div>
-                </div>
+          <form [formGroup]="form" (ngSubmit)="submit()" class="mt-5 space-y-4">
+            <div class="space-y-2">
+              <label for="sso-email" class="block text-xs font-semibold uppercase tracking-[0.16em]" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-500'">
+                Email
+              </label>
+              <div class="flex items-center rounded-[1.25rem] border px-4 transition"
+                [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/80 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/15' : 'border-sky-100 bg-white focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/10'">
+                <span class="material-symbols-outlined mr-3 text-[20px]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">mail</span>
+                <input
+                  id="sso-email"
+                  type="email"
+                  formControlName="email"
+                  placeholder="user@example.com"
+                  autocomplete="username"
+                  class="h-14 w-full bg-transparent text-sm outline-none"
+                  [ngClass]="theme() === 'dark' ? 'text-slate-50 placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'"
+                />
               </div>
+            </div>
 
-              <div class="space-y-3">
-                @for (scope of mappedScopes(); track scope.key) {
-                  <div class="flex items-start gap-3 rounded-2xl border p-4" [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-white'">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-600 dark:bg-sky-500/18 dark:text-sky-300">
-                      <span class="material-symbols-outlined text-[22px]">{{ scope.icon }}</span>
-                    </div>
-                    <div class="min-w-0">
-                      <div class="text-sm font-semibold" [ngClass]="theme() === 'dark' ? 'text-slate-100' : 'text-slate-900'">{{ scope.title }}</div>
-                      <div class="mt-1 text-xs leading-5" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-600'">{{ scope.desc }}</div>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="grid grid-cols-2 gap-3 pt-1">
+            <div class="space-y-2">
+              <label for="sso-password" class="block text-xs font-semibold uppercase tracking-[0.16em]" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-500'">
+                Password
+              </label>
+              <div class="flex items-center rounded-[1.25rem] border px-4 transition"
+                [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/80 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/15' : 'border-sky-100 bg-white focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/10'">
+                <span class="material-symbols-outlined mr-3 text-[20px]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">lock</span>
+                <input
+                  id="sso-password"
+                  [type]="showPassword() ? 'text' : 'password'"
+                  formControlName="password"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  class="h-14 w-full bg-transparent text-sm outline-none"
+                  [ngClass]="theme() === 'dark' ? 'text-slate-50 placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'"
+                />
                 <button
                   type="button"
-                  class="rounded-2xl border px-4 py-3 text-sm font-semibold transition"
-                  [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-                  (click)="denyConsent()"
+                  class="ml-3 flex h-9 w-9 items-center justify-center rounded-full transition"
+                  [ngClass]="theme() === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' : 'text-slate-500 hover:bg-sky-50 hover:text-slate-900'"
+                  (click)="togglePasswordVisibility()"
                 >
-                  {{ t().deny }}
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white transition disabled:opacity-70"
-                  [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(135deg,#38bdf8,#60a5fa)] hover:brightness-110' : 'bg-[linear-gradient(135deg,#38bdf8,#3b82f6)] hover:brightness-110'"
-                  [disabled]="loading()"
-                  (click)="approveConsent()"
-                >
-                  @if (loading()) {
-                    <span class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                    <span>{{ t().processing }}</span>
-                  } @else {
-                    <span>{{ t().approve }}</span>
-                  }
+                  <span class="material-symbols-outlined text-[20px]">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
                 </button>
               </div>
             </div>
-          } @else {
-            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
-              <div class="space-y-2">
-                <label for="email" class="block text-xs font-semibold uppercase tracking-[0.16em]" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-500'">
-                  {{ t().emailLabel }}
-                </label>
-                <div
-                  class="flex items-center rounded-2xl border px-4 transition"
-                  [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/80 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/15' : 'border-slate-200 bg-white focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/10'"
-                >
-                  <span class="material-symbols-outlined mr-3 text-[20px]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">mail</span>
-                  <input
-                    id="email"
-                    type="email"
-                    formControlName="email"
-                    [placeholder]="t().emailPlaceholder"
-                    autocomplete="email"
-                    class="h-14 w-full bg-transparent text-sm outline-none"
-                    [ngClass]="theme() === 'dark' ? 'text-slate-50 placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'"
-                  />
-                </div>
-                @if (form.get('email')?.invalid && form.get('email')?.touched) {
-                  <span class="text-[11px] text-rose-500">Email is required</span>
-                }
-              </div>
 
-              <div class="space-y-2">
-                <label for="password" class="block text-xs font-semibold uppercase tracking-[0.16em]" [ngClass]="theme() === 'dark' ? 'text-slate-400' : 'text-slate-500'">
-                  {{ t().passwordLabel }}
-                </label>
-                <div
-                  class="flex items-center rounded-2xl border px-4 transition"
-                  [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/80 focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-400/15' : 'border-slate-200 bg-white focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-500/10'"
-                >
-                  <span class="material-symbols-outlined mr-3 text-[20px]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">lock</span>
-                  <input
-                    id="password"
-                    [type]="showPassword() ? 'text' : 'password'"
-                    formControlName="password"
-                    [placeholder]="t().passwordPlaceholder"
-                    autocomplete="current-password"
-                    class="h-14 w-full bg-transparent text-sm outline-none"
-                    [ngClass]="theme() === 'dark' ? 'text-slate-50 placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'"
-                  />
-                  <button
-                    type="button"
-                    class="ml-3 flex h-9 w-9 items-center justify-center rounded-full transition"
-                    [ngClass]="theme() === 'dark' ? 'text-slate-400 hover:bg-slate-800 hover:text-slate-100' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'"
-                    (click)="togglePasswordVisibility()"
-                  >
-                    <span class="material-symbols-outlined text-[20px]">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
-                  </button>
-                </div>
-                @if (form.get('password')?.invalid && form.get('password')?.touched) {
-                  <span class="text-[11px] text-rose-500">Password is required</span>
-                }
-              </div>
+            <button
+              type="submit"
+              class="inline-flex h-14 w-full items-center justify-center rounded-full text-sm font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70"
+              [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(135deg,#38bdf8,#3b82f6)] hover:brightness-110 shadow-black/30' : 'bg-[linear-gradient(135deg,#60a5fa,#2563eb)] hover:brightness-110 shadow-sky-900/12'"
+              [disabled]="loading()"
+            >
+              @if (loading()) {
+                <span class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+              }
+              <span>{{ loading() ? 'Signing in...' : 'Continue with SSO' }}</span>
+            </button>
 
-              <button
-                type="submit"
-                [disabled]="loading() || form.invalid"
-                class="inline-flex h-14 w-full items-center justify-center rounded-2xl text-sm font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-70"
-                [ngClass]="theme() === 'dark' ? 'bg-[linear-gradient(135deg,#38bdf8,#60a5fa)] hover:brightness-110 shadow-sky-950/35' : 'bg-[linear-gradient(135deg,#38bdf8,#3b82f6)] hover:brightness-110 shadow-sky-900/15'"
-              >
-                @if (loading()) {
-                  <span class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                  <span>{{ t().connecting }}</span>
-                } @else {
-                  <span>{{ t().loginButton }}</span>
-                }
-              </button>
-            </form>
+            <button
+              type="button"
+              class="inline-flex h-12 w-full items-center justify-center rounded-full border text-sm font-medium transition"
+              [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-800' : 'border-sky-100 bg-white text-slate-700 hover:bg-sky-50'"
+              (click)="useAdminLogin()"
+            >
+              Use regular admin login
+            </button>
+          </form>
 
-            <div class="mt-6 space-y-4">
-              <div class="flex items-center gap-3 text-[11px] uppercase tracking-[0.16em]" [ngClass]="theme() === 'dark' ? 'text-slate-500' : 'text-slate-400'">
-                <span class="h-px flex-1" [ngClass]="theme() === 'dark' ? 'bg-slate-700' : 'bg-slate-200'"></span>
-                <span>{{ t().or }}</span>
-                <span class="h-px flex-1" [ngClass]="theme() === 'dark' ? 'bg-slate-700' : 'bg-slate-200'"></span>
-              </div>
-
-              <a
-                routerLink="/login"
-                class="inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition"
-                [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70 text-slate-200 hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
-              >
-                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                {{ t().backToLogin }}
-              </a>
-            </div>
-          }
+          <div class="mt-5 rounded-[1.25rem] border px-4 py-3 text-sm leading-7"
+            [ngClass]="theme() === 'dark' ? 'border-slate-700 bg-slate-900/70 text-slate-400' : 'border-sky-100 bg-sky-50/70 text-slate-600'">
+            This page is used only for the hosted auth-server step inside the OAuth SSO flow.
+          </div>
         </div>
       </section>
     </div>
