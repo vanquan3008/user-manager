@@ -112,6 +112,10 @@ export interface AppTranslations {
   permissionsAction: string;
   permissionsViewUsers: string;
   permissionsCreateNew: string;
+  permissionsCodePlaceholder: string;
+  permissionsCategoryPlaceholder: string;
+  permissionsScopePlaceholder: string;
+  permissionsDescriptionPlaceholder: string;
   // Roles
   rolesTitle: string;
   rolesPageDesc: string;
@@ -158,6 +162,35 @@ export interface AppTranslations {
   loginNoAccount: string;
   loginRegister: string;
   loginNoAccountRegister: string;
+  // OAuth hosted consent
+  oauthAuthorizeEyebrow: string;
+  oauthAuthorizeTitle: string;
+  oauthAuthorizeSubtitle: string;
+  oauthAuthorizeAppLabel: string;
+  oauthAuthorizeRedirectLabel: string;
+  oauthAuthorizeRequestedScopes: string;
+  oauthAuthorizeAlreadyGranted: string;
+  oauthAuthorizeNewAccess: string;
+  oauthAuthorizeLoading: string;
+  oauthAuthorizeRedirecting: string;
+  oauthAuthorizeReviewNote: string;
+  oauthAuthorizeApprove: string;
+  oauthAuthorizeDeny: string;
+  oauthAuthorizeMissingParams: string;
+  oauthAuthorizeFailed: string;
+  oauthAuthorizeConsentFailed: string;
+  oauthAuthorizeGrantedBadge: string;
+  oauthAuthorizeRequestedBadge: string;
+  // OAuth callback
+  oauthCallbackTitle: string;
+  oauthCallbackSubtitle: string;
+  oauthCallbackLoading: string;
+  oauthCallbackSuccess: string;
+  oauthCallbackFailed: string;
+  oauthCallbackMissingContext: string;
+  oauthCallbackStateMismatch: string;
+  oauthCallbackAdminOnly: string;
+  oauthCallbackLoginFailed: string;
   // Layout chrome & page header
   layoutBrandEyebrow: string;
   layoutBrandTitle: string;
@@ -335,6 +368,10 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     permissionsAction: 'Hành động',
     permissionsViewUsers: 'Xem người dùng',
     permissionsCreateNew: 'để tạo mới.',
+    permissionsCodePlaceholder: 'users.view',
+    permissionsCategoryPlaceholder: 'Users',
+    permissionsScopePlaceholder: 'global',
+    permissionsDescriptionPlaceholder: 'Cho phep xem danh sach users',
     rolesTitle: 'Vai trò hệ thống',
     rolesPageDesc: 'Quản lý vai trò và quyền toàn hệ thống',
     rolesAssignPermissions: 'Gán quyền',
@@ -375,6 +412,33 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     loginNoAccount: 'Chưa có tài khoản?',
     loginRegister: 'Đăng ký',
     loginNoAccountRegister: 'Chưa có tài khoản? Đăng ký',
+    oauthAuthorizeEyebrow: 'OAuth consent',
+    oauthAuthorizeTitle: 'Xac nhan cap quyen',
+    oauthAuthorizeSubtitle: 'Ung dung duoi day dang yeu cau quyen truy cap de tiep tuc dang nhap.',
+    oauthAuthorizeAppLabel: 'Ung dung',
+    oauthAuthorizeRedirectLabel: 'Redirect host',
+    oauthAuthorizeRequestedScopes: 'Scope duoc yeu cau',
+    oauthAuthorizeAlreadyGranted: 'Da cap truoc do',
+    oauthAuthorizeNewAccess: 'Can duyet moi',
+    oauthAuthorizeLoading: 'Dang xu ly yeu cau uy quyen...',
+    oauthAuthorizeRedirecting: 'Dang chuyen huong tro lai ung dung...',
+    oauthAuthorizeReviewNote: 'Chi phe duyet neu ban tin tuong ung dung va redirect URI nay.',
+    oauthAuthorizeApprove: 'Dong y',
+    oauthAuthorizeDeny: 'Tu choi',
+    oauthAuthorizeMissingParams: 'Thieu tham so bat buoc: client_id, redirect_uri, scope, code_challenge.',
+    oauthAuthorizeFailed: 'Authorize that bai.',
+    oauthAuthorizeConsentFailed: 'Consent that bai.',
+    oauthAuthorizeGrantedBadge: 'Da co',
+    oauthAuthorizeRequestedBadge: 'Moi',
+    oauthCallbackTitle: 'OAuth callback',
+    oauthCallbackSubtitle: 'He thong dang hoan tat dang nhap va dong bo phien lam viec cua ban.',
+    oauthCallbackLoading: 'Dang xu ly callback...',
+    oauthCallbackSuccess: 'Token exchange thanh cong.',
+    oauthCallbackFailed: 'OAuth token exchange that bai.',
+    oauthCallbackMissingContext: 'Thieu OAuth callback context (code/client_id/redirect_uri/code_verifier).',
+    oauthCallbackStateMismatch: 'OAuth state mismatch.',
+    oauthCallbackAdminOnly: 'Chi tai khoan Admin hoac SuperAdmin moi duoc dang nhap tai day.',
+    oauthCallbackLoginFailed: 'SSO login failed:',
     layoutBrandEyebrow: 'Trung tâm điều khiển',
     layoutBrandTitle: 'Social CRM',
     navGroupPrimary: 'Chính',
@@ -548,6 +612,10 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     permissionsAction: 'Action',
     permissionsViewUsers: 'View users',
     permissionsCreateNew: 'to create.',
+    permissionsCodePlaceholder: 'users.view',
+    permissionsCategoryPlaceholder: 'Users',
+    permissionsScopePlaceholder: 'global',
+    permissionsDescriptionPlaceholder: 'Allow viewing the users list',
     rolesTitle: 'Global Roles',
     rolesPageDesc: 'Manage system-wide roles and permissions',
     rolesAssignPermissions: 'Assign permissions',
@@ -588,6 +656,33 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     loginNoAccount: "Don't have an account?",
     loginRegister: 'Register',
     loginNoAccountRegister: "Don't have an account? Register",
+    oauthAuthorizeEyebrow: 'OAuth consent',
+    oauthAuthorizeTitle: 'Review requested access',
+    oauthAuthorizeSubtitle: 'The application below is requesting access before sign-in can continue.',
+    oauthAuthorizeAppLabel: 'Application',
+    oauthAuthorizeRedirectLabel: 'Redirect host',
+    oauthAuthorizeRequestedScopes: 'Requested scopes',
+    oauthAuthorizeAlreadyGranted: 'Already granted',
+    oauthAuthorizeNewAccess: 'Needs approval',
+    oauthAuthorizeLoading: 'Processing authorization request...',
+    oauthAuthorizeRedirecting: 'Redirecting back to the application...',
+    oauthAuthorizeReviewNote: 'Approve only if you trust this application and its redirect destination.',
+    oauthAuthorizeApprove: 'Approve',
+    oauthAuthorizeDeny: 'Deny',
+    oauthAuthorizeMissingParams: 'Missing required parameters: client_id, redirect_uri, scope, code_challenge.',
+    oauthAuthorizeFailed: 'Authorization failed.',
+    oauthAuthorizeConsentFailed: 'Consent failed.',
+    oauthAuthorizeGrantedBadge: 'Granted',
+    oauthAuthorizeRequestedBadge: 'New',
+    oauthCallbackTitle: 'OAuth callback',
+    oauthCallbackSubtitle: 'We are finalising your sign-in session and exchanging the authorization code.',
+    oauthCallbackLoading: 'Processing callback...',
+    oauthCallbackSuccess: 'Token exchange completed successfully.',
+    oauthCallbackFailed: 'OAuth token exchange failed.',
+    oauthCallbackMissingContext: 'Missing OAuth callback context (code/client_id/redirect_uri/code_verifier).',
+    oauthCallbackStateMismatch: 'OAuth state mismatch.',
+    oauthCallbackAdminOnly: 'Only Admin or SuperAdmin accounts can sign in here.',
+    oauthCallbackLoginFailed: 'SSO login failed:',
     layoutBrandEyebrow: 'Control center',
     layoutBrandTitle: 'Social CRM',
     navGroupPrimary: 'Primary',
@@ -760,6 +855,10 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     permissionsAction: '操作',
     permissionsViewUsers: '查看用户',
     permissionsCreateNew: '创建。',
+    permissionsCodePlaceholder: 'users.view',
+    permissionsCategoryPlaceholder: 'Users',
+    permissionsScopePlaceholder: 'global',
+    permissionsDescriptionPlaceholder: '允许查看用户列表',
     rolesTitle: '全局角色',
     rolesPageDesc: '管理系统级角色和权限',
     rolesAssignPermissions: '分配权限',
@@ -800,6 +899,33 @@ const TRANSLATIONS: Record<Locale, AppTranslations> = {
     loginNoAccount: '没有账户？',
     loginRegister: '注册',
     loginNoAccountRegister: '没有账户？注册',
+    oauthAuthorizeEyebrow: 'OAuth 授权',
+    oauthAuthorizeTitle: '确认授权范围',
+    oauthAuthorizeSubtitle: '下方应用需要这些权限后才能继续登录流程。',
+    oauthAuthorizeAppLabel: '应用',
+    oauthAuthorizeRedirectLabel: '回调域名',
+    oauthAuthorizeRequestedScopes: '请求的 Scope',
+    oauthAuthorizeAlreadyGranted: '已授权',
+    oauthAuthorizeNewAccess: '待批准',
+    oauthAuthorizeLoading: '正在处理授权请求...',
+    oauthAuthorizeRedirecting: '正在跳回应用...',
+    oauthAuthorizeReviewNote: '仅在你信任该应用和回调地址时才批准这些权限。',
+    oauthAuthorizeApprove: '批准',
+    oauthAuthorizeDeny: '拒绝',
+    oauthAuthorizeMissingParams: '缺少必填参数：client_id、redirect_uri、scope、code_challenge。',
+    oauthAuthorizeFailed: '授权失败。',
+    oauthAuthorizeConsentFailed: '授权确认失败。',
+    oauthAuthorizeGrantedBadge: '已授权',
+    oauthAuthorizeRequestedBadge: '新增',
+    oauthCallbackTitle: 'OAuth 回调',
+    oauthCallbackSubtitle: '系统正在完成登录并交换授权码。',
+    oauthCallbackLoading: '正在处理回调...',
+    oauthCallbackSuccess: 'Token 交换成功。',
+    oauthCallbackFailed: 'OAuth token exchange failed.',
+    oauthCallbackMissingContext: '缺少 OAuth 回调上下文（code/client_id/redirect_uri/code_verifier）。',
+    oauthCallbackStateMismatch: 'OAuth state 不匹配。',
+    oauthCallbackAdminOnly: '只有 Admin 或 SuperAdmin 账号可在此登录。',
+    oauthCallbackLoginFailed: 'SSO login failed:',
     layoutBrandEyebrow: '控制中心',
     layoutBrandTitle: 'Social CRM',
     navGroupPrimary: '主要',

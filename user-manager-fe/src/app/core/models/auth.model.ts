@@ -29,35 +29,23 @@ export interface AuthResponse {
   applications?: SsoApplication[];
 }
 
+export interface HostedSsoLoginResponse {
+  accessToken: string;
+  refreshToken?: string | null;
+  user: {
+    userId: string;
+    email: string;
+    username: string;
+    displayName?: string;
+    roles: string[];
+    permissions?: string[];
+  };
+}
+
 export interface SsoUserApplication {
   id: string;
   name: string;
   role: string;
-}
-
-export interface SsoAuthorizeRequest {
-  email: string;
-  password: string;
-  clientId?: string;
-  redirectUri: string;
-  scopes: string[];
-  state?: string;
-  codeChallenge: string;
-  codeChallengeMethod?: string;
-}
-
-export interface SsoConsentRequest extends SsoAuthorizeRequest {
-  approve: boolean;
-}
-
-export interface SsoAuthorizeResponse {
-  requiresConsent: boolean;
-  code?: string;
-  redirectUri: string;
-  state?: string;
-  clientName?: string;
-  requestedScopes?: string[];
-  missingScopes?: string[];
 }
 
 export interface SsoExchangeTokenRequest {

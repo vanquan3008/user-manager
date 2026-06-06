@@ -6,7 +6,7 @@ import { LayoutComponent } from './layout/layout.component';
 export const routes: Routes = [
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./pages/login/credentials/login.component').then(m => m.LoginComponent) },
   { path: 'sso-login', canActivate: [guestGuard], loadComponent: () => import('./pages/login/sso/sso-login.component').then(m => m.SsoLoginComponent) },
-  { path: 'auth/callback', loadComponent: () => import('./pages/login/sso/sso-callback.component').then(m => m.SsoCallbackComponent) },
+  { path: 'auth/callback', loadComponent: () => import('./pages/login/oauth/oauth-callback.component').then(m => m.OauthCallbackComponent) },
   { path: 'forgot-password', canActivate: [guestGuard], loadComponent: () => import('./pages/login/credentials/forgot-password.component').then(m => m.ForgotPasswordComponent) },
   { path: 'reset-password', loadComponent: () => import('./pages/login/credentials/reset-password.component').then(m => m.ResetPasswordComponent) },
   { path: 'verify-email', loadComponent: () => import('./pages/login/credentials/verify-email.component').then(m => m.VerifyEmailComponent) },

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, effect, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -26,6 +26,9 @@ import type { DropdownOption } from '../../shared/components/dropdown/dropdown.c
 import { UserAccessOverviewComponent } from './components/user-access-overview.component';
 import { UserRoleManagementComponent } from './components/user-role-management.component';
 import { UserSsoAccessComponent } from './components/user-sso-access.component';
+import { AuthService } from '../../core/services/auth.service';
+import { ConfirmService } from '../../core/services/confirm.service';
+import { canBanUsers } from '../../core/constants/roles';
 
 @Component({
   selector: 'app-user-detail',
@@ -48,7 +51,12 @@ export class UserDetailComponent implements OnInit {
   private rolesService = inject(RolesService);
   private notify = inject(NotificationService);
   private pageToolbar = inject(PageToolbarService);
+  private auth = inject(AuthService);
+  private confirm = inject(ConfirmService);
   theme = inject(ThemeService).theme;
+  userId = input<string | null>(null);
+  embedded = input(false);
+  private lastLoadedUserId: string | null = null;
 
   userWithRoles = signal<UserWithRoles | null>(null);
   allRoles = signal<RoleDto[]>([]);
@@ -58,6 +66,7 @@ export class UserDetailComponent implements OnInit {
   selectedRole = signal('');
   addingRole = signal(false);
   removingRole = signal<string | null>(null);
+  banActionLoading = signal(false);
 
   ssoApplications = signal<SsoUserApplication[]>([]);
   allApplications = signal<ApplicationListItem[]>([]);
@@ -68,13 +77,15 @@ export class UserDetailComponent implements OnInit {
   revoking = signal<string | null>(null);
 
   assignedRoles = computed(() => this.userWithRoles()?.roles ?? []);
-  userId = computed(() => this.userWithRoles()?.user?.id ?? '');
+  resolvedUserId = computed(() => this.userWithRoles()?.user?.id ?? '');
   isSsoUser = computed(() => this.userWithRoles()?.user?.isSsoAccount === true);
   accountTypeLabel = computed(() => (this.isSsoUser() ? 'SSO account' : 'Standard account'));
   availabilityLabel = computed(() => {
     const user = this.userWithRoles()?.user;
-    return user?.isActive && !user?.isBanned ? 'Active' : 'Restricted';
+    return user?.isActive && !user?.isBanned ? 'Active' : 'Disabled';
   });
+  canManageBan = computed(() => canBanUsers(this.auth.user()?.roles, this.auth.applications()));
+  primaryRoleLabel = computed(() => this.sortRoleNames(this.assignedRoles())[0] ?? 'No role');
 
   applicationsAvailableToGrant = computed(() => {
     const grantedIds = new Set(this.ssoApplications().map(application => application.id));
@@ -101,15 +112,34 @@ export class UserDetailComponent implements OnInit {
     this.appRoles().map(role => ({ value: role.name, label: role.name }))
   );
 
+  constructor() {
+    effect(() => {
+      const embeddedUserId = this.userId();
+      if (!embeddedUserId) {
+        return;
+      }
+
+      this.tryLoad(embeddedUserId);
+    });
+  }
+
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) {
-      this.error.set('Invalid user id');
-      this.loading.set(false);
+    if (this.userId()) {
       return;
     }
 
-    this.load(id);
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const id = params.get('id');
+        if (!id) {
+          this.error.set('Invalid user id');
+          this.loading.set(false);
+          return;
+        }
+
+        this.tryLoad(id);
+      });
   }
 
   onGrantAppChange(appId: string) {
@@ -137,7 +167,7 @@ export class UserDetailComponent implements OnInit {
 
   addRole() {
     const role = this.selectedRole().trim();
-    const uid = this.userId();
+    const uid = this.resolvedUserId();
 
     if (!role || !uid || this.assignedRoles().includes(role)) {
       return;
@@ -177,7 +207,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   removeRole(roleName: string) {
-    const uid = this.userId();
+    const uid = this.resolvedUserId();
     if (!uid) return;
 
     this.removingRole.set(roleName);
@@ -213,7 +243,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   grantSsoApplication() {
-    const uid = this.userId();
+    const uid = this.resolvedUserId();
     const appId = this.grantAppId().trim();
     const role = this.grantRole().trim();
 
@@ -252,7 +282,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   revokeSsoApplication(appId: string) {
-    const uid = this.userId();
+    const uid = this.resolvedUserId();
     if (!uid) return;
 
     this.revoking.set(appId);
@@ -279,6 +309,49 @@ export class UserDetailComponent implements OnInit {
           );
         }
       });
+  }
+
+  async toggleUserAccess() {
+    const current = this.userWithRoles()?.user;
+    if (!current || !this.canManageBan() || this.banActionLoading()) {
+      return;
+    }
+
+    if (current.isBanned) {
+      this.unbanUser(current.id);
+      return;
+    }
+
+    const accepted = await this.confirm.confirm({
+      title: 'Disable user',
+      message: 'Disable this account? They will lose access until restored.',
+      confirmText: 'Disable',
+      cancelText: 'Cancel',
+      variant: 'danger'
+    });
+
+    if (!accepted) {
+      return;
+    }
+
+    this.banUser(current.id);
+  }
+
+  copyUserId() {
+    this.copyText(this.userWithRoles()?.user?.id, 'User ID');
+  }
+
+  copyEmail() {
+    this.copyText(this.userWithRoles()?.user?.email, 'Email');
+  }
+
+  private tryLoad(userId: string) {
+    if (this.lastLoadedUserId === userId) {
+      return;
+    }
+
+    this.lastLoadedUserId = userId;
+    this.load(userId);
   }
 
   private load(userId: string) {
@@ -310,13 +383,15 @@ export class UserDetailComponent implements OnInit {
           this.actionMessage.set('');
 
           const u = user.data.user;
-          this.pageToolbar.setMeta({
-            title: (u as IdentityUser & { displayName?: string }).displayName || u.userName || u.email || 'User',
-            eyebrow: 'User access',
-            badge: u.isSsoAccount ? 'SSO account' : 'Standard account',
-            description:
-              'Review account status, manage global roles, and control SSO application access.'
-          });
+          if (!this.embedded()) {
+            this.pageToolbar.setMeta({
+              title: (u as IdentityUser & { displayName?: string }).displayName || u.userName || u.email || 'User',
+              eyebrow: 'User access',
+              badge: u.isSsoAccount ? 'SSO account' : 'Standard account',
+              description:
+                'Review account status, manage global roles, and control SSO application access.'
+            });
+          }
 
           if (user.data.user.isSsoAccount) {
             this.loadSsoApplications(userId);
@@ -347,5 +422,118 @@ export class UserDetailComponent implements OnInit {
           this.ssoApplications.set([]);
         }
       });
+  }
+
+  private banUser(userId: string) {
+    this.banActionLoading.set(true);
+    this.usersService
+      .banUser(userId)
+      .pipe(
+        finalize(() => this.banActionLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: response => {
+          if (!response.success) {
+            this.notify.error(response.error?.message || response.message || 'Failed to disable user.');
+            return;
+          }
+
+          this.patchUserState({ isBanned: true });
+          this.actionMessage.set(response.data?.message || response.message || 'User disabled.');
+          this.notify.success(response.data?.message || 'User disabled.');
+        },
+        error: (err: any) => {
+          this.notify.error(
+            getHttpErrorMessage(err, 'Failed to disable user.', UNREACHABLE_SERVER_MESSAGE_VI)
+          );
+        }
+      });
+  }
+
+  private unbanUser(userId: string) {
+    this.banActionLoading.set(true);
+    this.usersService
+      .unbanUser(userId)
+      .pipe(
+        finalize(() => this.banActionLoading.set(false)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: response => {
+          if (!response.success) {
+            this.notify.error(response.error?.message || response.message || 'Failed to restore access.');
+            return;
+          }
+
+          this.patchUserState({ isBanned: false, banReason: null });
+          this.actionMessage.set(response.data?.message || response.message || 'Access restored.');
+          this.notify.success(response.data?.message || 'Access restored.');
+        },
+        error: (err: any) => {
+          this.notify.error(
+            getHttpErrorMessage(err, 'Failed to restore access.', UNREACHABLE_SERVER_MESSAGE_VI)
+          );
+        }
+      });
+  }
+
+  private patchUserState(patch: Partial<IdentityUser>) {
+    const current = this.userWithRoles();
+    if (!current) {
+      return;
+    }
+
+    this.userWithRoles.set({
+      ...current,
+      user: {
+        ...current.user,
+        ...patch
+      }
+    });
+  }
+
+  private async copyText(value: string | undefined | null, label: string) {
+    if (!value) {
+      this.notify.error(`${label} is not available.`);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      this.notify.success(`${label} copied.`);
+    } catch {
+      this.notify.error(`Failed to copy ${label.toLowerCase()}.`);
+    }
+  }
+
+  private sortRoleNames(roleNames: string[]) {
+    const seen = new Set<string>();
+    return [...roleNames]
+      .filter(role => {
+        const key = role.trim().toLowerCase();
+        if (!key || seen.has(key)) {
+          return false;
+        }
+
+        seen.add(key);
+        return true;
+      })
+      .sort((left, right) => this.rolePriority(left) - this.rolePriority(right) || left.localeCompare(right));
+  }
+
+  private rolePriority(roleName: string) {
+    const normalized = roleName.trim().toLowerCase();
+
+    if (normalized.includes('superadmin')) return 0;
+    if (normalized.includes('admin')) return 1;
+    if (normalized.includes('owner')) return 2;
+    if (normalized.includes('manager')) return 3;
+    if (normalized.includes('editor')) return 4;
+    if (normalized.includes('analyst')) return 5;
+    if (normalized.includes('viewer')) return 6;
+    if (normalized.includes('user')) return 7;
+
+    return 8;
   }
 }

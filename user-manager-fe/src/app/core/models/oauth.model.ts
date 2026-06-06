@@ -33,6 +33,7 @@ export interface OAuthTokenRequest {
   grantType: 'authorization_code' | 'refresh_token';
   clientId: string;
   redirectUri: string;
+  clientSecret?: string | null;
   code?: string | null;
   codeVerifier?: string | null;
   refreshToken?: string | null;

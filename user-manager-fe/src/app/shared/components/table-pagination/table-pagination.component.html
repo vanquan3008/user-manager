@@ -1,13 +1,15 @@
 <div
-  class="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-card-border)] px-1 py-3"
+  class="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-card-border)] px-2 py-4"
   [ngClass]="theme() === 'light' ? 'bg-transparent' : 'bg-transparent'"
 >
-    <p class="text-sm tabular-nums text-[var(--app-text-secondary)]">{{ rangeLabel() }}</p>
+    <p class="rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-1.5 text-sm tabular-nums text-[var(--app-text-secondary)]">
+      {{ rangeLabel() }}
+    </p>
     <div class="flex flex-wrap items-center gap-3">
-      <label class="flex items-center gap-2 text-sm text-[var(--app-text-secondary)]">
+      <label class="flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-1.5 text-sm text-[var(--app-text-secondary)]">
         <span>{{ translate.t().paginationPerPage }}</span>
         <select
-          class="rounded-lg border px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-sky-500/30"
+          class="rounded-full border px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-sky-500/30"
           [ngClass]="
             theme() === 'light'
               ? 'border-slate-200 bg-white text-slate-800'
@@ -21,10 +23,10 @@
           }
         </select>
       </label>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] p-1.5">
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
+          class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
           [ngClass]="
             theme() === 'light'
               ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
@@ -36,12 +38,12 @@
           <span class="material-symbols-outlined text-[18px]">chevron_left</span>
           {{ translate.t().paginationPrev }}
         </button>
-        <span class="min-w-[4.5rem] text-center text-xs tabular-nums text-[var(--app-text-secondary)]">
+        <span class="min-w-[5rem] px-1 text-center text-xs font-semibold tabular-nums text-[var(--app-text-secondary)]">
           {{ page() }} / {{ totalPages() }}
         </span>
         <button
           type="button"
-          class="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
+          class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
           [ngClass]="
             theme() === 'light'
               ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'

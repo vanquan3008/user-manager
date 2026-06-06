@@ -1,7 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SubscriptionsService } from '../../../core/services/subscriptions.service';
@@ -12,9 +11,6 @@ import { ThemeService } from '../../../core/services/theme.service';
 import { PageToolbarService } from '../../../core/services/page-toolbar.service';
 import { TranslateService } from '../../../core/services/translate.service';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
-import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
-import { StatCardComponent } from '../../../shared/components/stat-card/stat-card.component';
-import { IconButtonComponent } from '../../../shared/components/icon-button/icon-button.component';
 import { DropdownComponent, type DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 import { DrawerComponent } from '../../../shared/components/drawer/drawer.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
@@ -28,11 +24,7 @@ import type { ApplicationListItem, SubscriptionDto, ApplicationUserDto, Subscrip
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
     LoadingStateComponent,
-    EmptyStateComponent,
-    StatCardComponent,
-    IconButtonComponent,
     DropdownComponent,
     DrawerComponent,
     FormFieldComponent,

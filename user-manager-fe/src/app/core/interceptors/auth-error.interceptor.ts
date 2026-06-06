@@ -42,10 +42,8 @@ export const authErrorInterceptor: HttpInterceptorFn = (req, next) => {
     req.url.includes(authApi) &&
     (
       req.url.includes('/login') ||
-      req.url.includes('/register') ||
       req.url.includes('/sso/login') ||
-      req.url.includes('/sso/authorize') ||
-      req.url.includes('/sso/consent') ||
+      req.url.includes('/register') ||
       req.url.includes('/passwordless/request') ||
       req.url.includes('/password/reset') ||
       req.url.includes('/magic-link/verify') ||

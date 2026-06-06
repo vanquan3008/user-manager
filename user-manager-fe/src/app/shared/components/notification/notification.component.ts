@@ -43,15 +43,17 @@ export class NotificationComponent {
       case 'info':
       case 'validation':
         return this.theme() === 'light'
-          ? 'border-amber-200 bg-amber-50 text-amber-900'
-          : 'border-amber-500/30 bg-amber-950/80 text-amber-100';
+          ? 'border-sky-200 bg-sky-50 text-sky-900'
+          : 'border-sky-500/30 bg-sky-950/80 text-sky-100';
       default:
         return '';
     }
   }
 
   stateClass(notification: Notification): string {
-    return notification.leaving ? 'animate-[motion-toast-out_220ms_ease_forwards]' : 'animate-[motion-toast-in_260ms_cubic-bezier(0.22,1,0.36,1)]';
+    return notification.leaving
+      ? 'animate-[motion-toast-out_260ms_cubic-bezier(0.4,0,1,1)_forwards]'
+      : 'animate-[motion-toast-in_320ms_cubic-bezier(0.22,1,0.36,1)]';
   }
 
   accentClass(type: NotificationType): string {
@@ -61,7 +63,7 @@ export class NotificationComponent {
       case 'error':
         return this.theme() === 'light' ? 'bg-rose-500' : 'bg-rose-400';
       case 'validation':
-        return this.theme() === 'light' ? 'bg-amber-500' : 'bg-amber-400';
+        return this.theme() === 'light' ? 'bg-sky-500' : 'bg-sky-400';
       default:
         return this.theme() === 'light' ? 'bg-sky-500' : 'bg-sky-400';
     }
