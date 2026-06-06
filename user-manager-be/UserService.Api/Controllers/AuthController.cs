@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using MediatR;
 using UserService.Application.Configuration;
 using UserService.Application.DTOs.Common;
-using UserService.Application.DTOs.Auth;
 using UserService.Application.Features.Auth.Commands;
+using UserService.Application.Features.Auth.Queries;
 using UserService.Api.Auth;
 using UserService.Api.Controllers.Helpers;
+using UserService.Api.Contracts.Auth;
+using UserService.Api.Contracts.OAuth;
 using UserService.Api.Extensions;
 using UserService.Application.Common;
 using UserService.Application.Interfaces.Services;
@@ -26,7 +28,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register(
-        [FromBody] RegisterRequest request,
+        [FromBody] RegisterApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var command = new RegisterUserCommand(
@@ -48,7 +50,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(
-        [FromBody] LoginRequest request,
+        [FromBody] LoginApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var command = new LoginUserCommand(
@@ -63,67 +65,74 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     }
 
     [HttpPost("sso/login")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SsoLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> SSOLogin(
-        [FromBody] SSOLoginCommand command,
+    public async Task<ActionResult<ApiResponse<SsoLoginResponse>>> SsoLogin(
+        [FromBody] LoginApiRequest request,
         CancellationToken cancellationToken = default)
     {
+        var command = new SsoLoginCommand(
+            request.Email,
+            request.Password);
+
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
+        return OkResponse(response);
     }
-
-    [HttpPost("sso/authorize")]
-    [ProducesResponseType(typeof(ApiResponse<SSOAuthorizeResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<SSOAuthorizeResponse>>> SSOAuthorize(
-        [FromBody] SSOAuthorizeCommand command,
-        CancellationToken cancellationToken = default)
-    {
-        var response = await mediator.Send(command, cancellationToken);
-        if (response.RequiresConsent)
-        {
-            return OkResponse(response);
-        }
-        var redirectUrl = OAuthHelpers.BuildRedirectUrl(response.RedirectUri, response.Code!, response.State);
-        return OkResponse(response with { RedirectUri = redirectUrl });
-    }
-
-    [HttpPost("sso/consent")]
-    [ProducesResponseType(typeof(ApiResponse<SSOAuthorizeResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<SSOAuthorizeResponse>>> SSOConsent(
-        [FromBody] SSOConsentCommand command,
-        CancellationToken cancellationToken = default)
-    {
-        var response = await mediator.Send(command, cancellationToken);
-        var redirectUrl = OAuthHelpers.BuildRedirectUrl(response.RedirectUri, response.Code!, response.State);
-        return OkResponse(response with { RedirectUri = redirectUrl });
-    }
-
 
     [Authorize]
+    [HttpPost("token-exchange")]
     [HttpPost("sso/exchange-token")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> SSOExchangeToken(
-        [FromBody] SSOExchangeTokenCommand command,
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> ExchangeApplicationToken(
+        [FromBody] AppTokenExchangeApiRequest request,
         CancellationToken cancellationToken = default)
     {
-        var updatedCommand = command with { UserId = User.GetRequiredCurrentUserId() };
+        var updatedCommand = new ExchangeApplicationTokenCommand(
+            request.TargetApplicationId,
+            User.GetRequiredCurrentUserId());
         var response = await mediator.Send(updatedCommand, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
         return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
+    }
+
+    [Authorize]
+    [HttpPost("sso/authorize")]
+    [ProducesResponseType(typeof(ApiResponse<SsoAuthorizeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<SsoAuthorizeResponse>>> SsoAuthorize(
+        [FromBody] SsoAuthorizeApiRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new SsoAuthorizeCommand(
+            User.GetRequiredCurrentUserId(),
+            request.ApplicationId,
+            request.ReturnUrl);
+        
+        var response = await mediator.Send(command, cancellationToken);
+        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
+        return OkResponse(response);
+    }
+
+    [Authorize]
+    [HttpGet("sso/applications")]
+    [ProducesResponseType(typeof(ApiResponse<GetSsoApplicationsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<GetSsoApplicationsResponse>>> GetSsoApplications(
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetSsoApplicationsQuery(User.GetRequiredCurrentUserId());
+        var response = await mediator.Send(query, cancellationToken);
+        return OkResponse(response);
     }
 
   
     [HttpPost("passwordless/request")]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> RequestPasswordlessLogin(
-        [FromBody] RequestPasswordlessLoginRequest request,
+        [FromBody] RequestPasswordlessLoginApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var command = new RequestPasswordlessLoginCommand(request.Email, request.ClientId);
@@ -174,7 +183,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> VerifyEmail(
-        [FromBody] VerifyEmailRequest request,
+        [FromBody] VerifyEmailApiRequest request,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Token))
@@ -200,9 +209,10 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [HttpPost("magic-link/resend")]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> ResendMagicLink(
-        [FromBody] ResendMagicLinkCommand command,
+        [FromBody] ResendMagicLinkApiRequest request,
         CancellationToken cancellationToken = default)
     {
+        var command = new ResendMagicLinkCommand(request.Email, request.Purpose);
         await mediator.Send(command, cancellationToken);
         return OkSuccess("If the email exists, a magic link has been sent");
     }
@@ -212,10 +222,10 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> RefreshToken(
-        [FromBody] RefreshTokenCommand? command,
+        [FromBody] RefreshTokenApiRequest? request,
         CancellationToken cancellationToken = default)
     {
-        var refreshToken = AuthControllerHelpers.ResolveRefreshToken(Request, command, RefreshTokenCookieName);
+        var refreshToken = AuthControllerHelpers.ResolveRefreshToken(Request, request?.RefreshToken, RefreshTokenCookieName);
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             AuthControllerHelpers.ClearRefreshTokenCookie(Request, Response, RefreshTokenCookieName);
@@ -230,9 +240,10 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [HttpPost("password/reset-request")]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> RequestPasswordReset(
-        [FromBody] RequestPasswordResetCommand command,
+        [FromBody] RequestPasswordResetApiRequest request,
         CancellationToken cancellationToken = default)
     {
+        var command = new RequestPasswordResetCommand(request.Email);
         await mediator.Send(command, cancellationToken);
         return OkSuccess("If the email exists, a magic link has been sent");
     }
@@ -241,9 +252,10 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> ResetPassword(
-        [FromBody] ResetPasswordCommand command,
+        [FromBody] ResetPasswordApiRequest request,
         CancellationToken cancellationToken = default)
     {
+        var command = new ResetPasswordCommand(request.Email, request.Token, request.NewPassword);
         await mediator.Send(command, cancellationToken);
         return OkSuccess("Password reset successfully");
     }
@@ -255,10 +267,13 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> ChangePassword(
-        [FromBody] ChangePasswordCommand command,
+        [FromBody] ChangePasswordApiRequest request,
         CancellationToken cancellationToken = default)
     {
-        var updatedCommand = command with { UserId = User.GetRequiredCurrentUserId() };
+        var updatedCommand = new ChangePasswordCommand(
+            User.GetRequiredCurrentUserId(),
+            request.CurrentPassword,
+            request.NewPassword);
         await mediator.Send(updatedCommand, cancellationToken);
         return OkSuccess("Password changed successfully");
     }
@@ -283,7 +298,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyMagicLinkPost(
-        [FromBody] VerifyMagicLinkRequest request,
+        [FromBody] VerifyMagicLinkApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var command = new VerifyMagicLinkCommand(request.Token, request.Purpose, request.ClientId);

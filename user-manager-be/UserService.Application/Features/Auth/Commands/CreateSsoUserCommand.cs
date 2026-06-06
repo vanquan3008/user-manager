@@ -1,13 +1,11 @@
-using System.Text.Json.Serialization;
 using MediatR;
 
 namespace UserService.Application.Features.Auth.Commands;
-public record CreateSSOUserCommand(
+public record CreateSsoUserCommand(
     string Email,
     string Password,
     string Username,
     string FirstName,
     string LastName,
-    [property: JsonPropertyName("dateOfBirth")]
     DateOnly? DateOfBirth
 ) : IRequest<SuccessResponse>;

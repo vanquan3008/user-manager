@@ -18,7 +18,7 @@ public class OAuthScopeSeeder
 
     private static readonly Dictionary<string, (string Code, string Description, string Category)> StandardScopes = new()
     {
-        ["openId"] = ("oauth.openid", "OpenID Connect authentication", "OAuth"),
+        ["openid"] = ("oauth.openid", "OpenID Connect authentication", "OAuth"),
         ["profile"] = ("oauth.profile", "Access to basic profile information (name, username)", "OAuth"),
         ["email"] = ("oauth.email", "Access to user email address and email verification status", "OAuth"),
     };
@@ -86,7 +86,10 @@ public class OAuthScopeSeeder
 
     public async Task<Permission?> GetPermissionByScopeAsync(string scopeName, CancellationToken cancellationToken = default)
     {
+        var normalizedScope = (scopeName ?? string.Empty).Trim().ToLower();
         return await _db.Permissions
-            .FirstOrDefaultAsync(p => p.Scope == scopeName && p.IsActive, cancellationToken);
+            .FirstOrDefaultAsync(
+                p => p.Scope != null && p.Scope.ToLower() == normalizedScope && p.IsActive,
+                cancellationToken);
     }
 }

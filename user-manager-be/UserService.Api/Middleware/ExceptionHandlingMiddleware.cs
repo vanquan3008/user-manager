@@ -95,26 +95,6 @@ public class ExceptionHandlingMiddleware(
 
     private static IDictionary<string, string[]>? GetValidationErrors(Exception exception)
     {
-        if (exception is SSOLoginRequiredException sso)
-        {
-            var errors = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["email"] = new[] { sso.Email }
-            };
-
-            if (sso.ApplicationId.HasValue)
-            {
-                errors["applicationId"] = new[] { sso.ApplicationId.Value.ToString() };
-            }
-
-            if (!string.IsNullOrWhiteSpace(sso.ReturnUrl))
-            {
-                errors["returnUrl"] = new[] { sso.ReturnUrl };
-            }
-
-            return errors;
-        }
-
         if (exception is FluentValidationException fv)
         {
             return fv.Errors
@@ -145,7 +125,6 @@ public class ExceptionHandlingMiddleware(
             DuplicateUserException => (HttpStatusCode.Conflict, "User Already Exists"),
             BusinessRuleValidationException => (HttpStatusCode.UnprocessableEntity, "Business Rule Violation"),
             DomainOperationNotAllowedException => (HttpStatusCode.Forbidden, "Operation Not Allowed"),
-            SSOLoginRequiredException => (HttpStatusCode.Unauthorized, "SSO Login Required"),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized"),
             ArgumentNullException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
             ArgumentException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
@@ -176,7 +155,6 @@ public class ExceptionHandlingMiddleware(
         {
             return exception switch
             {
-                SSOLoginRequiredException => exception.Message,
                 UnauthorizedAccessException => "You are not authorized to access this resource.",
                 TimeoutException or TaskCanceledException => "The request took too long to process.",
                 _ => "An error occurred while processing your request."

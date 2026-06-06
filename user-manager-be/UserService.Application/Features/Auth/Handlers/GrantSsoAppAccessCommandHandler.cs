@@ -8,7 +8,7 @@ using UserService.Domain.Repositories;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
-public class GrantSSOAppAccessCommandHandler : IRequestHandler<GrantSSOAppAccessCommand, SuccessResponse>
+public class GrantSsoAppAccessCommandHandler : IRequestHandler<GrantSsoAppAccessCommand, SuccessResponse>
 {
     private readonly IUserRepository _userRepository;
     private readonly IApplicationRepository _applicationRepository;
@@ -17,7 +17,7 @@ public class GrantSSOAppAccessCommandHandler : IRequestHandler<GrantSSOAppAccess
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
-    public GrantSSOAppAccessCommandHandler(
+    public GrantSsoAppAccessCommandHandler(
         IUserRepository userRepository,
         IApplicationRepository applicationRepository,
         IApplicationMembershipRepository membershipRepository,
@@ -33,11 +33,11 @@ public class GrantSSOAppAccessCommandHandler : IRequestHandler<GrantSSOAppAccess
         _clock = clock;
     }
 
-    public async Task<SuccessResponse> Handle(GrantSSOAppAccessCommand command, CancellationToken cancellationToken)
+    public async Task<SuccessResponse> Handle(GrantSsoAppAccessCommand command, CancellationToken cancellationToken)
     {
-        var domainUser = await _userRepository.GetByIdAsync(command.SSOUserId, cancellationToken);
+        var domainUser = await _userRepository.GetByIdAsync(command.SsoUserId, cancellationToken);
         if (domainUser == null)
-            throw new UserNotFoundException(command.SSOUserId);
+            throw new UserNotFoundException(command.SsoUserId);
         if (!domainUser.IsSSOAccount)
             throw new BusinessRuleValidationException("SSOOnlyAccess", "User is not an SSO account.");
 
@@ -53,7 +53,7 @@ public class GrantSSOAppAccessCommandHandler : IRequestHandler<GrantSSOAppAccess
             throw new RoleNotFoundException(command.Role, command.ApplicationId);
 
         var existing = await _membershipRepository.GetByUserAndAppAsync(
-            command.SSOUserId,
+            command.SsoUserId,
             command.ApplicationId,
             cancellationToken);
         if (existing != null)
@@ -74,7 +74,7 @@ public class GrantSSOAppAccessCommandHandler : IRequestHandler<GrantSSOAppAccess
 
         var membership = ApplicationMembership.Join(
             Guid.NewGuid(),
-            command.SSOUserId,
+            command.SsoUserId,
             command.ApplicationId,
             roleId.Value,
             _clock.UtcNow);

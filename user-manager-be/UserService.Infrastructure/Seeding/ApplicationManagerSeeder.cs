@@ -36,8 +36,9 @@ public class ApplicationManagerSeeder
     private string AppName => _configuration["SEED_APP_NAME"]!;
     private string AppDescription => _configuration["SEED_APP_DESCRIPTION"]!;
     private string AppApiKey => _configuration["SEED_APP_API_KEY"]!;
+    private string? AppClientSecret => _configuration["SEED_APP_CLIENT_SECRET"];
     private const string AdminRole = "Admin";
-    private static readonly string[] DefaultOAuthScopes = new[] { "profile", "email" ,"openId" };
+    private static readonly string[] DefaultOAuthScopes = new[] { "profile", "email" ,"openid" };
     private static readonly string[] DefaultApplicationRoles =
     {
         RoleNames.Admin,
@@ -105,7 +106,7 @@ public class ApplicationManagerSeeder
 
         await EnsureSSOEnabledAsync(adminUser, cancellationToken);
         Log.Information("Using user {UserId} ({Email}) as application owner", adminUser.Id, adminUser.Email.Value);
-        var plainSecret = GenerateRandomSecret();
+        var plainSecret = ResolveSeedClientSecret();
         var apiKey = ApiKey.Create(AppApiKey);
         var apiSecretHash = ApiSecretHash.Create(_hashingService.Hash(plainSecret));
 
@@ -116,7 +117,7 @@ public class ApplicationManagerSeeder
             description: UserService.Domain.ValueObjects.AppDescription.Create(AppDescription),
             apiKey,
             apiSecretHash,
-            ApplicationClientTypes.Confidential,
+            ApplicationClientTypes.Public,
             _clock.UtcNow);
         
         foreach (var uri in GetDefaultAllowedRedirectUris())
@@ -146,13 +147,32 @@ public class ApplicationManagerSeeder
             Log.Information("Updated ApiKey to '{ApiKey}' for application '{AppName}'", AppApiKey, AppName);
         }
 
-        if (!app.AllowedRedirectUris.Any())
+        if (!string.Equals(app.ClientType, ApplicationClientTypes.Public, StringComparison.OrdinalIgnoreCase))
         {
-            foreach (var uri in GetDefaultAllowedRedirectUris())
+            app.SetClientType(ApplicationClientTypes.Public);
+            Log.Information("Updated client type to '{ClientType}' for application '{AppName}'", ApplicationClientTypes.Public, AppName);
+        }
+
+        ApplyConfiguredClientSecret(app);
+
+        var existingRedirectUris = new HashSet<string>(
+            app.AllowedRedirectUris.Select(uri => (string)uri),
+            StringComparer.OrdinalIgnoreCase);
+        var missingRedirectUris = GetDefaultAllowedRedirectUris()
+            .Where(uri => !existingRedirectUris.Contains((string)uri))
+            .ToList();
+
+        if (missingRedirectUris.Count > 0)
+        {
+            foreach (var uri in missingRedirectUris)
             {
                 app.AddRedirectUri(uri);
             }
-            Log.Information("Updated redirect URIs for application '{AppName}'", AppName);
+
+            Log.Information(
+                "Added {Count} missing redirect URI(s) for application '{AppName}'",
+                missingRedirectUris.Count,
+                AppName);
         }
 
         if (!app.IsActive)
@@ -353,6 +373,25 @@ public class ApplicationManagerSeeder
         }
 
         return redirectUris;
+    }
+
+    private void ApplyConfiguredClientSecret(AppApplication app)
+    {
+        var configuredSecret = (AppClientSecret ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(configuredSecret) || !app.UsesClientSecret())
+            return;
+
+        var hashedSecret = ApiSecretHash.Create(_hashingService.Hash(configuredSecret));
+        app.RotateClientSecret(hashedSecret, _clock.UtcNow);
+        Log.Information("Applied configured client secret for application '{AppName}'", AppName);
+    }
+
+    private string ResolveSeedClientSecret()
+    {
+        var configuredSecret = (AppClientSecret ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(configuredSecret)
+            ? GenerateRandomSecret()
+            : configuredSecret;
     }
 
     private static string GenerateRandomSecret()

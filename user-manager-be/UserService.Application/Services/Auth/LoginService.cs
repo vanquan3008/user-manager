@@ -39,7 +39,10 @@ public sealed class LoginService : ILoginService
             throw new EntityNotFoundException(nameof(User), appUser.Id);
 
         if (domainUser.IsSSOAccount)
-            throw new SSOLoginRequiredException(request.Email, request.ApplicationId, request.ReturnUrl);
+            throw new InvalidDomainObjectException(
+                nameof(request.Email),
+                request.Email,
+                "This account uses the hosted SSO login flow. Please continue from the hosted auth page.");
 
         return await _authResponseFactory.BuildUserAuthResponseAsync(
             appUser.Id,

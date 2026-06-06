@@ -2,23 +2,18 @@ using MediatR;
 
 namespace UserService.Application.Features.Auth.Commands;
 
-public record SSOAuthorizeCommand(
-    string Email,
-    string Password,
-    string ClientId,
-    string RedirectUri,
-    string[] Scopes,
-    string? State = null,
-    string? CodeChallenge = null,
-    string? CodeChallengeMethod = "S256"
-) : IRequest<SSOAuthorizeResponse>;
+/// <summary>
+/// Command for SSO authorization - exchanges SSO token for application-specific token.
+/// This is called after SSO login when user selects which application to access.
+/// </summary>
+public sealed record SsoAuthorizeCommand(
+    Guid UserId,
+    Guid ApplicationId,
+    string? ReturnUrl = null
+) : IRequest<SsoAuthorizeResponse>;
 
-public record SSOAuthorizeResponse(
-    bool RequiresConsent,
-    string? Code,
-    string RedirectUri,
-    string? State,
-    string? ClientName = null,
-    string[]? RequestedScopes = null,
-    string[]? MissingScopes = null
+public sealed record SsoAuthorizeResponse(
+    string AccessToken,
+    string RefreshToken,
+    string? RedirectUrl
 );

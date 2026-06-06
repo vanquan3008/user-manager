@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace UserService.Application.DTOs.OAuth;
 
 public record OAuthAuthorizeRequest(
@@ -15,49 +13,49 @@ public record OAuthAuthorizeRequest(
 
 
 public record OAuthAuthorizeResponse(
-    [property: JsonPropertyName("requiresConsent")] bool RequiresConsent,
-    [property: JsonPropertyName("clientName")] string ClientName,
-    [property: JsonPropertyName("redirectUri")] string RedirectUri,
-    [property: JsonPropertyName("requestedScopes")] string[] RequestedScopes,
-    [property: JsonPropertyName("alreadyGrantedScopes")] string[] AlreadyGrantedScopes,
-    [property: JsonPropertyName("missingScopes")] string[] MissingScopes,
-    [property: JsonPropertyName("code")] string? Code,
-    [property: JsonPropertyName("state")] string? State
+    bool RequiresConsent,
+    string ClientName,
+    string RedirectUri,
+    string[] RequestedScopes,
+    string[] AlreadyGrantedScopes,
+    string[] MissingScopes,
+    string? Code,
+    string? State
 );
 
 public record OAuthConsentRequest(
-    [property: JsonPropertyName("clientId")] string ClientId,
-    [property: JsonPropertyName("redirectUri")] string RedirectUri,
-    [property: JsonPropertyName("scopes")] string[] Scopes,
-    [property: JsonPropertyName("state")] string? State,
-    [property: JsonPropertyName("codeChallenge")] string CodeChallenge,
-    [property: JsonPropertyName("codeChallengeMethod")] string CodeChallengeMethod = "S256",
-    [property: JsonPropertyName("approve")] bool Approve = true
+    string ClientId,
+    string RedirectUri,
+    string[] Scopes,
+    string? State,
+    string CodeChallenge,
+    string CodeChallengeMethod = "S256",
+    bool Approve = true
 );
 
 public record OAuthTokenRequest(
-    [property: JsonPropertyName("grantType")] string GrantType,
-    [property: JsonPropertyName("clientId")] string ClientId,
-    [property: JsonPropertyName("redirectUri")] string RedirectUri,
-    [property: JsonPropertyName("clientSecret")] string? ClientSecret = null,
-    [property: JsonPropertyName("code")] string? Code = null,
-    [property: JsonPropertyName("codeVerifier")] string? CodeVerifier = null,
-    [property: JsonPropertyName("refreshToken")] string? RefreshToken = null
+    string GrantType,
+    string ClientId,
+    string RedirectUri,
+    string? ClientSecret = null,
+    string? Code = null,
+    string? CodeVerifier = null,
+    string? RefreshToken = null
 );
 
 public record OAuthUserDto(
-    [property: JsonPropertyName("id")] Guid Id,
-    [property: JsonPropertyName("email")] string Email,
-    [property: JsonPropertyName("userName")] string UserName,
-    [property: JsonPropertyName("displayName")] string? DisplayName,
-    [property: JsonPropertyName("roles")] IEnumerable<string> Roles
+    Guid Id,
+    string Email,
+    string UserName,
+    string? DisplayName,
+    IEnumerable<string> Roles
 );
 
 public record OAuthTokenResponse(
-    [property: JsonPropertyName("accessToken")] string AccessToken,
-    [property: JsonPropertyName("tokenType")] string TokenType,
-    [property: JsonPropertyName("expiresIn")] int ExpiresIn,
-    [property: JsonPropertyName("refreshToken")] string RefreshToken,
-    [property: JsonPropertyName("scopes")] string[] Scopes,
-    [property: JsonPropertyName("user")] OAuthUserDto User
+    string AccessToken,
+    string TokenType,
+    int ExpiresIn,
+    string RefreshToken,
+    string[] Scopes,
+    OAuthUserDto User
 );

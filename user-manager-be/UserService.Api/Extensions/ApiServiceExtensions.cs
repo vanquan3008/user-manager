@@ -67,13 +67,20 @@ public static class ApiServiceExtensions
                 Uri.TryCreate(origin, UriKind.Absolute, out _))
             .Select(origin => origin.Trim().TrimEnd('/'))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+            .ToList();
+
+        if (allowedOrigins.Count == 0 &&
+            !string.IsNullOrWhiteSpace(appSettings.FrontendBaseUrl) &&
+            Uri.TryCreate(appSettings.FrontendBaseUrl, UriKind.Absolute, out _))
+        {
+            allowedOrigins.Add(appSettings.FrontendBaseUrl.Trim().TrimEnd('/'));
+        }
 
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>
             {
-                policy.WithOrigins(allowedOrigins)
+                policy.WithOrigins(allowedOrigins.ToArray())
                       .AllowAnyMethod()
                       .AllowAnyHeader();
 
