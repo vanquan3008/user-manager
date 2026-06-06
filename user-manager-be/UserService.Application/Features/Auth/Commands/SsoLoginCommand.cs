@@ -1,8 +1,28 @@
 using MediatR;
+using UserService.Application.Common;
+
 namespace UserService.Application.Features.Auth.Commands;
 
-public record SSOLoginCommand(
+/// <summary>
+/// Command for SSO user login.
+/// Authenticates the SSO account and creates an auth-server session.
+/// </summary>
+public sealed record SsoLoginCommand(
     string Email,
     string Password
-) : IRequest<AuthResponse>;
+) : IRequest<SsoLoginResponse>;
 
+public sealed record SsoLoginResponse(
+    string AccessToken,
+    string RefreshToken,
+    SsoUserDto User
+);
+
+public sealed record SsoUserDto(
+    Guid UserId,
+    string Email,
+    string Username,
+    string DisplayName,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions
+);

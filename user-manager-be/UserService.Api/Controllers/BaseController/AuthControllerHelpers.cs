@@ -7,11 +7,11 @@ internal static class AuthControllerHelpers
 {
     internal static string? ResolveRefreshToken(
         HttpRequest request,
-        RefreshTokenCommand? command,
+        string? refreshTokenFromBody,
         string refreshTokenCookieName)
     {
-        if (!string.IsNullOrWhiteSpace(command?.RefreshToken))
-            return command.RefreshToken.Trim();
+        if (!string.IsNullOrWhiteSpace(refreshTokenFromBody))
+            return refreshTokenFromBody.Trim();
 
         if (request.Cookies.TryGetValue(refreshTokenCookieName, out var cookieValue) &&
             !string.IsNullOrWhiteSpace(cookieValue))

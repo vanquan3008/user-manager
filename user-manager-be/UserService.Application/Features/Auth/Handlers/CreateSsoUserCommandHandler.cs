@@ -9,14 +9,14 @@ using UserService.Domain.ValueObjects;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
-public class CreateSSOUserCommandHandler : IRequestHandler<CreateSSOUserCommand, SuccessResponse>
+public class CreateSsoUserCommandHandler : IRequestHandler<CreateSsoUserCommand, SuccessResponse>
 {
     private readonly IIdentityService _identityService;
     private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
 
-    public CreateSSOUserCommandHandler(
+    public CreateSsoUserCommandHandler(
         IIdentityService identityService,
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
@@ -28,7 +28,7 @@ public class CreateSSOUserCommandHandler : IRequestHandler<CreateSSOUserCommand,
         _clock = clock;
     }
 
-    public async Task<SuccessResponse> Handle(CreateSSOUserCommand command, CancellationToken cancellationToken)
+    public async Task<SuccessResponse> Handle(CreateSsoUserCommand command, CancellationToken cancellationToken)
     {
         var existing = await _identityService.GetUserByEmailAsync(command.Email, cancellationToken);
         if (existing != null)

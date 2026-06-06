@@ -44,7 +44,7 @@ services:
       AppSettings__Jwt__Audience: ${JWT_AUDIENCE:-UserManagerApp}
       AppSettings__Jwt__AccessTokenExpirationMinutes: ${JWT_ACCESS_TOKEN_EXPIRATION:-60}
       AppSettings__Jwt__RefreshTokenExpirationDays: ${JWT_REFRESH_TOKEN_EXPIRATION:-7}
-      AppSettings__Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_1:-http://localhost:4200}
+      AppSettings__Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_1:-https://user-manager-tau-topaz.vercel.app}
       AppSettings__Cors__AllowedOrigins__1: ${CORS_ALLOWED_ORIGIN_2:-}
       AppSettings__Cors__AllowCredentials: ${CORS_ALLOW_CREDENTIALS:-true}
       AppSettings__RateLimit__RequestLimit: ${RATE_LIMIT_REQUESTS:-100}

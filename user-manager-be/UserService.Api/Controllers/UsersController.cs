@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Api.Authorization;
+using UserService.Api.Contracts.Users;
 using UserService.Api.Extensions;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Features.Users.Commands;
@@ -33,6 +34,24 @@ public class UsersController(IMediator mediator) : ApiControllerBase
 
         return Ok(response);
     }
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<UserWithRolesDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApiResponse<UserWithRolesDto>>> GetCurrentUser(
+        CancellationToken cancellationToken = default)
+    {
+        var userId = User.GetRequiredCurrentUserId();
+        var user = await mediator.Send(new GetUserByIdQuery(userId), cancellationToken);
+
+        if (user == null)
+        {
+            return NotFoundResponse("User not found");
+        }
+
+        return OkResponse(user);
+    }
+
     [HttpGet("{userId:guid}")]
     [Authorize(Policy = AuthorizationPolicies.ViewUsers)]
     [ProducesResponseType(typeof(ApiResponse<UserWithRolesDto>), StatusCodes.Status200OK)]
@@ -57,7 +76,7 @@ public class UsersController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> UpgradeUserRole(
         Guid userId,
-        [FromBody] UpgradeUserRoleRequest request,
+        [FromBody] UpgradeUserRoleApiRequest request,
         CancellationToken cancellationToken = default)
     {
         await mediator.Send(new AddToRoleCommand(userId, request.Role), cancellationToken);
@@ -85,9 +104,16 @@ public class UsersController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> CreateSSOUser(
-        [FromBody] CreateSSOUserCommand command,
+        [FromBody] CreateSSOUserApiRequest request,
         CancellationToken cancellationToken = default)
     {
+        var command = new CreateSsoUserCommand(
+            request.Email,
+            request.Password,
+            request.Username,
+            request.FirstName,
+            request.LastName,
+            request.DateOfBirth);
         var result = await mediator.Send(command, cancellationToken);
         return CreatedResponse(nameof(CreateSSOUser), result);
     }
@@ -98,11 +124,11 @@ public class UsersController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> GrantSSOAppAccess(
         Guid ssoUserId,
-        [FromBody] GrantSSOAppAccessRequest request,
+        [FromBody] GrantSSOAppAccessApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(
-            new GrantSSOAppAccessCommand(ssoUserId, request.ApplicationId, request.Role ?? RoleNames.Admin),
+            new GrantSsoAppAccessCommand(ssoUserId, request.ApplicationId, request.Role ?? RoleNames.Admin),
             cancellationToken);
 
         return OkResponse(result);
@@ -117,7 +143,7 @@ public class UsersController(IMediator mediator) : ApiControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(
-            new RevokeSSOAppAccessCommand(ssoUserId, applicationId),
+            new RevokeSsoAppAccessCommand(ssoUserId, applicationId),
             cancellationToken);
 
         return OkResponse(result);
@@ -140,7 +166,7 @@ public class UsersController(IMediator mediator) : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApiResponse<SuccessResponse>>> BanUser(
         Guid userId,
-        [FromBody] BanUserRequest? body,
+        [FromBody] BanUserApiRequest? body,
         CancellationToken cancellationToken = default)
     {
         var actorId = User.GetRequiredCurrentUserId();

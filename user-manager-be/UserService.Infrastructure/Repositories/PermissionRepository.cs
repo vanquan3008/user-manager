@@ -106,7 +106,7 @@ public class PermissionRepository : Repository<Permission>, IPermissionRepositor
     {
         var scopesList = scopes?
             .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(s => s.Trim())
+            .Select(s => s.Trim().ToLower())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList() ?? new List<string>();
 
@@ -115,7 +115,7 @@ public class PermissionRepository : Repository<Permission>, IPermissionRepositor
 
         return await _context.Permissions
             .AsNoTracking()
-            .Where(p => p.Scope != null && scopesList.Contains(p.Scope))
+            .Where(p => p.Scope != null && scopesList.Contains(p.Scope.ToLower()))
             .ToListAsync(cancellationToken);
     }
 

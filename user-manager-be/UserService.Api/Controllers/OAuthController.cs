@@ -1,6 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserService.Api.Controllers.Helpers;
+using UserService.Api.Contracts.OAuth;
+using UserService.Application.DTOs.OAuth;
 using UserService.Application.Features.OAuth.Commands;
 using UserService.Api.Extensions;
 using UserService.Application.Common;
@@ -25,20 +28,13 @@ public class OAuthController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<OAuthAuthorizeResponse>>> Authorize(
-        [FromQuery] OAuthAuthorizeRequest request,
+        [FromQuery] OAuthAuthorizeQueryRequest query,
         CancellationToken cancellationToken = default)
     {
         var userId = User.GetRequiredCurrentUserId();
-        var scopes = request.Scopes;
-        if (scopes == null || scopes.Length == 0)
-        {
-            if (!string.IsNullOrWhiteSpace(request.Scope))
-            {
-                scopes = request.Scope.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            }
-        }
+        var request = OAuthQueryRequestBinding.ToAuthorizeRequest(query, Request.Query);
 
-        var result = await _mediator.Send(new AuthorizeOAuthCommand(userId, request with { Scopes = scopes }), cancellationToken);
+        var result = await _mediator.Send(new AuthorizeOAuthCommand(userId, request), cancellationToken);
         
         if (!string.IsNullOrEmpty(result.Code))
         {
@@ -50,18 +46,25 @@ public class OAuthController : ApiControllerBase
     }
 
 
-
     [Authorize]
     [HttpPost("consent")]
     [ProducesResponseType(typeof(ApiResponse<OAuthAuthorizeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<OAuthAuthorizeResponse>>> Consent(
-        [FromBody] OAuthConsentRequest request,
+        [FromBody] OAuthConsentApiRequest request,
         CancellationToken cancellationToken = default)
     {
         var userId = User.GetRequiredCurrentUserId();
-        var result = await _mediator.Send(new ConsentOAuthCommand(userId, request), cancellationToken);
+        var consentRequest = new OAuthConsentRequest(
+            request.ClientId,
+            request.RedirectUri,
+            request.Scopes,
+            request.State,
+            request.CodeChallenge,
+            request.CodeChallengeMethod,
+            request.Approve);
+        var result = await _mediator.Send(new ConsentOAuthCommand(userId, consentRequest), cancellationToken);
         return OkResponse(result);
     }
     [HttpPost("token")]
@@ -69,10 +72,18 @@ public class OAuthController : ApiControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<ApiResponse<OAuthTokenResponse>>> Token(
-        [FromBody] OAuthTokenRequest request,
+        [FromBody] OAuthTokenApiRequest request,
         CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new ExchangeOAuthCodeCommand(request), cancellationToken);
+        var tokenRequest = new OAuthTokenRequest(
+            request.GrantType,
+            request.ClientId,
+            request.RedirectUri,
+            request.ClientSecret,
+            request.Code,
+            request.CodeVerifier,
+            request.RefreshToken);
+        var result = await _mediator.Send(new ExchangeOAuthCodeCommand(tokenRequest), cancellationToken);
         return OkResponse(result);
     }
 }

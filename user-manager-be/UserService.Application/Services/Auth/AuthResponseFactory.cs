@@ -17,7 +17,6 @@ public sealed class AuthResponseFactory
     private readonly ITokenService _tokenService;
     private readonly IUserPermissionService _userPermissionService;
     private readonly IApplicationAccessService _applicationAccessService;
-    private readonly IApplicationAppService _applicationService;
     private readonly IApplicationMembershipService _membershipService;
     private readonly IClock _clock;
     private readonly AppSettings _appSettings;
@@ -28,7 +27,6 @@ public sealed class AuthResponseFactory
         ITokenService tokenService,
         IUserPermissionService userPermissionService,
         IApplicationAccessService applicationAccessService,
-        IApplicationAppService applicationService,
         IApplicationMembershipService membershipService,
         IClock clock,
         AppSettings appSettings)
@@ -38,7 +36,6 @@ public sealed class AuthResponseFactory
         _tokenService = tokenService;
         _userPermissionService = userPermissionService;
         _applicationAccessService = applicationAccessService;
-        _applicationService = applicationService;
         _membershipService = membershipService;
         _clock = clock;
         _appSettings = appSettings;
@@ -140,19 +137,6 @@ public sealed class AuthResponseFactory
         if (!isSystemAdmin && ssoAppIds.Count == 0)
             throw new UnauthorizedException("SSO account has no authorized applications. Contact an administrator.");
 
-        var applications = new List<ApplicationInfoDto>();
-        foreach (var membership in activeMemberships)
-        {
-            var app = await _applicationService.GetByIdAsync(membership.ApplicationId, cancellationToken);
-            if (app != null && app.IsActive)
-            {
-                applications.Add(new ApplicationInfoDto(
-                    app.Id,
-                    app.Name,
-                    app.Description));
-            }
-        }
-
         var accessToken = _tokenService.GenerateAccessToken(new AccessTokenRequest(
             userId,
             appUser.Email,
@@ -161,7 +145,7 @@ public sealed class AuthResponseFactory
             permissions,
             ApplicationId: null,
             Scope: null,
-            SSOAppIds: ssoAppIds));
+            SSOAppIds: null));
 
         var refreshToken = _tokenService.GenerateRefreshToken();
         var expiresAt = _clock.UtcNow.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes);
@@ -184,7 +168,6 @@ public sealed class AuthResponseFactory
             refreshToken,
             expiresAt,
             userDto,
-            RequiresEmailVerification: false,
-            Applications: applications);
+            RequiresEmailVerification: false);
     }
 }

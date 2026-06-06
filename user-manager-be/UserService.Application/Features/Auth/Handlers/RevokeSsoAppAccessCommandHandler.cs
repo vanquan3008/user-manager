@@ -6,13 +6,13 @@ using UserService.Domain.Repositories;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
-public class RevokeSSOAppAccessCommandHandler : IRequestHandler<RevokeSSOAppAccessCommand, SuccessResponse>
+public class RevokeSsoAppAccessCommandHandler : IRequestHandler<RevokeSsoAppAccessCommand, SuccessResponse>
 {
     private readonly IUserRepository _userRepository;
     private readonly IApplicationMembershipRepository _membershipRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public RevokeSSOAppAccessCommandHandler(
+    public RevokeSsoAppAccessCommandHandler(
         IUserRepository userRepository,
         IApplicationMembershipRepository membershipRepository,
         IUnitOfWork unitOfWork)
@@ -22,16 +22,16 @@ public class RevokeSSOAppAccessCommandHandler : IRequestHandler<RevokeSSOAppAcce
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<SuccessResponse> Handle(RevokeSSOAppAccessCommand command, CancellationToken cancellationToken)
+    public async Task<SuccessResponse> Handle(RevokeSsoAppAccessCommand command, CancellationToken cancellationToken)
     {
-        var domainUser = await _userRepository.GetByIdAsync(command.SSOUserId, cancellationToken);
+        var domainUser = await _userRepository.GetByIdAsync(command.SsoUserId, cancellationToken);
         if (domainUser == null)
             throw new BusinessRuleValidationException("UserNotFound", "User not found.");
         if (!domainUser.IsSSOAccount)
             throw new BusinessRuleValidationException("SSOOnlyAccess", "User is not an SSO account.");
 
         var membership = await _membershipRepository.GetByUserAndAppAsync(
-            command.SSOUserId,
+            command.SsoUserId,
             command.ApplicationId,
             cancellationToken);
         if (membership == null || !membership.IsActive)
