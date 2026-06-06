@@ -11,7 +11,6 @@ export const environment = {
 
   oauth: {
     clientId: process.env['NG_APP_OAUTH_CLIENT_ID'] || '',
-    clientSecret: process.env['NG_APP_OAUTH_CLIENT_SECRET'] || '',
     defaultScopes: ['profile', 'email', 'openid'],
     redirectUri: process.env['NG_APP_OAUTH_REDIRECT_URI'] || '',
     codeChallengeMethod: 'S256'

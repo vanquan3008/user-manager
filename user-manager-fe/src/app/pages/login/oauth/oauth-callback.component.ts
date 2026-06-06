@@ -6,7 +6,6 @@ import { OauthService } from '../../../core/services/oauth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { TranslateService } from '../../../core/services/translate.service';
 import { UNREACHABLE_SERVER_MESSAGE_VI, getHttpErrorMessage } from '../../../core/utils/http-error.utils';
-import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-oauth-callback',
@@ -119,7 +118,6 @@ export class OauthCallbackComponent implements OnInit {
         grantType: 'authorization_code',
         clientId: context.clientId,
         redirectUri: context.redirectUri,
-        clientSecret: context.clientSecret?.trim() || environment.oauth.clientSecret?.trim() || null,
         code,
         codeVerifier: context.codeVerifier
       })

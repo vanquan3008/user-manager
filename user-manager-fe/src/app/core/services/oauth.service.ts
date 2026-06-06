@@ -14,7 +14,6 @@ import { SessionStorageService } from './session-storage.service';
 
 export interface OAuthAuthorizeContext {
   clientId: string;
-  clientSecret?: string | null;
   redirectUri: string;
   codeVerifier?: string | null;
   state?: string | null;

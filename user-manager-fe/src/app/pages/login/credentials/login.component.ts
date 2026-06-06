@@ -251,7 +251,6 @@ export class LoginComponent implements OnInit {
 
       this.oauth.saveAuthorizeContext({
         clientId,
-        clientSecret: environment.oauth.clientSecret?.trim() || null,
         redirectUri,
         codeVerifier,
         state,
