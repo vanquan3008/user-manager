@@ -117,7 +117,7 @@ public class ApplicationManagerSeeder
             description: UserService.Domain.ValueObjects.AppDescription.Create(AppDescription),
             apiKey,
             apiSecretHash,
-            ApplicationClientTypes.Confidential,
+            ApplicationClientTypes.Public,
             _clock.UtcNow);
         
         foreach (var uri in GetDefaultAllowedRedirectUris())
@@ -145,6 +145,12 @@ public class ApplicationManagerSeeder
         {
             app.SetApiKey(ApiKey.Create(AppApiKey));
             Log.Information("Updated ApiKey to '{ApiKey}' for application '{AppName}'", AppApiKey, AppName);
+        }
+
+        if (!string.Equals(app.ClientType, ApplicationClientTypes.Public, StringComparison.OrdinalIgnoreCase))
+        {
+            app.SetClientType(ApplicationClientTypes.Public);
+            Log.Information("Updated client type to '{ClientType}' for application '{AppName}'", ApplicationClientTypes.Public, AppName);
         }
 
         ApplyConfiguredClientSecret(app);
