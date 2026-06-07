@@ -4,15 +4,11 @@ using MediatR;
 using UserService.Application.Configuration;
 using UserService.Application.DTOs.Common;
 using UserService.Application.Features.Auth.Commands;
-using UserService.Application.Features.Auth.Queries;
 using UserService.Api.Auth;
 using UserService.Api.Controllers.Helpers;
 using UserService.Api.Contracts.Auth;
-using UserService.Api.Contracts.OAuth;
 using UserService.Api.Extensions;
 using UserService.Application.Common;
-using UserService.Application.Interfaces.Services;
-using System.Security.Authentication;
 
 namespace UserService.Api.Controllers;
 
@@ -78,53 +74,6 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
 
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(response);
-    }
-
-    [Authorize]
-    [HttpPost("token-exchange")]
-    [HttpPost("sso/exchange-token")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> ExchangeApplicationToken(
-        [FromBody] AppTokenExchangeApiRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var updatedCommand = new ExchangeApplicationTokenCommand(
-            request.TargetApplicationId,
-            User.GetRequiredCurrentUserId());
-        var response = await mediator.Send(updatedCommand, cancellationToken);
-        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
-    }
-
-    [Authorize]
-    [HttpPost("sso/authorize")]
-    [ProducesResponseType(typeof(ApiResponse<SsoAuthorizeResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<SsoAuthorizeResponse>>> SsoAuthorize(
-        [FromBody] SsoAuthorizeApiRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new SsoAuthorizeCommand(
-            User.GetRequiredCurrentUserId(),
-            request.ApplicationId,
-            request.ReturnUrl);
-        
-        var response = await mediator.Send(command, cancellationToken);
-        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(response);
-    }
-
-    [Authorize]
-    [HttpGet("sso/applications")]
-    [ProducesResponseType(typeof(ApiResponse<GetSsoApplicationsResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ApiResponse<GetSsoApplicationsResponse>>> GetSsoApplications(
-        CancellationToken cancellationToken = default)
-    {
-        var query = new GetSsoApplicationsQuery(User.GetRequiredCurrentUserId());
-        var response = await mediator.Send(query, cancellationToken);
         return OkResponse(response);
     }
 
