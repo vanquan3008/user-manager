@@ -76,9 +76,13 @@ This project takes architectural and UX inspiration from modern IAM solutions li
    ```
 
 3. **Environment Configuration:**
-   If your backend API is running on a port other than `http://localhost:5000`, update the `apiUrl` property in the environment configuration files:
-   - Development: `src/environments/environment.ts`
-   - Production: `src/environments/environment.prod.ts`
+   The frontend reads runtime settings from `user-manager-fe/.env`.
+   Required values:
+   - `NG_APP_API_URL`
+   - `NG_APP_OAUTH_CLIENT_ID`
+   - `NG_APP_OAUTH_REDIRECT_URI`
+
+   Do not put `client_secret` in the frontend. This app uses the OAuth authorization code flow with PKCE, so the SPA is a public client and must not store a secret in `.env`, source code, or browser-delivered config.
 
 4. **Start the Development Server:**
    ```bash
