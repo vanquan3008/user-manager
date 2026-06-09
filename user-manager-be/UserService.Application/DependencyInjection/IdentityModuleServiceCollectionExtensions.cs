@@ -13,7 +13,6 @@ internal static class IdentityModuleServiceCollectionExtensions
         services.AddScoped<IRegistrationService, RegistrationService>();
         services.AddScoped<IRegistrationWorkflowService, RegistrationWorkflowService>();
         services.AddScoped<ILoginService, LoginService>();
-        services.AddScoped<IApplicationTokenExchangeService, ApplicationTokenExchangeService>();
         services.AddScoped<IMagicLinkAuthService, MagicLinkAuthService>();
         services.AddScoped<IMagicLinkDeliveryService, MagicLinkDeliveryService>();
         services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
