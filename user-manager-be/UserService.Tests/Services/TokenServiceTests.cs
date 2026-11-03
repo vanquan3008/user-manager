@@ -1,267 +1,142 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Microsoft.IdentityModel.Tokens;
 using UserService.Application.Configuration;
-using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
 using UserService.Application.Services;
-using UserService.Infrastructure.Services;
+using UserService.Domain.Constants;
+using UserService.Tests.TestDoubles;
 
 namespace UserService.Tests.Services;
 
 public class TokenServiceTests
 {
-    private readonly Mock<IClaimsFactory> _claimsFactoryMock;
-    private readonly AppSettings _appSettings;
+    private readonly AppSettings _settings = new()
+    {
+        Jwt = new JwtConfiguration { Issuer = "https://sso.test", Audience = "sso-api", AccessTokenExpirationMinutes = 15 }
+    };
+    private readonly TestSigningKeyProvider _keys = new();
+    private readonly FakeClock _clock = new() { UtcNow = DateTime.UtcNow };
     private readonly TokenService _sut;
 
     public TokenServiceTests()
     {
-        _claimsFactoryMock = new Mock<IClaimsFactory>();
-        _appSettings = new AppSettings
-        {
-            Jwt = new JwtConfiguration
-            {
-                SecretKey = "test-secret-key-must-be-at-least-32-characters-long",
-                Issuer = "TestIssuer",
-                Audience = "TestAudience",
-                AccessTokenExpirationMinutes = 60
-            }
-        };
-        _sut = new TokenService(_claimsFactoryMock.Object, _appSettings);
+        _sut = new TokenService(new ClaimsFactory(), _settings, _keys, _clock);
     }
 
+    private static AccessTokenRequest Request(Guid userId, Guid? sid = null) =>
+        new(userId, "u@test.com", "u", new[] { "Admin" }, new[] { "USER.READ" }, SessionId: sid, ClientId: "client-1");
+
     [Fact]
-    public void GenerateAccessToken_WhenSecretKeyMissing_ThrowsInvalidOperationException()
+    public void AccessToken_IsRs256_WithKeyIdAndAtJwtType()
     {
-        var svc = new TokenService(_claimsFactoryMock.Object, new AppSettings { Jwt = new JwtConfiguration { SecretKey = "" } });
-        _claimsFactoryMock.Setup(x => x.CreateAccessTokenClaims(It.IsAny<AccessTokenRequest>()))
-            .Returns(new List<Claim>());
+        var token = _sut.GenerateAccessToken(Request(Guid.NewGuid()));
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
-        var act = () => svc.GenerateAccessToken(new AccessTokenRequest(Guid.NewGuid(), "u@test.com", "u", Array.Empty<string>()));
-
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*SecretKey*");
+        jwt.Header.Alg.Should().Be("RS256");
+        jwt.Header.Kid.Should().Be(_keys.Active.KeyId);
+        jwt.Header.Typ.Should().Be("at+jwt");
+        jwt.Issuer.Should().Be("https://sso.test");
+        jwt.Audiences.Should().ContainSingle("sso-api");
     }
 
     [Fact]
-    public void GenerateAccessToken_WithValidSettings_ReturnsNonEmptyJwt()
+    public void AccessToken_CarriesSessionIdClientAndPermissions()
     {
         var userId = Guid.NewGuid();
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new(JwtRegisteredClaimNames.Email, "u@test.com")
-        };
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
-            .Returns(claims);
+        var sid = Guid.NewGuid();
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(_sut.GenerateAccessToken(Request(userId, sid)));
 
-        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", "u", new[] { "User" }));
-
-        token.Should().NotBeNullOrWhiteSpace();
-        token.Split('.').Length.Should().Be(3); // JWT has 3 parts
+        jwt.Subject.Should().Be(userId.ToString());
+        jwt.Claims.Should().Contain(c => c.Type == JwtClaimNames.SessionId && c.Value == sid.ToString());
+        jwt.Claims.Should().Contain(c => c.Type == JwtClaimNames.ClientId && c.Value == "client-1");
+        jwt.Claims.Should().Contain(c => c.Type == JwtClaimNames.Permissions && c.Value == "USER.READ");
+        jwt.ValidTo.Should().BeCloseTo(_clock.UtcNow.AddMinutes(15), TimeSpan.FromSeconds(2));
     }
 
     [Fact]
-    public void GenerateRefreshToken_ReturnsNonEmptyBase64String()
-    {
-        var token = _sut.GenerateRefreshToken();
-
-        token.Should().NotBeNullOrWhiteSpace();
-        Convert.FromBase64String(token).Length.Should().Be(64);
-    }
-
-    [Fact]
-    public void GenerateRefreshToken_EachCallReturnsDifferentValue()
-    {
-        var t1 = _sut.GenerateRefreshToken();
-        var t2 = _sut.GenerateRefreshToken();
-
-        t1.Should().NotBe(t2);
-    }
-
-    [Fact]
-    public void ValidateToken_WhenTokenGeneratedBySameService_ReturnsTrue()
+    public void ValidateToken_AcceptsOwnTokens_AndRejectsGarbage()
     {
         var userId = Guid.NewGuid();
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new(JwtRegisteredClaimNames.Email, "u@test.com")
-        };
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
-            .Returns(claims);
+        var token = _sut.GenerateAccessToken(Request(userId));
 
-        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", null, Array.Empty<string>()));
-        var isValid = _sut.ValidateToken(token);
-
-        isValid.Should().BeTrue();
-    }
-
-    [Fact]
-    public void ValidateToken_WhenTokenInvalid_ReturnsFalse()
-    {
-        var isValid = _sut.ValidateToken("invalid.jwt.token");
-
-        isValid.Should().BeFalse();
-    }
-
-    [Fact]
-    public void GetUserIdFromToken_WhenTokenValid_ReturnsUserId()
-    {
-        var userId = Guid.NewGuid();
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new(JwtRegisteredClaimNames.Email, "u@test.com")
-        };
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId)))
-            .Returns(claims);
-
-        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "u@test.com", null, Array.Empty<string>()));
-        var extractedId = _sut.GetUserIdFromToken(token);
-
-        extractedId.Should().Be(userId);
-    }
-
-    [Fact]
-    public void GetUserIdFromToken_WhenTokenInvalid_ReturnsNull()
-    {
-        var result = _sut.GetUserIdFromToken("not-a-valid-jwt");
-
-        result.Should().BeNull();
-    }
-
-    // ---------- Professional flows: parameterized & edge cases ----------
-
-    [Theory]
-    [InlineData(null, "User")]
-    [InlineData("Display Name", "User", "Artist")]
-    [InlineData("", "Admin")]
-    public void GenerateAccessToken_WithVariousDisplayNameAndRoles_ProducesValidTokenAndExtractableUserId(string? displayName, params string[] roles)
-    {
-        var userId = Guid.NewGuid();
-        var email = "u@test.com";
-        var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new(JwtRegisteredClaimNames.Email, email)
-        };
-        claims.AddRange(roles.Select(r => new Claim(System.Security.Claims.ClaimTypes.Role, r)));
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == email && r.DisplayName == displayName)))
-            .Returns(claims);
-
-        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, email, displayName, roles));
-
-        token.Should().NotBeNullOrWhiteSpace();
         _sut.ValidateToken(token).Should().BeTrue();
         _sut.GetUserIdFromToken(token).Should().Be(userId);
+        _sut.ValidateToken("not.a.jwt").Should().BeFalse();
+        _sut.ValidateToken("").Should().BeFalse();
+        _sut.GetUserIdFromToken("garbage").Should().BeNull();
     }
 
     [Fact]
-    public void GenerateAccessToken_WithEmptyRoles_UsesClaimsFactoryWithEmptyEnumerable()
+    public void ValidateToken_RejectsTokenSignedByUnknownKey()
+    {
+        var foreign = new TokenService(new ClaimsFactory(), _settings, new TestSigningKeyProvider(), _clock);
+        _sut.ValidateToken(foreign.GenerateAccessToken(Request(Guid.NewGuid()))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void KeyRotation_KeepsOldTokensValidUntilKeyIsRemoved()
+    {
+        var oldKey = _keys.Active;
+        var tokenFromOldKey = _sut.GenerateAccessToken(Request(Guid.NewGuid()));
+
+        _keys.AddKey(); // rotate: new tokens use the new key, old key still published
+        var tokenFromNewKey = _sut.GenerateAccessToken(Request(Guid.NewGuid()));
+
+        new JwtSecurityTokenHandler().ReadJwtToken(tokenFromNewKey).Header.Kid.Should().NotBe(oldKey.KeyId);
+        _sut.ValidateToken(tokenFromOldKey).Should().BeTrue();
+        _sut.ValidateToken(tokenFromNewKey).Should().BeTrue();
+
+        _keys.RemoveKey(oldKey); // retention window over
+        _sut.ValidateToken(tokenFromOldKey).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ValidateToken_RejectsWrongAudience()
+    {
+        var other = new TokenService(new ClaimsFactory(),
+            new AppSettings { Jwt = new JwtConfiguration { Issuer = "https://sso.test", Audience = "someone-else", AccessTokenExpirationMinutes = 15 } },
+            _keys, _clock);
+        _sut.ValidateToken(other.GenerateAccessToken(Request(Guid.NewGuid()))).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IdToken_HasClientAudienceNonceSidAndScopedClaims()
     {
         var userId = Guid.NewGuid();
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@test.com" && r.DisplayName == null && !r.Roles.Any())))
-            .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
+        var sid = Guid.NewGuid();
+        var token = _sut.GenerateIdToken(new IdTokenRequest(
+            userId, "client-1", "nonce-abc", sid, _clock.UtcNow.AddMinutes(-3),
+            new[] { "openid", "email" }, "u@test.com", true, "User", "user", "mfa"));
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
-        _sut.GenerateAccessToken(new AccessTokenRequest(userId, "e@test.com", null, Array.Empty<string>()));
-
-        _claimsFactoryMock.Verify(
-            x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@test.com" && r.DisplayName == null && !r.Roles.Any())),
-            Times.Once);
+        jwt.Audiences.Should().ContainSingle("client-1");
+        jwt.Claims.Should().Contain(c => c.Type == "nonce" && c.Value == "nonce-abc");
+        jwt.Claims.Should().Contain(c => c.Type == "sid" && c.Value == sid.ToString());
+        jwt.Claims.Should().Contain(c => c.Type == "email" && c.Value == "u@test.com");
+        jwt.Claims.Should().Contain(c => c.Type == "amr" && c.Value == "mfa");
+        jwt.Claims.Should().Contain(c => c.Type == "auth_time");
+        jwt.Claims.Should().NotContain(c => c.Type == "name", "profile scope was not granted");
     }
 
     [Fact]
-    public void GenerateRefreshToken_ProducesBase64DecodableValue()
+    public void LogoutToken_FollowsBackChannelLogoutSpec()
     {
-        var token = _sut.GenerateRefreshToken();
+        var sid = Guid.NewGuid().ToString();
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(_sut.GenerateLogoutToken(Guid.NewGuid(), sid, "client-1"));
 
-        var act = () => Convert.FromBase64String(token);
-        act.Should().NotThrow();
-        Convert.FromBase64String(token).Length.Should().Be(64);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("short")]
-    [InlineData("a.b.c")]
-    [InlineData("not-three-parts")]
-    public void ValidateToken_WithInvalidFormat_ReturnsFalse(string invalidToken)
-    {
-        _sut.ValidateToken(invalidToken).Should().BeFalse();
-    }
-
-    // ---------- Case đặc biệt: Null / Empty / Boundary ----------
-
-    [Fact]
-    public void GetUserIdFromToken_WhenTokenIsNull_ReturnsNull()
-    {
-        var result = _sut.GetUserIdFromToken(null!);
-
-        result.Should().BeNull();
+        jwt.Header.Typ.Should().Be("logout+jwt");
+        jwt.Audiences.Should().ContainSingle("client-1");
+        jwt.Claims.Should().Contain(c => c.Type == "sid" && c.Value == sid);
+        jwt.Claims.Should().Contain(c => c.Type == "jti");
+        jwt.Claims.Should().Contain(c => c.Type == "events" && c.Value.Contains("http://schemas.openid.net/event/backchannel-logout"));
+        jwt.Claims.Should().NotContain(c => c.Type == "nonce");
     }
 
     [Fact]
-    public void GetUserIdFromToken_WhenTokenIsEmptyString_ReturnsNull()
+    public void RefreshTokens_AreUrlSafeAndUnique()
     {
-        var result = _sut.GetUserIdFromToken("");
-
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void GenerateAccessToken_WhenSecretKeyExactly32Characters_ProducesValidToken()
-    {
-        var key32 = "12345678901234567890123456789012";
-        var svc = new TokenService(_claimsFactoryMock.Object, new AppSettings
-        {
-            Jwt = new JwtConfiguration
-            {
-                SecretKey = key32,
-                Issuer = "I",
-                Audience = "A",
-                AccessTokenExpirationMinutes = 60
-            }
-        });
-        var userId = Guid.NewGuid();
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "e@t.com")))
-            .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
-
-        var token = svc.GenerateAccessToken(new AccessTokenRequest(userId, "e@t.com", null, Array.Empty<string>()));
-
-        token.Should().NotBeNullOrWhiteSpace();
-        svc.ValidateToken(token).Should().BeTrue();
-        svc.GetUserIdFromToken(token).Should().Be(userId);
-    }
-
-    [Fact]
-    public void GenerateAccessToken_WhenEmailIsEmpty_StillProducesTokenWithSubClaim()
-    {
-        var userId = Guid.NewGuid();
-        _claimsFactoryMock
-            .Setup(x => x.CreateAccessTokenClaims(It.Is<AccessTokenRequest>(r => r.UserId == userId && r.Email == "")))
-            .Returns(new List<Claim> { new(JwtRegisteredClaimNames.Sub, userId.ToString()) });
-
-        var token = _sut.GenerateAccessToken(new AccessTokenRequest(userId, "", null, Array.Empty<string>()));
-
-        token.Should().NotBeNullOrWhiteSpace();
-        _sut.GetUserIdFromToken(token).Should().Be(userId);
-    }
-
-    [Fact]
-    public void GenerateRefreshToken_WhenCalledManyTimes_AllTokensUnique()
-    {
-        var tokens = new HashSet<string>();
-        for (var i = 0; i < 50; i++)
-            tokens.Add(_sut.GenerateRefreshToken());
-
-        tokens.Should().HaveCount(50);
+        var tokens = Enumerable.Range(0, 200).Select(_ => _sut.GenerateRefreshToken()).ToList();
+        tokens.Should().OnlyHaveUniqueItems();
+        tokens.Should().OnlyContain(t => t.Length >= 43 && t.All(c => char.IsAsciiLetterOrDigit(c) || c == '-' || c == '_'));
     }
 }

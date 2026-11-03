@@ -8,6 +8,10 @@ using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Features.Users.Commands;
 using UserService.Application.Features.Users.Queries;
 using UserService.Domain.Constants;
+using UserService.Api.Contracts.Account;
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Entities;
+using UserService.Domain.Repositories;
 
 namespace UserService.Api.Controllers;
 
@@ -182,5 +186,61 @@ public class UsersController(IMediator mediator) : ApiControllerBase
         var actorId = User.GetRequiredCurrentUserId();
         var result = await mediator.Send(new UnbanUserCommand(userId, actorId), cancellationToken);
         return OkResponse(result);
+    }
+
+    /// <summary>Active sessions (devices) of a user.</summary>
+    [HttpGet("{userId:guid}/sessions")]
+    [Authorize(Policy = AuthorizationPolicies.ViewUsers)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SessionDto>>>> GetUserSessions(
+        Guid userId,
+        [FromServices] ISessionService sessions,
+        CancellationToken cancellationToken = default)
+    {
+        var list = await sessions.ListActiveAsync(userId, cancellationToken);
+        return OkResponse<IReadOnlyList<SessionDto>>(list.Select(x => AccountController.ToDto(x, User.TryGetSessionId())).ToList());
+    }
+
+    /// <summary>Signs the user out everywhere: revokes all sessions and OAuth grants (with back-channel logout).</summary>
+    [HttpPost("{userId:guid}/sessions/revoke")]
+    [Authorize(Policy = AuthorizationPolicies.ManageUsers)]
+    public async Task<ActionResult<ApiResponse<SuccessResponse>>> RevokeUserSessions(
+        Guid userId,
+        [FromServices] ISessionService sessions,
+        [FromServices] IOAuthRefreshTokenRepository oauthTokens,
+        [FromServices] IUnitOfWork unitOfWork,
+        [FromServices] IAuditLogger audit,
+        CancellationToken cancellationToken = default)
+    {
+        var count = await sessions.RevokeAllAsync(userId, SessionRevocationReasons.AdminRevoked, cancellationToken: cancellationToken);
+        await oauthTokens.RevokeAllForUserAsync(userId, SessionRevocationReasons.AdminRevoked, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await audit.LogAsync(AuditEventTypes.SessionsRevokedAll, true, new AuditEntry(
+            TargetUserId: userId, TargetType: "user", TargetId: userId.ToString(), Details: new { sessions = count }), cancellationToken);
+        return OkSuccess($"Revoked {count} session(s) and all application grants.");
+    }
+
+    [HttpGet("{userId:guid}/mfa")]
+    [Authorize(Policy = AuthorizationPolicies.ViewUsers)]
+    public async Task<ActionResult<ApiResponse<MfaStatus>>> GetUserMfa(
+        Guid userId,
+        [FromServices] IMfaService mfa,
+        CancellationToken cancellationToken = default)
+        => OkResponse(await mfa.GetStatusAsync(userId, cancellationToken));
+
+    /// <summary>Removes a user's authenticator so they can re-enrol (e.g. lost device). Requires SECURITY.MANAGE.</summary>
+    [HttpPost("{userId:guid}/mfa/reset")]
+    [Authorize(Policy = AuthorizationPolicies.ManageSecurity)]
+    public async Task<ActionResult<ApiResponse<SuccessResponse>>> ResetUserMfa(
+        Guid userId,
+        [FromServices] IMfaService mfa,
+        [FromServices] ISessionService sessions,
+        [FromServices] IAuditLogger audit,
+        CancellationToken cancellationToken = default)
+    {
+        await mfa.AdminResetAsync(userId, cancellationToken);
+        await sessions.RevokeAllAsync(userId, SessionRevocationReasons.MfaChanged, cancellationToken: cancellationToken);
+        await audit.LogAsync(AuditEventTypes.MfaDisabled, true, new AuditEntry(
+            TargetUserId: userId, TargetType: "user", TargetId: userId.ToString(), Reason: "admin_reset"), cancellationToken);
+        return OkSuccess("MFA has been reset. The user must enrol again.");
     }
 }

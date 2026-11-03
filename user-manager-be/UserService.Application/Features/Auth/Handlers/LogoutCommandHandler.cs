@@ -1,46 +1,53 @@
 using MediatR;
+using UserService.Application.Common;
 using UserService.Application.Features.Auth.Commands;
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Entities;
+using UserService.Domain.Repositories;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Unit>
 {
-    private readonly IIdentityService _identityService;
-    private readonly IApplicationMembershipService _userApplicationService;
-    private readonly IApplicationAppService _applicationService;
-    private readonly IBackchannelLogoutService _backchannelLogoutService;
+    private readonly ISessionService _sessions;
+    private readonly IUserSessionRepository _sessionRepository;
+    private readonly IAuditLogger _audit;
 
-    public LogoutCommandHandler(
-        IIdentityService identityService,
-        IApplicationMembershipService userApplicationService,
-        IApplicationAppService applicationService,
-        IBackchannelLogoutService backchannelLogoutService)
+    public LogoutCommandHandler(ISessionService sessions, IUserSessionRepository sessionRepository, IAuditLogger audit)
     {
-        _identityService = identityService;
-        _userApplicationService = userApplicationService;
-        _applicationService = applicationService;
-        _backchannelLogoutService = backchannelLogoutService;
+        _sessions = sessions;
+        _sessionRepository = sessionRepository;
+        _audit = audit;
     }
 
     public async Task<Unit> Handle(LogoutCommand command, CancellationToken cancellationToken)
     {
-        await _identityService.UpdateRefreshTokenAsync(
-            command.UserId,
-            string.Empty,
-            DateTime.UtcNow,
-            cancellationToken);
+        var sessionId = command.SessionId;
+        var userId = command.UserId;
 
-        var userApps = await _userApplicationService.GetByUserAsync(command.UserId, cancellationToken);
-        var sessionId = Guid.NewGuid().ToString();
-
-        foreach (var ua in userApps)
+        // Allow logout with only the refresh-token cookie (e.g. access token already expired).
+        if (!sessionId.HasValue && !string.IsNullOrWhiteSpace(command.RefreshToken))
         {
-            if (!ua.IsActive) continue;
-            
-            var app = await _applicationService.GetByIdAsync(ua.ApplicationId, cancellationToken);
-            if (app != null && app.IsActive && app.BackchannelLogoutUri is not null && !string.IsNullOrWhiteSpace(app.BackchannelLogoutUri.Value))
+            var session = await _sessionRepository.GetByRefreshTokenHashAsync(SecureTokens.Hash(command.RefreshToken.Trim()), cancellationToken);
+            sessionId = session?.Id;
+            userId ??= session?.UserId;
+        }
+
+        if (command.AllSessions && userId.HasValue)
+        {
+            var count = await _sessions.RevokeAllAsync(userId.Value, SessionRevocationReasons.Logout, cancellationToken: cancellationToken);
+            await _audit.LogAsync(AuditEventTypes.Logout, true, new AuditEntry(ActorUserId: userId, Details: new { scope = "all", sessions = count }), cancellationToken);
+            return Unit.Value;
+        }
+
+        if (sessionId.HasValue)
+        {
+            var session = await _sessions.GetAsync(sessionId.Value, cancellationToken);
+            // A caller may only end its own session.
+            if (session is not null && (!userId.HasValue || session.UserId == userId.Value))
             {
-                await _backchannelLogoutService.SendLogoutTokenAsync(command.UserId, sessionId, app.BackchannelLogoutUri.Value, cancellationToken);
+                await _sessions.RevokeAsync(session.Id, SessionRevocationReasons.Logout, cancellationToken);
+                await _audit.LogAsync(AuditEventTypes.Logout, true, new AuditEntry(ActorUserId: session.UserId, SessionId: session.Id), cancellationToken);
             }
         }
 

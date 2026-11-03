@@ -26,6 +26,7 @@ public sealed class MagicLinkToken : Entity<Guid>
         IpAddress = ipAddress;
         UserAgent = userAgent;
         CreatedAt = createdAt;
+        Version = Guid.NewGuid();
     }
     
     public static MagicLinkToken Create(
@@ -45,6 +46,7 @@ public sealed class MagicLinkToken : Entity<Guid>
 
     public User User { get; private set; } = null!;
     
+    /// <summary>SHA-256 hash of the token sent by email (the raw token is never stored).</summary>
     public TokenValue Token { get; private set; } = null!;
     public string Purpose { get; private set; } = string.Empty;
     public string? Email { get; private set; }
@@ -55,6 +57,8 @@ public sealed class MagicLinkToken : Entity<Guid>
     
     public string? IpAddress { get; private set; }
     public string? UserAgent { get; private set; }
+    /// <summary>Optimistic concurrency token so a link can only be redeemed once under concurrent requests.</summary>
+    public Guid Version { get; private set; }
     public bool IsValid(DateTime utcNow)
     {
         return !IsUsed && utcNow <= ExpiresAt;
@@ -64,5 +68,6 @@ public sealed class MagicLinkToken : Entity<Guid>
     {
         IsUsed = true;
         UsedAt = usedAt;
+        Version = Guid.NewGuid();
     }
 }

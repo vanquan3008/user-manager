@@ -74,7 +74,10 @@ public static class DatabaseServiceExtensions
         {
             using var scope = app.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<UserDbContext>();
-            await dbContext.Database.MigrateAsync();
+            if (dbContext.Database.IsRelational())
+                await dbContext.Database.MigrateAsync();
+            else
+                await dbContext.Database.EnsureCreatedAsync(); // non-relational providers (integration tests)
             app.Logger.LogInformation("UserService: Database migrations applied.");
         }
         catch (Exception ex)

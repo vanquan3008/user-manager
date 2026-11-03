@@ -63,7 +63,9 @@ public sealed class OAuthAuthorizationCodeConfiguration : IEntityTypeConfigurati
         builder.ToTable("OAuthAuthorizationCodes");
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Code).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.CodeHash).HasColumnName("CodeHash").IsRequired().HasMaxLength(128);
+        builder.Property(x => x.Nonce).HasMaxLength(256);
+        builder.Property(x => x.Version).IsConcurrencyToken();
         builder.Property(x => x.RedirectUri).IsRequired().HasMaxLength(500);
         builder.Property(x => x.Scopes).HasMaxLength(1000);
         builder.Property(x => x.CodeChallenge).IsRequired().HasMaxLength(200);
@@ -79,7 +81,7 @@ public sealed class OAuthAuthorizationCodeConfiguration : IEntityTypeConfigurati
               .HasForeignKey(x => x.ApplicationId)
               .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.CodeHash).IsUnique();
         builder.HasIndex(x => x.ExpiresAtUtc);
         builder.HasIndex(x => new { x.ApplicationId, x.UserId });
     }
@@ -94,6 +96,8 @@ public sealed class OAuthRefreshTokenConfiguration : IEntityTypeConfiguration<OA
 
         builder.Property(x => x.TokenHash).HasConversion(x => x.Value, x => UserService.Domain.ValueObjects.TokenValue.Create(x)).IsRequired().HasMaxLength(128);
         builder.Property(x => x.Scopes).HasMaxLength(1000);
+        builder.Property(x => x.RevokedReason).HasMaxLength(50);
+        builder.Property(x => x.Version).IsConcurrencyToken();
 
         builder.HasOne(x => x.User)
               .WithMany()
@@ -106,6 +110,7 @@ public sealed class OAuthRefreshTokenConfiguration : IEntityTypeConfiguration<OA
               .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => new { x.UserId, x.ApplicationId });
+        builder.HasIndex(x => x.SessionId);
         builder.HasIndex(x => x.ApplicationId);
         builder.HasIndex(x => x.ExpiresAtUtc);
         builder.HasIndex(x => x.RevokedAtUtc);

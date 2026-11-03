@@ -65,16 +65,22 @@ public class ExceptionHandlingMiddleware(
             return true;
         }
 
+        // A dead refresh token must not linger in the browser; a superseded one (multi-tab race) is kept
+        // because the browser already holds the newer cookie.
         if (context.Request.Path.StartsWithSegments("/api/auth/refresh") &&
-            (exception is UnauthorizedAccessException or DomainAuthException))
+            (exception is UnauthorizedAccessException or DomainAuthException or UnauthorizedException ||
+             exception is AuthenticationFlowException { Code: not AuthErrorCodes.RefreshTokenSuperseded }))
         {
-            context.Response.Cookies.Delete(AuthCookieNames.RefreshToken, new CookieOptions
+            foreach (var path in new[] { "/api/auth", "/" })
             {
-                HttpOnly = true,
-                Secure = context.Request.IsHttps,
-                SameSite = context.Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
-                Path = "/"
-            });
+                context.Response.Cookies.Delete(AuthCookieNames.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = context.Request.IsHttps,
+                    SameSite = context.Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
+                    Path = path
+                });
+            }
         }
 
         return false;
@@ -86,7 +92,14 @@ public class ExceptionHandlingMiddleware(
         var message = GetSafeErrorMessage(exception);
         var requestId = context.Items["RequestId"]?.ToString() ?? context.TraceIdentifier;
 
-        var error = new ErrorDetail(exception.GetType().Name, message, GetValidationErrors(exception));
+        var code = exception switch
+        {
+            AuthenticationFlowException flow => flow.Code,
+            OAuthProtocolException oauth => oauth.Error,
+            BusinessRuleValidationException rule when rule.RuleName != "Unknown" => rule.RuleName,
+            _ => exception.GetType().Name
+        };
+        var error = new ErrorDetail(code, message, GetValidationErrors(exception));
 
         var response = new ApiResponse<object>(false, null, title, error);
 
@@ -122,6 +135,11 @@ public class ExceptionHandlingMiddleware(
             RoleAlreadyExistsException => (HttpStatusCode.BadRequest, "Role Already Exists"),
             InvalidDomainObjectException => (HttpStatusCode.BadRequest, "Invalid Domain Object"),
             DomainAuthException => (HttpStatusCode.Unauthorized, "Authentication Failed"),
+            AuthenticationFlowException => (HttpStatusCode.Unauthorized, "Authentication Failed"),
+            UnauthorizedException => (HttpStatusCode.Unauthorized, "Unauthorized"),
+            OAuthProtocolException { Error: OAuthErrors.InvalidClient } => (HttpStatusCode.Unauthorized, "Invalid Client"),
+            OAuthProtocolException => (HttpStatusCode.BadRequest, "OAuth Error"),
+            ConcurrencyConflictException => (HttpStatusCode.Conflict, "Conflict"),
             DuplicateUserException => (HttpStatusCode.Conflict, "User Already Exists"),
             BusinessRuleValidationException => (HttpStatusCode.UnprocessableEntity, "Business Rule Violation"),
             DomainOperationNotAllowedException => (HttpStatusCode.Forbidden, "Operation Not Allowed"),
@@ -129,7 +147,7 @@ public class ExceptionHandlingMiddleware(
             ArgumentNullException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
             ArgumentException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
             InvalidOperationException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
-            KeyNotFoundException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
+            KeyNotFoundException => (HttpStatusCode.NotFound, "Resource Not Found"),
             FileNotFoundException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
             InvalidDataException => (HttpStatusCode.InternalServerError, "Internal Server Error"),
             TimeoutException => (HttpStatusCode.RequestTimeout, "Request Timeout"),
@@ -144,6 +162,10 @@ public class ExceptionHandlingMiddleware(
     private string GetSafeErrorMessage(Exception exception)
     {
         if (exception is UserService.Domain.Exceptions.DomainException)
+        {
+            return exception.Message;
+        }
+        if (exception is KeyNotFoundException)
         {
             return exception.Message;
         }

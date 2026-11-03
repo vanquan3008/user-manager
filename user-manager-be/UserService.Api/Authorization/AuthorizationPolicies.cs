@@ -31,6 +31,9 @@ public static class AuthorizationPolicies
     public const string ExportReports = PermissionPolicyPrefix + PermissionCodes.ExportReports;
     // Audit & Logs
     public const string ViewAuditLogs = PermissionPolicyPrefix + PermissionCodes.ViewAuditLogs;
+    // Security
+    public const string ViewSecurity = PermissionPolicyPrefix + PermissionCodes.ViewSecurity;
+    public const string ManageSecurity = PermissionPolicyPrefix + PermissionCodes.ManageSecurity;
     // Subscriptions catalog and plan operations
     public const string ViewSubscriptions = PermissionPolicyPrefix + PermissionCodes.ViewSubscriptions;
     public const string ManageSubscriptions = PermissionPolicyPrefix + PermissionCodes.ManageSubscriptions;

@@ -15,10 +15,15 @@ public static class SerilogExtensions
                 .Enrich.WithProperty("Environment", context.HostingEnvironment.EnvironmentName)
                 .Enrich.WithMachineName()
                 .Enrich.WithThreadId()
-                .WriteTo.Debug()
-                .WriteTo.Console(
+                .WriteTo.Debug();
+
+            // LOG_FORMAT=json emits structured (CLEF) logs for log aggregation in production.
+            if (string.Equals(Environment.GetEnvironmentVariable("LOG_FORMAT"), "json", StringComparison.OrdinalIgnoreCase))
+                loggerConfig.WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter());
+            else
+                loggerConfig.WriteTo.Console(
                     outputTemplate:
-                    "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] {SourceContext}: {Message:lj}{NewLine}{Exception}");
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj} {CorrelationId}{NewLine}{Exception}");
 
             if (!context.HostingEnvironment.IsDevelopment())
             {

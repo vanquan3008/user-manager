@@ -38,11 +38,15 @@ try
         Log.Information("Auto-migration is disabled. Skipping database migration and seeding.");
     }
     
+    // Load (or create on first start) the RS256 signing key ring before serving requests.
+    await app.Services.GetRequiredService<UserService.Application.Interfaces.Services.Security.ISigningKeyProvider>()
+        .EnsureInitializedAsync();
+
     app.UseApiPipeline(appSettings);
 
     app.Run();
 }
-catch (Exception ex) when (ex is not HostAbortedException)
+catch (Exception ex) when (ex is not HostAbortedException && ex.Source != "Microsoft.EntityFrameworkCore.Design")
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
 }
@@ -50,3 +54,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+/// <summary>Entry point marker for integration tests (WebApplicationFactory).</summary>
+public partial class Program;

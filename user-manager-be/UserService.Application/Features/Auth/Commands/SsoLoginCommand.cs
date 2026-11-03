@@ -14,8 +14,12 @@ public sealed record SsoLoginCommand(
 
 public sealed record SsoLoginResponse(
     string AccessToken,
-    string RefreshToken,
-    SsoUserDto User
+    string? RefreshToken,
+    SsoUserDto User,
+    bool MfaRequired = false,
+    string? MfaToken = null,
+    DateTime? MfaExpiresAt = null,
+    Guid? SessionId = null
 );
 
 public sealed record SsoUserDto(

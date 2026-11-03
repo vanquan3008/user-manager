@@ -1,5 +1,7 @@
 using UserService.Application.Configuration;
 using UserService.Application.DTOs.Auth;
+using UserService.Application.Features.Auth.Commands;
+using UserService.Application.Interfaces.Services.Security;
 using UserService.Application.Mapping;
 using UserService.Application.Interfaces.Services;
 using UserService.Domain.Constants;
@@ -10,6 +12,10 @@ using UserService.Domain.Repositories;
 
 namespace UserService.Application.Services.Auth;
 
+/// <summary>
+/// Single place where authenticated sessions are turned into token responses.
+/// Every response is backed by a server-side <see cref="UserSession"/>; the access token carries its id (<c>sid</c>).
+/// </summary>
 public sealed class AuthResponseFactory
 {
     private readonly IIdentityService _identityService;
@@ -17,7 +23,9 @@ public sealed class AuthResponseFactory
     private readonly ITokenService _tokenService;
     private readonly IUserPermissionService _userPermissionService;
     private readonly IApplicationAccessService _applicationAccessService;
-    private readonly IApplicationMembershipService _membershipService;
+    private readonly ISessionService _sessions;
+    private readonly IMfaChallengeService _mfaChallenges;
+    private readonly IAuditLogger _audit;
     private readonly IClock _clock;
     private readonly AppSettings _appSettings;
 
@@ -27,7 +35,9 @@ public sealed class AuthResponseFactory
         ITokenService tokenService,
         IUserPermissionService userPermissionService,
         IApplicationAccessService applicationAccessService,
-        IApplicationMembershipService membershipService,
+        ISessionService sessions,
+        IMfaChallengeService mfaChallenges,
+        IAuditLogger audit,
         IClock clock,
         AppSettings appSettings)
     {
@@ -36,106 +46,159 @@ public sealed class AuthResponseFactory
         _tokenService = tokenService;
         _userPermissionService = userPermissionService;
         _applicationAccessService = applicationAccessService;
-        _membershipService = membershipService;
+        _sessions = sessions;
+        _mfaChallenges = mfaChallenges;
+        _audit = audit;
         _clock = clock;
         _appSettings = appSettings;
     }
 
-    public async Task<AuthResponse> BuildUserAuthResponseAsync(
-        Guid userId,
+    /// <summary>
+    /// Completes a first-factor sign-in: returns an MFA challenge when the account has MFA enabled,
+    /// otherwise opens a session and issues tokens.
+    /// </summary>
+    public async Task<AuthResponse> CompleteConsoleSignInAsync(
+        IdentityUserDto user,
         Guid? applicationId,
+        string authenticationMethod,
         CancellationToken cancellationToken = default)
     {
-        var appUser = await _identityService.GetUserByIdAsync(userId, cancellationToken);
-        if (appUser == null)
-            throw new UnauthorizedException("User not found");
+        if (user.TwoFactorEnabled)
+        {
+            var (token, expiresAt) = _mfaChallenges.Create(new MfaChallenge(user.Id, UserSessionKinds.Console, authenticationMethod, applicationId));
+            await _audit.LogAsync(AuditEventTypes.LoginMfaChallenged, true, new AuditEntry(ActorUserId: user.Id, ActorEmail: user.Email), cancellationToken);
+            var domainUser = await RequireDomainUserAsync(user.Id, cancellationToken);
+            return new AuthResponse(string.Empty, null, expiresAt, ToUserDto(domainUser, user, Array.Empty<string>()),
+                MfaRequired: true, MfaToken: token, MfaExpiresAt: expiresAt);
+        }
 
-        var domainUser = await _userRepository.GetByIdAsync(userId, cancellationToken);
-        if (domainUser == null)
-            throw new EntityNotFoundException(nameof(User), userId);
+        return await StartConsoleSessionAsync(user.Id, applicationId, authenticationMethod, cancellationToken);
+    }
+
+    public async Task<AuthResponse> StartConsoleSessionAsync(
+        Guid userId,
+        Guid? applicationId,
+        string authenticationMethod,
+        CancellationToken cancellationToken = default)
+    {
+        var (roles, permissions) = await ResolveAccessAsync(userId, applicationId, cancellationToken);
+        var issued = await _sessions.StartAsync(userId, UserSessionKinds.Console, authenticationMethod, applicationId, cancellationToken);
+        await _identityService.RecordSuccessfulLoginAsync(userId, cancellationToken);
+        await _audit.LogAsync(
+            authenticationMethod == AuthenticationMethods.MagicLink ? AuditEventTypes.MagicLinkLogin : AuditEventTypes.LoginSucceeded,
+            true,
+            new AuditEntry(ActorUserId: userId, SessionId: issued.Session.Id, ApplicationId: applicationId, Details: new { method = authenticationMethod }),
+            cancellationToken);
+        return await BuildConsoleResponseAsync(userId, issued, roles, permissions, cancellationToken);
+    }
+
+    /// <summary>Re-issues tokens for a session after refresh-token rotation.</summary>
+    public async Task<AuthResponse> BuildRefreshedResponseAsync(IssuedSession issued, CancellationToken cancellationToken = default)
+    {
+        if (issued.Session.SessionKind == UserSessionKinds.HostedSso)
+        {
+            if (!await _identityService.IsSignInAllowedAsync(issued.Session.UserId, cancellationToken))
+                throw new AuthenticationFlowException(AuthErrorCodes.AccountDisabled, "This account is disabled or locked.");
+
+            var sso = await BuildHostedSsoResponseAsync(issued, cancellationToken);
+            var appUser = await _identityService.GetUserByIdAsync(issued.Session.UserId, cancellationToken)
+                          ?? throw new AuthenticationFlowException(AuthErrorCodes.InvalidCredentials, "User not found.");
+            var domainUser = await RequireDomainUserAsync(issued.Session.UserId, cancellationToken);
+            return new AuthResponse(
+                sso.AccessToken,
+                sso.RefreshToken,
+                _clock.UtcNow.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes),
+                ToUserDto(domainUser, appUser, sso.User.Roles),
+                SessionId: issued.Session.Id);
+        }
+
+        var (roles, permissions) = await ResolveAccessAsync(issued.Session.UserId, issued.Session.ApplicationId, cancellationToken);
+        return await BuildConsoleResponseAsync(issued.Session.UserId, issued, roles, permissions, cancellationToken);
+    }
+
+    public async Task<SsoLoginResponse> CompleteHostedSsoSignInAsync(
+        IdentityUserDto user,
+        string authenticationMethod,
+        CancellationToken cancellationToken = default)
+    {
+        if (user.TwoFactorEnabled)
+        {
+            var (token, expiresAt) = _mfaChallenges.Create(new MfaChallenge(user.Id, UserSessionKinds.HostedSso, authenticationMethod, null));
+            await _audit.LogAsync(AuditEventTypes.LoginMfaChallenged, true, new AuditEntry(ActorUserId: user.Id, ActorEmail: user.Email), cancellationToken);
+            var domainUser = await RequireDomainUserAsync(user.Id, cancellationToken);
+            return new SsoLoginResponse(string.Empty, null,
+                new SsoUserDto(user.Id, user.Email, user.UserName, domainUser.Name.DisplayName, Array.Empty<string>(), Array.Empty<string>()),
+                MfaRequired: true, MfaToken: token, MfaExpiresAt: expiresAt);
+        }
+
+        return await StartHostedSsoSessionAsync(user.Id, authenticationMethod, cancellationToken);
+    }
+
+    public async Task<SsoLoginResponse> StartHostedSsoSessionAsync(Guid userId, string authenticationMethod, CancellationToken cancellationToken = default)
+    {
+        var issued = await _sessions.StartAsync(userId, UserSessionKinds.HostedSso, authenticationMethod, null, cancellationToken);
+        await _identityService.RecordSuccessfulLoginAsync(userId, cancellationToken);
+        await _audit.LogAsync(AuditEventTypes.LoginSucceeded, true,
+            new AuditEntry(ActorUserId: userId, SessionId: issued.Session.Id, Details: new { method = authenticationMethod, kind = UserSessionKinds.HostedSso }),
+            cancellationToken);
+        return await BuildHostedSsoResponseAsync(issued, cancellationToken);
+    }
+
+    public async Task<SsoLoginResponse> BuildHostedSsoResponseAsync(IssuedSession issued, CancellationToken cancellationToken = default)
+    {
+        var userId = issued.Session.UserId;
+        var appUser = await _identityService.GetUserByIdAsync(userId, cancellationToken)
+                      ?? throw new AuthenticationFlowException(AuthErrorCodes.InvalidCredentials, "User not found.");
+        var domainUser = await RequireDomainUserAsync(userId, cancellationToken);
+        var roles = await _identityService.GetUserRolesAsync(userId, cancellationToken);
+
+        // The hosted SSO token only authenticates the user to the auth center (authorize/consent);
+        // it carries no application permissions.
+        var accessToken = _tokenService.GenerateAccessToken(new AccessTokenRequest(
+            userId,
+            appUser.Email,
+            domainUser.Name.DisplayName,
+            roles,
+            Permissions: Array.Empty<string>(),
+            SessionId: issued.Session.Id,
+            AuthenticationMethod: issued.Session.AuthenticationMethod));
+
+        return new SsoLoginResponse(
+            accessToken,
+            issued.RefreshToken,
+            new SsoUserDto(userId, appUser.Email, appUser.UserName, domainUser.Name.DisplayName, roles.ToList(), Array.Empty<string>()),
+            SessionId: issued.Session.Id);
+    }
+
+    private async Task<(IList<string> Roles, IReadOnlyList<string> Permissions)> ResolveAccessAsync(
+        Guid userId, Guid? applicationId, CancellationToken cancellationToken)
+    {
+        if (!await _identityService.IsSignInAllowedAsync(userId, cancellationToken))
+            throw new AuthenticationFlowException(AuthErrorCodes.AccountDisabled, "This account is disabled or locked.");
 
         var roles = await _identityService.GetUserRolesAsync(userId, cancellationToken);
-        if (applicationId.HasValue)
+        if (applicationId.HasValue &&
+            !await _applicationAccessService.HasAccessAsync(userId, applicationId.Value, roles, cancellationToken))
         {
-            var hasAccess = await _applicationAccessService.HasAccessAsync(
-                userId,
-                applicationId.Value,
-                roles,
-                cancellationToken);
-
-            if (!hasAccess)
-                throw new UnauthorizedException("User does not have active access to this application.");
+            throw new UnauthorizedException("User does not have active access to this application.");
         }
 
         var permissions = applicationId.HasValue
             ? await _userPermissionService.GetPermissionCodesForUserAsync(userId, applicationId.Value, cancellationToken)
             : await _userPermissionService.GetPermissionCodesForUserAsync(userId, cancellationToken);
-
-        var accessToken = _tokenService.GenerateAccessToken(new AccessTokenRequest(
-            userId,
-            appUser.Email,
-            appUser.UserName,
-            roles,
-            permissions,
-            applicationId));
-
-        var refreshToken = _tokenService.GenerateRefreshToken();
-        var expiresAt = _clock.UtcNow.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes);
-
-        await _identityService.UpdateRefreshTokenAsync(
-            userId,
-            refreshToken,
-            _clock.UtcNow.AddDays(_appSettings.Jwt.RefreshTokenExpirationDays),
-            cancellationToken);
-
-        var userDto = UserDtoMapper.ToDto(domainUser) with
-        {
-            IsEmailVerified = appUser.EmailConfirmed,
-            IsActive = appUser.IsActive,
-            Roles = roles
-        };
-
-        return new AuthResponse(accessToken, refreshToken, expiresAt, userDto);
+        return (roles, permissions);
     }
 
-    public async Task<AuthResponse> BuildSSOAuthResponseAsync(
+    private async Task<AuthResponse> BuildConsoleResponseAsync(
         Guid userId,
-        CancellationToken cancellationToken = default)
+        IssuedSession issued,
+        IList<string> roles,
+        IReadOnlyList<string> permissions,
+        CancellationToken cancellationToken)
     {
-        var appUser = await _identityService.GetUserByIdAsync(userId, cancellationToken);
-        if (appUser == null)
-            throw new UnauthorizedException("User not found");
-
-        var domainUser = await _userRepository.GetByIdAsync(userId, cancellationToken);
-        if (domainUser == null)
-            throw new EntityNotFoundException(nameof(User), userId);
-
-        var roles = await _identityService.GetUserRolesAsync(userId, cancellationToken);
-        var permissions = await _userPermissionService.GetPermissionCodesForUserAsync(userId, cancellationToken);
-
-        var isSystemAdmin = RoleNames.ContainsSuperAdmin(roles);
-        var userApps = await _membershipService.GetByUserAsync(userId, cancellationToken);
-        var activeMemberships = new List<ApplicationMembership>();
-
-        foreach (var membership in userApps.Where(item => item.IsActive))
-        {
-            var hasAccess = await _applicationAccessService.HasAccessAsync(
-                userId,
-                membership.ApplicationId,
-                roles,
-                cancellationToken);
-
-            if (hasAccess)
-                activeMemberships.Add(membership);
-        }
-
-        var ssoAppIds = activeMemberships
-            .Select(item => item.ApplicationId)
-            .Distinct()
-            .ToList();
-
-        if (!isSystemAdmin && ssoAppIds.Count == 0)
-            throw new UnauthorizedException("SSO account has no authorized applications. Contact an administrator.");
+        var appUser = await _identityService.GetUserByIdAsync(userId, cancellationToken)
+                      ?? throw new AuthenticationFlowException(AuthErrorCodes.InvalidCredentials, "User not found.");
+        var domainUser = await RequireDomainUserAsync(userId, cancellationToken);
 
         var accessToken = _tokenService.GenerateAccessToken(new AccessTokenRequest(
             userId,
@@ -143,31 +206,23 @@ public sealed class AuthResponseFactory
             appUser.UserName,
             roles,
             permissions,
-            ApplicationId: null,
-            Scope: null,
-            SSOAppIds: null));
+            issued.Session.ApplicationId,
+            SessionId: issued.Session.Id,
+            AuthenticationMethod: issued.Session.AuthenticationMethod));
 
-        var refreshToken = _tokenService.GenerateRefreshToken();
         var expiresAt = _clock.UtcNow.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes);
+        return new AuthResponse(accessToken, issued.RefreshToken, expiresAt, ToUserDto(domainUser, appUser, roles), SessionId: issued.Session.Id);
+    }
 
-        await _identityService.UpdateRefreshTokenAsync(
-            userId,
-            refreshToken,
-            _clock.UtcNow.AddDays(_appSettings.Jwt.RefreshTokenExpirationDays),
-            cancellationToken);
+    private async Task<User> RequireDomainUserAsync(Guid userId, CancellationToken cancellationToken)
+        => await _userRepository.GetByIdAsync(userId, cancellationToken)
+           ?? throw new EntityNotFoundException(nameof(User), userId);
 
-        var userDto = UserDtoMapper.ToDto(domainUser) with
+    private static DTOs.Users.UserDto ToUserDto(User domainUser, IdentityUserDto appUser, IEnumerable<string> roles)
+        => UserDtoMapper.ToDto(domainUser) with
         {
             IsEmailVerified = appUser.EmailConfirmed,
             IsActive = appUser.IsActive,
             Roles = roles
         };
-
-        return new AuthResponse(
-            accessToken,
-            refreshToken,
-            expiresAt,
-            userDto,
-            RequiresEmailVerification: false);
-    }
 }

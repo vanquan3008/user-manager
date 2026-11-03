@@ -1,12 +1,12 @@
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
+using UserService.Application.Common;
 using UserService.Application.Configuration;
 using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
-using UserService.Domain.Exceptions;
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Interfaces;
 
 namespace UserService.Application.Services;
 
@@ -14,64 +14,89 @@ public class TokenService : ITokenService
 {
     private readonly IClaimsFactory _claimsFactory;
     private readonly AppSettings _appSettings;
+    private readonly ISigningKeyProvider _keys;
+    private readonly IClock _clock;
 
-    public TokenService(IClaimsFactory claimsFactory, AppSettings appSettings)
+    public TokenService(IClaimsFactory claimsFactory, AppSettings appSettings, ISigningKeyProvider keys, IClock clock)
     {
         _claimsFactory = claimsFactory;
         _appSettings = appSettings;
+        _keys = keys;
+        _clock = clock;
     }
 
     public string GenerateAccessToken(AccessTokenRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-
         var claims = _claimsFactory.CreateAccessTokenClaims(request);
+        var now = _clock.UtcNow;
 
-        var jwt = _appSettings.Jwt;
-        if (string.IsNullOrWhiteSpace(jwt.SecretKey))
-            throw new InvalidOperationException("JWT SecretKey is missing.");
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SecretKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: jwt.Issuer,
-            audience: jwt.Audience,
-            claims: claims.ToList(),
-            expires: DateTime.UtcNow.AddMinutes(jwt.AccessTokenExpirationMinutes),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Write(new SecurityTokenDescriptor
+        {
+            Issuer = _appSettings.Jwt.Issuer,
+            Audience = _appSettings.Jwt.Audience,
+            Subject = new ClaimsIdentity(claims),
+            IssuedAt = now,
+            NotBefore = now,
+            Expires = now.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes),
+            SigningCredentials = _keys.GetSigningCredentials(),
+            TokenType = "at+jwt"
+        });
     }
 
-    public string GenerateRefreshToken()
+    public string GenerateIdToken(IdTokenRequest request)
     {
-        var randomBytes = new byte[64];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        return Convert.ToBase64String(randomBytes);
+        ArgumentNullException.ThrowIfNull(request);
+        var now = _clock.UtcNow;
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, request.UserId.ToString()),
+            new(JwtRegisteredClaimNames.AuthTime, ToUnix(request.AuthTime).ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Azp, request.ClientId)
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.Nonce))
+            claims.Add(new Claim(JwtRegisteredClaimNames.Nonce, request.Nonce));
+        if (request.SessionId.HasValue)
+            claims.Add(new Claim("sid", request.SessionId.Value.ToString()));
+        if (!string.IsNullOrWhiteSpace(request.AuthenticationMethod))
+            claims.Add(new Claim("amr", request.AuthenticationMethod));
+
+        var scopes = new HashSet<string>(request.Scopes, StringComparer.OrdinalIgnoreCase);
+        if (scopes.Contains("email") && !string.IsNullOrWhiteSpace(request.Email))
+        {
+            claims.Add(new Claim(JwtRegisteredClaimNames.Email, request.Email));
+            claims.Add(new Claim("email_verified", request.EmailVerified ? "true" : "false", ClaimValueTypes.Boolean));
+        }
+        if (scopes.Contains("profile"))
+        {
+            if (!string.IsNullOrWhiteSpace(request.Name))
+                claims.Add(new Claim(JwtRegisteredClaimNames.Name, request.Name));
+            if (!string.IsNullOrWhiteSpace(request.PreferredUsername))
+                claims.Add(new Claim("preferred_username", request.PreferredUsername));
+        }
+
+        return Write(new SecurityTokenDescriptor
+        {
+            Issuer = _appSettings.Jwt.Issuer,
+            Audience = request.ClientId,
+            Subject = new ClaimsIdentity(claims),
+            IssuedAt = now,
+            NotBefore = now,
+            Expires = now.AddMinutes(_appSettings.Jwt.AccessTokenExpirationMinutes),
+            SigningCredentials = _keys.GetSigningCredentials()
+        });
     }
+
+    public string GenerateRefreshToken() => SecureTokens.Create();
 
     public bool ValidateToken(string token)
     {
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
         try
         {
-            var jwt = _appSettings.Jwt;
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(jwt.SecretKey);
-
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwt.Issuer,
-                ValidAudience = jwt.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ClockSkew = TimeSpan.Zero
-            }, out _);
-
+            new JwtSecurityTokenHandler { MapInboundClaims = false }.ValidateToken(token, CreateValidationParameters(), out _);
             return true;
         }
         catch
@@ -84,17 +109,9 @@ public class TokenService : ITokenService
     {
         try
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var jwtToken = tokenHandler.ReadJwtToken(token);
-            
+            var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
             var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub);
-            
-            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return userId;
-            }
-
-            return null;
+            return userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId) ? userId : null;
         }
         catch
         {
@@ -102,31 +119,53 @@ public class TokenService : ITokenService
         }
     }
 
-    public string GenerateLogoutToken(Guid userId, string sessionId)
+    public string GenerateLogoutToken(Guid userId, string sessionId, string audience)
     {
-        var jwt = _appSettings.Jwt;
-        if (string.IsNullOrWhiteSpace(jwt.SecretKey))
-            throw new InvalidOperationException("JWT SecretKey is missing.");
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SecretKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+        var now = _clock.UtcNow;
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
-            new("sid", sessionId),
-            new("events", "{\"http://schemas.openid.net/event/backchannel-logout\":{}}", ClaimValueTypes.String)
+            new("sid", sessionId)
         };
 
-        var token = new JwtSecurityToken(
-            issuer: jwt.Issuer,
-            audience: jwt.Audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(5), 
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Write(new SecurityTokenDescriptor
+        {
+            Issuer = _appSettings.Jwt.Issuer,
+            Audience = audience,
+            Subject = new ClaimsIdentity(claims),
+            IssuedAt = now,
+            Expires = now.AddMinutes(2),
+            Claims = new Dictionary<string, object>
+            {
+                ["events"] = new Dictionary<string, object>
+                {
+                    ["http://schemas.openid.net/event/backchannel-logout"] = new Dictionary<string, object>()
+                }
+            },
+            SigningCredentials = _keys.GetSigningCredentials(),
+            TokenType = "logout+jwt"
+        });
     }
+
+    public TokenValidationParameters CreateValidationParameters() => new()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = _appSettings.Jwt.Issuer,
+        ValidAudience = _appSettings.Jwt.Audience,
+        IssuerSigningKeys = _keys.GetValidationKeys(),
+        ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+
+    private static string Write(SecurityTokenDescriptor descriptor)
+    {
+        var handler = new JwtSecurityTokenHandler { SetDefaultTimesOnTokenCreation = false };
+        return handler.WriteToken(handler.CreateJwtSecurityToken(descriptor));
+    }
+
+    private static long ToUnix(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToUnixTimeSeconds();
 }

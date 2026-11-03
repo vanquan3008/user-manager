@@ -1,3 +1,5 @@
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Entities;
 using MediatR;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
@@ -11,6 +13,7 @@ namespace UserService.Application.Features.Auth.Handlers;
 
 public class CreateSsoUserCommandHandler : IRequestHandler<CreateSsoUserCommand, SuccessResponse>
 {
+    private readonly IAuditLogger _audit;
     private readonly IIdentityService _identityService;
     private readonly IUserRepository _userRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,8 +23,9 @@ public class CreateSsoUserCommandHandler : IRequestHandler<CreateSsoUserCommand,
         IIdentityService identityService,
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock, IAuditLogger audit)
     {
+        _audit = audit;
         _identityService = identityService;
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
@@ -68,6 +72,7 @@ public class CreateSsoUserCommandHandler : IRequestHandler<CreateSsoUserCommand,
             throw;
         }
 
+        await _audit.LogAsync(AuditEventTypes.SsoUserCreated, true, new AuditEntry(TargetUserId: userId.Value, TargetType: "user", TargetId: userId.Value.ToString(), Details: new { email = command.Email }), cancellationToken);
         return new SuccessResponse(true, $"[SSO Account created] '{command.Email}'.");
     }
 

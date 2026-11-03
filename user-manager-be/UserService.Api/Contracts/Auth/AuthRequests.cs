@@ -58,3 +58,12 @@ public sealed record ChangePasswordApiRequest(
     string CurrentPassword,
     string NewPassword
 );
+
+public sealed record VerifyMfaApiRequest(
+    string MfaToken,
+    string Code
+);
+
+public sealed record LogoutApiRequest(
+    bool AllSessions = false
+);

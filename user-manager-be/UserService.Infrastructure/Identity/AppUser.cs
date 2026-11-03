@@ -20,8 +20,9 @@ public sealed class AppUser : IdentityUser<Guid>
     public bool IsBanned { get; set; }
     public DateTime? BannedAt { get; set; }
     public string? BanReason { get; set; }
-    public string? RefreshToken { get; set; }
-    public DateTime? RefreshTokenExpiryTime { get; set; }
+    /// <summary>Last accepted TOTP time-step; codes at or before it are rejected (replay protection).</summary>
+    public long? LastTotpTimeStep { get; set; }
+    public DateTime? MfaEnabledAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public string? LastLoginIp { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

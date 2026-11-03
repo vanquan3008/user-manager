@@ -9,12 +9,15 @@ using UserService.Api.Controllers.Helpers;
 using UserService.Api.Contracts.Auth;
 using UserService.Api.Extensions;
 using UserService.Application.Common;
+using Microsoft.AspNetCore.RateLimiting;
+using UserService.Api.Security;
 
 namespace UserService.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[EnableRateLimiting(RateLimitPolicies.Auth)]
 public class AuthController(IMediator mediator, AppSettings appSettings) : ApiControllerBase
 {
     private const string RefreshTokenCookieName = AuthCookieNames.RefreshToken;
@@ -74,7 +77,33 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
 
         var response = await mediator.Send(command, cancellationToken);
         AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(response);
+        return OkResponse(response with { RefreshToken = null });
+    }
+
+    /// <summary>Completes a console sign-in that returned <c>mfaRequired</c>.</summary>
+    [HttpPost("mfa/verify")]
+    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyMfa(
+        [FromBody] VerifyMfaApiRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await mediator.Send(new VerifyMfaCommand(request.MfaToken, request.Code), cancellationToken);
+        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
+        return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
+    }
+
+    /// <summary>Completes a hosted SSO sign-in that returned <c>mfaRequired</c>.</summary>
+    [HttpPost("sso/mfa/verify")]
+    [ProducesResponseType(typeof(ApiResponse<SsoLoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<SsoLoginResponse>>> VerifySsoMfa(
+        [FromBody] VerifyMfaApiRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await mediator.Send(new VerifySsoMfaCommand(request.MfaToken, request.Code), cancellationToken);
+        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
+        return OkResponse(response with { RefreshToken = null });
     }
 
   
@@ -88,23 +117,6 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
 
         await mediator.Send(command, cancellationToken);
         return OkSuccess("Send email successfully!");
-    }
-
-    [HttpGet("magic-link/verify")]
-    [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-    [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<ActionResult<ApiResponse<AuthResponse>>> VerifyMagicLink(
-        [FromQuery] string token,
-        [FromQuery] string purpose,
-        [FromQuery] string? clientId,
-        CancellationToken cancellationToken = default)
-    {
-        var command = new VerifyMagicLinkCommand(token, purpose, clientId);
-
-        var response = await mediator.Send(command, cancellationToken);
-        AuthControllerHelpers.IssueRefreshTokenCookie(Request, Response, appSettings, RefreshTokenCookieName, response.RefreshToken);
-        return OkResponse(AuthControllerHelpers.ToClientAuthResponse(response));
     }
 
     [HttpGet("verify-email")]
@@ -167,6 +179,7 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
@@ -175,6 +188,8 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
         CancellationToken cancellationToken = default)
     {
         var refreshToken = AuthControllerHelpers.ResolveRefreshToken(Request, request?.RefreshToken, RefreshTokenCookieName);
+        if (!AuthControllerHelpers.HasCsrfHeader(Request, string.IsNullOrWhiteSpace(request?.RefreshToken)))
+            return BadRequestResponse($"The {AuthControllerHelpers.CsrfHeaderName} header is required.", "CSRF_HEADER_REQUIRED");
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             AuthControllerHelpers.ClearRefreshTokenCookie(Request, Response, RefreshTokenCookieName);
@@ -226,19 +241,28 @@ public class AuthController(IMediator mediator, AppSettings appSettings) : ApiCo
         await mediator.Send(updatedCommand, cancellationToken);
         return OkSuccess("Password changed successfully");
     }
+    /// <summary>
+    /// Ends the current session (or every session with <c>allSessions</c>), revokes the OAuth grants
+    /// issued under it and notifies relying parties via back-channel logout.
+    /// </summary>
     [HttpPost("logout")]
+    [EnableRateLimiting(RateLimitPolicies.Refresh)]
     [ProducesResponseType(typeof(ApiResponse<SuccessResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<SuccessResponse>>> Logout(CancellationToken cancellationToken = default)
+    public async Task<ActionResult<ApiResponse<SuccessResponse>>> Logout(
+        [FromBody] LogoutApiRequest? request,
+        CancellationToken cancellationToken = default)
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            var userId = User.TryGetCurrentUserId();
-            if (userId.HasValue)
-            {
-                await mediator.Send(new LogoutCommand(userId.Value), cancellationToken);
-            }
-        }
-        
+        var authenticated = User.Identity?.IsAuthenticated == true;
+        var cookieToken = AuthControllerHelpers.ResolveRefreshToken(Request, null, RefreshTokenCookieName);
+        if (!authenticated && !AuthControllerHelpers.HasCsrfHeader(Request, cookieToken is not null))
+            return BadRequestResponse($"The {AuthControllerHelpers.CsrfHeaderName} header is required.", "CSRF_HEADER_REQUIRED");
+
+        await mediator.Send(new LogoutCommand(
+            authenticated ? User.TryGetCurrentUserId() : null,
+            authenticated ? User.TryGetSessionId() : null,
+            cookieToken,
+            request?.AllSessions == true && authenticated), cancellationToken);
+
         AuthControllerHelpers.ClearRefreshTokenCookie(Request, Response, RefreshTokenCookieName);
         return OkSuccess("Logged out successfully");
     }

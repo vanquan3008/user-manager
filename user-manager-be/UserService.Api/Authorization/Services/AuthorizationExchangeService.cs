@@ -83,9 +83,14 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         if (user == null)
             return OAuthInvalidGrant("Invalid credentials.");
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false);
+        // Lockout applies here exactly as on the interactive login (this grant was previously a brute-force bypass).
+        var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (!result.Succeeded)
             return OAuthInvalidGrant("Invalid credentials.");
+
+        var denial = DenySignIn(user);
+        if (denial is not null)
+            return denial;
 
         var applicationId = ParseOptionalGuid(request.GetParameter(OAuthParameterNames.ApplicationId)?.ToString());
         if (request.GetParameter(OAuthParameterNames.ApplicationId) is not null && !applicationId.HasValue)
@@ -105,6 +110,8 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         var user = await _userManager.FindByIdAsync(userId!);
         if (user == null)
             return OAuthInvalidGrant("User no longer exists.");
+        if (!user.IsActive || user.IsBanned || await _userManager.IsLockedOutAsync(user))
+            return OAuthInvalidGrant("The user account is not available.");
 
         var applicationId = ParseOptionalGuid(result.Principal!.FindFirst(JwtClaimNames.ApplicationId)?.Value);
         var oauthScopes = ReadCsvClaim(result.Principal!, JwtClaimNames.OAuthScopes);
@@ -122,6 +129,8 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         var user = await _userManager.FindByIdAsync(userId!);
         if (user == null)
             return OAuthInvalidGrant("User no longer exists.");
+        if (!user.IsActive || user.IsBanned || await _userManager.IsLockedOutAsync(user))
+            return OAuthInvalidGrant("The user account is not available.");
 
         var applicationId = ParseOptionalGuid(result.Principal!.FindFirst(JwtClaimNames.ApplicationId)?.Value);
         var oauthScopes = ReadCsvClaim(result.Principal!, JwtClaimNames.OAuthScopes);
@@ -148,6 +157,10 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         var user = await _userManager.FindByIdAsync(userId.Value.ToString());
         if (user == null)
             return OAuthInvalidGrant("User no longer exists.");
+
+        var denial = DenySignIn(user);
+        if (denial is not null)
+            return denial;
 
         return await IssueSignInResultAsync(user, input.ParseApplicationId(), cancellationToken);
     }
@@ -230,6 +243,16 @@ public sealed class AuthorizationExchangeService : IAuthorizationExchangeService
         });
 
         return identity;
+    }
+
+    /// <summary>Non-interactive grants cannot satisfy MFA, so MFA-enabled accounts must use the interactive flow.</summary>
+    private static IActionResult? DenySignIn(AppUser user)
+    {
+        if (!user.IsActive || user.IsBanned)
+            return OAuthInvalidGrant("The user account is not available.");
+        if (user.TwoFactorEnabled)
+            return OAuthInvalidGrant("Multi-factor authentication is required; use the interactive sign-in flow.");
+        return null;
     }
 
     private static IActionResult OAuthInvalidGrant(string description)

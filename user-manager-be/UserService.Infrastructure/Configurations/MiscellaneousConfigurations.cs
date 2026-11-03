@@ -89,6 +89,8 @@ public sealed class MagicLinkTokenConfiguration : IEntityTypeConfiguration<Magic
         builder.Property(x => x.UserAgent)
               .HasMaxLength(500);
 
+        builder.Property(x => x.Version).IsConcurrencyToken();
+
         builder.HasOne(x => x.User)
               .WithMany()
               .HasForeignKey(x => x.UserId)

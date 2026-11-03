@@ -12,7 +12,6 @@ public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
     {
         builder.ToTable("AspNetUsers");
         
-        builder.Property(x => x.RefreshToken).HasMaxLength(500);
         builder.Property(x => x.LastLoginIp).HasMaxLength(50);
         builder.Property(x => x.BanReason).HasMaxLength(500);
 
