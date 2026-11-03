@@ -1,4 +1,5 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ClockService } from '../../core/services/clock.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -141,6 +142,7 @@ import { eventIcon, humanizeEvent, initials, relativeTime } from '../../shared/u
   `
 })
 export class DashboardComponent implements OnInit {
+  private readonly clock = inject(ClockService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly security = inject(SecurityService);
   private readonly usersService = inject(UsersService);
@@ -206,7 +208,7 @@ export class DashboardComponent implements OnInit {
     return Object.entries(values).reduce((acc, [k, v]) => acc.replace(`{{${k}}}`, String(v)), template);
   }
 
-  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale(), this.clock.now()); }
   humanize = humanizeEvent;
   icon = eventIcon;
   initialsOf = initials;

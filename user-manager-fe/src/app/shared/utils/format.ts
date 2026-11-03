@@ -1,9 +1,10 @@
 /** Small presentation helpers shared by pages. */
 
-export function relativeTime(iso: string | null | undefined, locale = 'en'): string {
+/** `now` should come from ClockService so a render pass sees one stable reference time. */
+export function relativeTime(iso: string | null | undefined, locale = 'en', now = Date.now()): string {
   if (!iso) return '—';
   const date = new Date(iso);
-  const diff = (date.getTime() - Date.now()) / 1000;
+  const diff = (date.getTime() - now) / 1000;
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const abs = Math.abs(diff);
   if (abs < 60) return rtf.format(Math.round(diff), 'second');

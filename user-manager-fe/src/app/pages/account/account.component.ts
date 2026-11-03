@@ -1,4 +1,5 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ClockService } from '../../core/services/clock.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -23,6 +24,7 @@ type Tab = 'profile' | 'security' | 'sessions' | 'activity';
   templateUrl: './account.component.html'
 })
 export class AccountComponent implements OnInit {
+  private readonly clock = inject(ClockService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -256,7 +258,7 @@ export class AccountComponent implements OnInit {
 
   recoveryRemaining() { return this.t().accRecoveryRemaining.replace('{{n}}', String(this.mfa()?.recoveryCodesRemaining ?? 0)); }
   device(ua: string | null | undefined) { return describeUserAgent(ua); }
-  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale(), this.clock.now()); }
   when(iso: string | null | undefined) { return formatDateTime(iso, this.translate.locale()); }
   humanize = humanizeEvent;
   icon = eventIcon;

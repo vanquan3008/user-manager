@@ -1,4 +1,5 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ClockService } from '../../core/services/clock.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime } from 'rxjs';
@@ -106,6 +107,7 @@ import { describeUserAgent, eventIcon, formatDateTime, humanizeEvent, relativeTi
   `
 })
 export class AuditLogsComponent implements OnInit {
+  private readonly clock = inject(ClockService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly security = inject(SecurityService);
   private readonly notify = inject(NotificationService);
@@ -177,7 +179,7 @@ export class AuditLogsComponent implements OnInit {
 
   pretty(json: string) { try { return JSON.stringify(JSON.parse(json), null, 2); } catch { return json; } }
   device(ua: string | null | undefined) { return describeUserAgent(ua).label; }
-  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale(), this.clock.now()); }
   when(iso: string) { return formatDateTime(iso, this.translate.locale()); }
   humanize = humanizeEvent;
   icon = eventIcon;

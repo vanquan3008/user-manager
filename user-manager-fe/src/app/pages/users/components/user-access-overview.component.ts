@@ -1,4 +1,5 @@
 import { Component, inject, input, output } from '@angular/core';
+import { ClockService } from '../../../core/services/clock.service';
 import type { IdentityUser } from '../../../core/models';
 import { TranslateService } from '../../../core/services/translate.service';
 import { formatDateTime, initials, relativeTime } from '../../../shared/utils/format';
@@ -47,6 +48,7 @@ import { formatDateTime, initials, relativeTime } from '../../../shared/utils/fo
   `
 })
 export class UserAccessOverviewComponent {
+  private readonly clock = inject(ClockService);
   private readonly translate = inject(TranslateService);
   readonly t = this.translate.t;
 
@@ -73,7 +75,7 @@ export class UserAccessOverviewComponent {
     return [
       { label: t.accRoles, value: `${this.primaryRole()}${this.assignedRoleCount() > 1 ? ` +${this.assignedRoleCount() - 1}` : ''}` },
       { label: t.accEmailStatus, value: u.emailConfirmed ? t.accVerified : t.accUnverified },
-      { label: t.usersColLastSignIn, value: u.lastLoginAt ? relativeTime(u.lastLoginAt, this.translate.locale()) : t.usersNever },
+      { label: t.usersColLastSignIn, value: u.lastLoginAt ? relativeTime(u.lastLoginAt, this.translate.locale(), this.clock.now()) : t.usersNever },
       { label: t.accMemberSince, value: formatDateTime(u.createdAt, this.translate.locale()) }
     ];
   }

@@ -1,4 +1,5 @@
 import { ActivatedRoute, Router } from '@angular/router';
+import { ClockService } from '../../core/services/clock.service';
 import { TranslateService } from '../../core/services/translate.service';
 import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { initials, relativeTime } from '../../shared/utils/format';
@@ -34,6 +35,7 @@ import { TablePaginationComponent } from '../../shared/components/table-paginati
   templateUrl: './users-list.component.html'
 })
 export class UsersListComponent implements OnInit {
+  private readonly clock = inject(ClockService);
   private usersService = inject(UsersService);
   private auth = inject(AuthService);
   private notify = inject(NotificationService);
@@ -98,7 +100,7 @@ export class UsersListComponent implements OnInit {
     return !!user.lockoutEnd && new Date(user.lockoutEnd).getTime() > Date.now();
   }
 
-  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale(), this.clock.now()); }
   initialsOf = initials;
 
   load() {

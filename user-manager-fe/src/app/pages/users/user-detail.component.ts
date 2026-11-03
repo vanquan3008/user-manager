@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { ClockService } from '../../core/services/clock.service';
 import { Component, DestroyRef, OnInit, computed, effect, inject, input, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -47,6 +48,7 @@ import { canBanUsers } from '../../core/constants/roles';
   templateUrl: './user-detail.component.html'
 })
 export class UserDetailComponent implements OnInit {
+  private readonly clock = inject(ClockService);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private usersService = inject(UsersService);
@@ -374,7 +376,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   device(ua: string | null | undefined) { return describeUserAgent(ua); }
-  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale(), this.clock.now()); }
   humanize = humanizeEvent;
   eventIcon = eventIcon;
 

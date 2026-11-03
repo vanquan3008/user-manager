@@ -8,7 +8,7 @@ and a full security audit trail.
 
 [![CI](https://github.com/vanquan3008/user-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/vanquan3008/user-manager/actions/workflows/ci.yml)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
-![Angular 19](https://img.shields.io/badge/Angular-19-DD0031?logo=angular&logoColor=white)
+![Angular 21](https://img.shields.io/badge/Angular-21-DD0031?logo=angular&logoColor=white)
 ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![OAuth 2.0 + OIDC](https://img.shields.io/badge/OAuth%202.0-OpenID%20Connect-111827)
 ![Tests](https://img.shields.io/badge/backend%20tests-83%20passing-059669)
@@ -198,7 +198,7 @@ flowchart LR
 | API | .NET 10, ASP.NET Core, ASP.NET Core Identity, MediatR 12, FluentValidation 12, Serilog |
 | Data | EF Core 10 + Npgsql (PostgreSQL 16), Data Protection keys stored in the database |
 | OAuth extras | OpenIddict 5.8 (legacy `/connect/token` only) |
-| Console | Angular 19 (standalone components, signals), Tailwind CSS 3, `qrcode` |
+| Console | Angular 21 (standalone components, signals), TypeScript 5.9, Tailwind CSS 3, `qrcode` |
 | Delivery | Multi-stage Dockerfiles (non-root), nginx-unprivileged, Docker Compose, GitHub Actions |
 
 ### Project structure
@@ -717,7 +717,9 @@ cd user-manager-fe && npm run build      # strict template type-check + producti
 | Integration (`WebApplicationFactory`, EF InMemory) | Discovery/JWKS, health, uniform failed-login responses, RS256 + `sid` tokens, refresh reuse revoking the victim's session, CSRF header, logout invalidating access tokens, 401 vs 403, MFA enrolment → challenge → replay rejection → single-use recovery codes, OAuth PKCE flow, ID token `nonce`/`aud`/`sid`, code replay revoking refresh tokens |
 
 GitHub Actions (`.github/workflows/ci.yml`) restores, builds and tests the backend and checks it for vulnerable
-packages. It also builds the console and runs `npm audit`, but only for the parts of the repository that changed.
+packages. It also builds the console and runs `npm audit --audit-level=high`, but only for the parts of the repository
+that changed. Production dependencies currently have no known vulnerabilities; the remaining moderate advisories are in
+dev and test tooling (Karma, `glob`, `sockjs`).
 
 > The maintenance worker is disabled in tests because EF InMemory does not support `ExecuteDelete`. Migrations are
 > verified against PostgreSQL 16.
@@ -777,8 +779,6 @@ These are deliberate scope boundaries or open items, not hidden features.
 - Revocation reaches other instances within `SessionValidationCacheSeconds`. Relying parties learn about logout
   through back-channel logout or token expiry.
 - Rate limiting is in memory, per instance.
-- The console uses Angular 19. `npm audit` still reports advisories, mostly in build tooling, that need the Angular
-  21/22 upgrade.
 - The legacy OpenIddict `/connect/token` endpoint is kept for compatibility. New integrations should use `/api/oauth/*`.
 - The console has no unit tests; it is checked by the strict production build plus end-to-end browser checks.
 

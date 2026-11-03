@@ -11,9 +11,10 @@ import {
   inject,
   input,
   output,
-  signal
+  signal,
+  DOCUMENT,
 } from '@angular/core';
-import { CommonModule, DOCUMENT } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { TranslateService } from '../../../core/services/translate.service';
 
@@ -30,10 +31,10 @@ export interface DropdownOption {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => DropdownComponent),
-      multi: true
-    }
+      multi: true,
+    },
   ],
-  templateUrl: './dropdown.component.html'
+  templateUrl: './dropdown.component.html',
 })
 export class DropdownComponent implements ControlValueAccessor {
   private cdr = inject(ChangeDetectorRef);
@@ -42,9 +43,12 @@ export class DropdownComponent implements ControlValueAccessor {
   private renderer = inject(Renderer2);
   translate = inject(TranslateService);
 
-  @ViewChild('triggerBtn', { read: ElementRef }) private triggerRef?: ElementRef<HTMLElement>;
-  @ViewChild('hostRoot', { read: ElementRef }) private hostRef?: ElementRef<HTMLElement>;
-  @ViewChild('dropdownPanel', { read: ElementRef }) private panelRef?: ElementRef<HTMLElement>;
+  @ViewChild('triggerBtn', { read: ElementRef })
+  private triggerRef?: ElementRef<HTMLElement>;
+  @ViewChild('hostRoot', { read: ElementRef })
+  private hostRef?: ElementRef<HTMLElement>;
+  @ViewChild('dropdownPanel', { read: ElementRef })
+  private panelRef?: ElementRef<HTMLElement>;
 
   /** fixed + px — panel gắn vào body nên tọa độ theo viewport */
   readonly panelStyle = signal<Record<string, string> | null>(null);
@@ -62,7 +66,9 @@ export class DropdownComponent implements ControlValueAccessor {
   private controlDisabled = signal(false);
   private onChange: (v: string) => void = () => {};
   private onTouched: () => void = () => {};
-  readonly isDisabled = computed(() => this.disabled() || this.controlDisabled());
+  readonly isDisabled = computed(
+    () => this.disabled() || this.controlDisabled(),
+  );
 
   constructor() {
     const reposition = () => {
@@ -97,7 +103,7 @@ export class DropdownComponent implements ControlValueAccessor {
   get selectedLabel(): string {
     const v = this.value();
     if (!v) return '';
-    const opt = this.options().find(o => o.value === v);
+    const opt = this.options().find((o) => o.value === v);
     return opt?.label ?? v;
   }
 
@@ -105,7 +111,8 @@ export class DropdownComponent implements ControlValueAccessor {
   onDocumentClick(e: MouseEvent) {
     const target = e.target as HTMLElement;
     const inside =
-      target.closest?.('.app-dropdown') || target.closest?.('.app-dropdown-panel');
+      target.closest?.('.app-dropdown') ||
+      target.closest?.('.app-dropdown-panel');
     if (!inside) {
       if (this.open()) {
         this.attachPanelToHost();
@@ -145,7 +152,10 @@ export class DropdownComponent implements ControlValueAccessor {
     const r = btn.getBoundingClientRect();
     const margin = 6;
     const spaceBelow = window.innerHeight - r.bottom - margin;
-    const maxH = Math.max(120, Math.min(280, spaceBelow - 4, window.innerHeight * 0.6));
+    const maxH = Math.max(
+      120,
+      Math.min(280, spaceBelow - 4, window.innerHeight * 0.6),
+    );
     this.panelStyle.set({
       top: `${r.bottom + margin}px`,
       left: `${r.left}px`,
