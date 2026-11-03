@@ -1,3 +1,4 @@
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -5,12 +6,11 @@ import { RouterLink } from '@angular/router';
 import { RolesService } from '../../core/services/roles.service';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
-import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
-import { IconButtonComponent } from '../../shared/components/icon-button/icon-button.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { NotificationService } from '../../core/services/notification.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { formatDateTime } from '../../shared/utils/format';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { TranslateService } from '../../core/services/translate.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import type { PermissionDto, RoleDto } from '../../core/models';
@@ -26,19 +26,7 @@ import { TablePaginationComponent } from '../../shared/components/table-paginati
 @Component({
   selector: 'app-roles',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    DrawerComponent,
-    FormFieldComponent,
-    DrawerFooterActionsComponent,
-    IconButtonComponent,
-    LoadingStateComponent,
-    SearchableMultiSelectComponent,
-    TablePaginationComponent
-  ],
+  imports: [CommonModule, FormsModule, DrawerComponent, DrawerFooterActionsComponent, LoadingStateComponent, SearchableMultiSelectComponent, TablePaginationComponent, EmptyStateComponent],
   templateUrl: './roles.component.html'
 })
 export class RolesComponent implements OnInit {
@@ -46,8 +34,14 @@ export class RolesComponent implements OnInit {
   private permissionsService = inject(PermissionsService);
   private notify = inject(NotificationService);
   private confirm = inject(ConfirmService);
-  theme = inject(ThemeService).theme;
   translate = inject(TranslateService);
+  readonly t = this.translate.t;
+
+  permissionList(role: RoleDto): string[] {
+    return (role.permissions || '').split(',').map(p => p.trim()).filter(Boolean);
+  }
+
+  when(iso: string | null | undefined) { return formatDateTime(iso, this.translate.locale()); }
   private pageToolbar = inject(PageToolbarService);
   readonly listPageSizeSvc = inject(ListPageSizeService);
 
@@ -178,7 +172,7 @@ export class RolesComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err: any) => {
-        this.error.set(err.error?.message || 'Không thể tải danh sách roles');
+        this.error.set(apiErrorMessage(err));
         this.loading.set(false);
       }
     });
@@ -213,7 +207,7 @@ export class RolesComponent implements OnInit {
 
   saveCreate() {
     if (!this.form.name.trim()) {
-      this.notify.error('Tên role không được để trống');
+      this.notify.error(this.t().rlNameRequired);
       return;
     }
     this.saving.set(true);
@@ -227,16 +221,16 @@ export class RolesComponent implements OnInit {
       .subscribe({
         next: (res) => {
           if (res.success) {
-            this.notify.success('Tạo role thành công');
+            this.notify.success(this.t().rlSaved);
             this.loadRoles();
             this.closeModal();
           } else {
-            this.notify.error(res.message || 'Tạo role thất bại');
+            this.notify.error(res.message || this.t().authFailed);
           }
           this.saving.set(false);
         },
         error: (err: any) => {
-          this.notify.error(err.error?.message || 'Tạo role thất bại');
+          this.notify.error(apiErrorMessage(err));
           this.saving.set(false);
         }
       });
@@ -254,16 +248,16 @@ export class RolesComponent implements OnInit {
       .subscribe({
         next: (res) => {
           if (res.success) {
-            this.notify.success('Cập nhật role thành công');
+            this.notify.success(this.t().rlSaved);
             this.loadRoles();
             this.closeModal();
           } else {
-            this.notify.error(res.message || 'Cập nhật thất bại');
+            this.notify.error(res.message || this.t().authFailed);
           }
           this.saving.set(false);
         },
         error: (err: any) => {
-          this.notify.error(err.error?.message || 'Cập nhật thất bại');
+          this.notify.error(apiErrorMessage(err));
           this.saving.set(false);
         }
       });
@@ -271,14 +265,13 @@ export class RolesComponent implements OnInit {
 
   async deleteRole(role: RoleDto) {
     if (role.isSystemRole) {
-      this.notify.error('Không thể xóa role hệ thống');
+      this.notify.error(this.t().rlSystemLocked);
       return;
     }
     const ok = await this.confirm.confirm({
-      title: 'Xóa role',
-      message: `Bạn chắc chắn muốn xóa role "${role.name}"?`,
-      confirmText: 'Xóa',
-      cancelText: 'Hủy',
+      title: this.t().delete,
+      message: this.t().rlDeleteConfirm.replace('{{name}}', role.name),
+      confirmText: this.t().delete,
       variant: 'danger'
     });
     if (!ok) return;
@@ -286,15 +279,15 @@ export class RolesComponent implements OnInit {
     this.rolesService.deleteRole(role.id).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notify.success('Đã xóa role');
+          this.notify.success(this.t().rlDeleted);
           this.loadRoles();
         } else {
-          this.notify.error(res.message || 'Xóa thất bại');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.deleting.set(null);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || 'Xóa thất bại');
+        this.notify.error(apiErrorMessage(err));
         this.deleting.set(null);
       }
     });

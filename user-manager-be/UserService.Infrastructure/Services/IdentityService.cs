@@ -17,6 +17,7 @@ public class IdentityService : IIdentityService
     private readonly IMagicLinkService _magicLinkService;
     private readonly IUserRepository _userRepository;
     private readonly IRequestContext _requestContext;
+    private readonly UserService.Infrastructure.Data.UserDbContext _db;
 
     // Pre-computed hash used to equalise timing when the account does not exist.
     private static readonly Lazy<string> DummyPasswordHash = new(() =>
@@ -28,9 +29,11 @@ public class IdentityService : IIdentityService
         SignInManager<AppUser> signInManager,
         IMagicLinkService magicLinkService,
         IUserRepository userRepository,
-        IRequestContext requestContext)
+        IRequestContext requestContext,
+        UserService.Infrastructure.Data.UserDbContext db)
     {
         _requestContext = requestContext;
+        _db = db;
         _userManager = userManager;
         _roleManager = roleManager;
         _signInManager = signInManager;
@@ -250,13 +253,22 @@ public class IdentityService : IIdentityService
         return result.Succeeded;
     }
 
-    public async Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default)
+    public async Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default, bool? ssoAccounts = null)
     {
         var query = _userManager.Users.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim();
-            query = query.Where(u => (u.Email != null && u.Email.Contains(s)) || (u.UserName != null && u.UserName.Contains(s)));
+            // Normalized columns make the search case-insensitive and index-friendly.
+            var s = search.Trim().ToUpperInvariant();
+            query = query.Where(u => (u.NormalizedEmail != null && u.NormalizedEmail.Contains(s)) || (u.NormalizedUserName != null && u.NormalizedUserName.Contains(s)));
+        }
+        if (ssoAccounts.HasValue)
+        {
+            var wanted = ssoAccounts.Value;
+            var profiles = _db.DomainUsers.AsNoTracking();
+            query = wanted
+                ? query.Where(u => profiles.Any(d => d.Id == u.Id && d.IsSSOAccount))
+                : query.Where(u => !profiles.Any(d => d.Id == u.Id && d.IsSSOAccount));
         }
         var totalCount = await query.CountAsync(cancellationToken);
         var list = await query

@@ -29,7 +29,8 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResponse
             query.PageIndex,
             query.PageSize,
             query.Search,
-            cancellationToken);
+            cancellationToken,
+            query.SsoAccounts);
 
         var profileIds = items
             .Where(i => i.UserProfileId.HasValue)
@@ -42,7 +43,7 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, PagedResponse
         var enriched = items.Select(i =>
         {
             var isSSO = i.UserProfileId is { } pid && ssoByProfile.TryGetValue(pid, out var flag) && flag;
-            return i with { IsSSOAccount = isSSO };
+            return i with { IsSSOAccount = i.IsSSOAccount || isSSO };
         }).ToList();
 
         return new PagedResponse<IdentityUserDto>(

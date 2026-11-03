@@ -51,7 +51,7 @@ export class DropdownComponent implements ControlValueAccessor {
   private positionRetry = 0;
 
   options = input<DropdownOption[]>([]);
-  placeholder = input<string>('-- Chọn --');
+  placeholder = input<string>('Select…');
   disabled = input<boolean>(false);
   theme = input<'light' | 'dark'>('dark');
 

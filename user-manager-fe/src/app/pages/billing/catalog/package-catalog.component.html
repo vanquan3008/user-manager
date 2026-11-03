@@ -1,627 +1,98 @@
-<div class="main main-layout">
-  <section
-    class="rounded-3xl border p-6 shadow-sm"
-    [ngClass]="theme() === 'light'
-      ? 'border-slate-200 bg-white'
-      : 'border-slate-700/70 bg-slate-800/85'"
-  >
-    <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-      <div class="max-w-3xl">
-        <div class="flex items-center gap-2">
-          <span
-            class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-            [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-          >
-            Subscription catalog
-          </span>
-        </div>
-        <h1 class="mt-4 text-2xl font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">
-          Plan management by application
-        </h1>
-        <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-          Configure pricing, quotas and bundled features for each application in one place. Keep plans readable for operations and realistic for rollout.
-        </p>
+<div class="page">
+  <div class="page-header">
+    <div><h1 class="page-title">{{ t().ctTitle }}</h1><p class="page-subtitle">{{ t().ctSubtitle }}</p></div>
+    <button type="button" class="btn-primary" (click)="openCreatePlan()" [disabled]="!applicationId()"><span class="material-symbols-outlined">add</span>{{ t().ctNew }}</button>
+  </div>
+
+  <div class="flex flex-wrap items-center gap-3">
+    <select class="input w-auto min-w-[240px]" [ngModel]="applicationId()" (ngModelChange)="onApplicationChange($event)" [disabled]="loadingApps()" [attr.aria-label]="t().sbApplication">
+      <option value="">{{ t().sbSelectApp }}</option>
+      @for (o of appOptions(); track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+    </select>
+    @if (applicationId()) {
+      <div class="input-group min-w-[200px] flex-1 sm:max-w-xs">
+        <span class="material-symbols-outlined">search</span>
+        <input class="input" type="search" [placeholder]="t().ctSearch" [ngModel]="search()" (ngModelChange)="search.set($event)" [attr.aria-label]="t().ctSearch" />
       </div>
+      <p class="ml-auto text-[13px] text-fg-3"><span class="font-medium text-fg">{{ activePlans() }}</span> {{ t().ctLive.toLowerCase() }} · {{ draftPlans() }} {{ t().ctDraft.toLowerCase() }}</p>
+    }
+  </div>
 
-      <div class="flex w-full flex-col gap-3 xl:w-[360px]">
-        <label class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-          Application
-        </label>
-        <app-dropdown
-          [options]="appOptions()"
-          [placeholder]="'Select application...'"
-          [theme]="theme()"
-          [ngModel]="applicationId()"
-          (ngModelChange)="onApplicationChange($event)"
-        />
-
-        <div class="flex flex-wrap gap-2">
-          @if (applicationId()) {
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-medium transition"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-              (click)="onApplicationChange('')"
-            >
-              <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-              All applications
-            </button>
-          }
-
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium text-white transition"
-            [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
-            (click)="openCreatePlan()"
-          >
-            <span class="material-symbols-outlined text-[18px]">add</span>
-            Create plan
-          </button>
-        </div>
-      </div>
+  @if (!applicationId()) {
+    <div class="card"><app-empty-state icon="inventory_2" [message]="t().ctPickApp" /></div>
+  } @else if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">@for (i of [0,1,2]; track i) { <div class="card h-64 p-5"><div class="skeleton h-5 w-24"></div><div class="skeleton mt-4 h-8 w-32"></div><div class="skeleton mt-6 h-3 w-full"></div></div> }</div>
+  } @else if (!sortedPlans().length) {
+    <div class="card">
+      <app-empty-state icon="inventory_2" [message]="t().ctEmpty" [action]="true">
+        <button action type="button" class="btn-primary" (click)="openCreatePlan()"><span class="material-symbols-outlined">add</span>{{ t().ctNew }}</button>
+      </app-empty-state>
     </div>
-  </section>
-
-  @if (loadingApps() && apps().length === 0) {
-    <app-loading-state message="Loading applications..." [theme]="theme()" />
-  } @else if (!applicationId()) {
-    @if (apps().length === 0) {
-      <app-empty-state
-        icon="apps"
-        message="No applications are available yet. Create an application first, then come back to configure plan catalog."
-        [theme]="theme()"
-      />
-    } @else {
-      <section
-        class="rounded-3xl border p-6 shadow-sm"
-        [ngClass]="theme() === 'light'
-          ? 'border-slate-200 bg-white'
-          : 'border-slate-700/70 bg-slate-800/85'"
-      >
-        <div class="mb-6 flex flex-col gap-2">
-          <h2 class="text-lg font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Choose an application</h2>
-          <p class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-            Plans are managed per application, so start by selecting the workspace you want to configure.
-          </p>
-        </div>
-
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          @for (app of apps(); track app.id) {
-            <button
-              type="button"
-              class="group rounded-3xl border p-5 text-left transition-all duration-200 hover:-translate-y-0.5"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-slate-50/60 hover:border-sky-200 hover:bg-white'
-                : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30 hover:bg-slate-900/55'"
-              (click)="onApplicationChange(app.id)"
-            >
-              <div class="flex items-start gap-4">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 text-sm font-semibold text-white shadow-sm">
-                  @if (app.logoUrl) {
-                    <img [src]="app.logoUrl" alt="Application logo" class="h-full w-full object-cover" />
-                  } @else {
-                    {{ app.name.substring(0, 2).toUpperCase() }}
-                  }
-                </div>
-
-                <div class="min-w-0 flex-1">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <p class="truncate text-base font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ app.name }}</p>
-                    <span
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      [ngClass]="theme() === 'light' ? 'bg-slate-200/70 text-slate-600' : 'bg-slate-700/70 text-slate-300'"
-                    >
-                      {{ app.clientType || 'Public' }}
-                    </span>
-                  </div>
-                  <p class="mt-2 line-clamp-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                    {{ app.description || 'No description available for this application yet.' }}
-                  </p>
-                  <p class="mt-3 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                    {{ app.id }}
-                  </p>
-                </div>
-              </div>
-            </button>
-          }
-        </div>
-      </section>
-    }
   } @else {
-    @let currentApp = selectedApp();
-    @if (currentApp) {
-      <section class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <div
-          class="rounded-3xl border p-6 shadow-sm"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white'
-            : 'border-slate-700/70 bg-slate-800/85'"
-        >
-          <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div class="flex min-w-0 items-start gap-4">
-              <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-sky-500 to-cyan-400 text-lg font-semibold text-white shadow-sm">
-                @if (currentApp.logoUrl) {
-                  <img [src]="currentApp.logoUrl" alt="Application logo" class="h-full w-full object-cover" />
-                } @else {
-                  {{ currentApp.name.substring(0, 2).toUpperCase() }}
-                }
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (plan of sortedPlans(); track plan.id) {
+        <article class="card flex flex-col" [class.opacity-70]="!plan.isActive">
+          <div class="flex-1 p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <span class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-brand-soft text-brand-text">
+                  @if (isIconUrl(plan.icon)) { <img [src]="plan.icon" alt="" class="h-full w-full object-cover" /> }
+                  @else { <span class="material-symbols-outlined text-[20px]">{{ plan.icon || 'workspace_premium' }}</span> }
+                </span>
+                <div><h2 class="text-[15px] font-semibold">{{ plan.name }}</h2><p class="text-xs text-fg-3">#{{ plan.displayOrder }}</p></div>
               </div>
-
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span
-                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                    [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                  >
-                    Selected application
-                  </span>
-                  <span
-                    class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'"
-                  >
-                    {{ currentApp.clientType || 'Public' }}
-                  </span>
-                </div>
-                <h2 class="mt-4 text-2xl font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">
-                  {{ currentApp.name }}
-                </h2>
-                <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                  {{ currentApp.description || 'This application is ready for subscription plan configuration.' }}
-                </p>
-                <p class="mt-3 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                  {{ currentApp.id }}
-                </p>
-              </div>
+              <span [class]="plan.isActive ? 'badge-ok' : 'badge-neutral'"><span class="dot"></span>{{ plan.isActive ? t().ctLive : t().ctDraft }}</span>
             </div>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Catalog focus</p>
-                <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Pricing, quota and packaging</p>
-              </div>
-              <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Owner</p>
-                <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
-                  {{ currentApp.ownerDisplayName || currentApp.ownerId || 'Unassigned' }}
-                </p>
-              </div>
-            </div>
+            <p class="mt-5 text-2xl font-semibold tracking-tight tabular-nums">{{ plan.monthlyPrice | planPriceVnd }} <span class="text-sm font-normal text-fg-3">{{ t().sbPerMonth }}</span></p>
+            <p class="mt-1 text-xs text-fg-3">
+              {{ plan.yearlyPrice | planPriceVnd }} {{ t().ctPerYear }}
+              @if (annualSavingsPercent(plan); as pct) { <span class="badge-ok ml-1">{{ t().ctSave2.replace('{{n}}', '' + pct) }}</span> }
+            </p>
+            <p class="mt-4 line-clamp-2 text-[13px] text-fg-2">{{ plan.description || '—' }}</p>
+            <ul class="mt-4 space-y-2 text-[13px]">
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-fg-3">group</span>{{ displayQuota(plan.maxUsers) }} {{ t().sbUsers }}</li>
+              <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-fg-3">api</span>{{ displayQuota(plan.maxApiCalls) }} {{ t().sbApiCalls.toLowerCase() }}</li>
+              @for (f of planFeatures(plan); track f) {
+                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-ok">{{ featureMeta(f).icon }}</span>{{ featureMeta(f).label }}</li>
+              }
+            </ul>
           </div>
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-          <app-stat-card
-            label="Total plans"
-            [value]="totalPlans()"
-            sublabel="All plans in this catalog"
-            icon="inventory_2"
-            variant="primary"
-            [theme]="theme()"
-          />
-          <app-stat-card
-            label="Active plans"
-            [value]="activePlans()"
-            sublabel="Visible for rollout"
-            icon="check_circle"
-            variant="success"
-            [theme]="theme()"
-          />
-          <app-stat-card
-            label="Draft plans"
-            [value]="draftPlans()"
-            sublabel="Not published yet"
-            icon="edit_note"
-            [theme]="theme()"
-          />
-          <app-stat-card
-            label="Free tiers"
-            [value]="freePlans()"
-            sublabel="Zero-cost plan options"
-            icon="sell"
-            variant="warning"
-            [theme]="theme()"
-          />
-        </div>
-      </section>
-
-      <section
-        class="rounded-3xl border p-5 shadow-sm"
-        [ngClass]="theme() === 'light'
-          ? 'border-slate-200 bg-white'
-          : 'border-slate-700/70 bg-slate-800/85'"
-      >
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div class="flex-1">
-            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-              Search plans
-            </label>
-            <div
-              class="flex items-center gap-3 rounded-2xl border px-4 py-3 transition focus-within:ring-2 focus-within:ring-sky-500/30"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-slate-50/70'
-                : 'border-slate-700 bg-slate-900/40'"
-            >
-              <span class="material-symbols-outlined text-lg" [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'">search</span>
-              <input
-                type="search"
-                [ngModel]="search()"
-                (ngModelChange)="search.set($event)"
-                placeholder="Search by plan name, description or included feature"
-                class="w-full border-0 bg-transparent p-0 text-sm outline-none"
-                [ngClass]="theme() === 'light'
-                  ? 'text-slate-800 placeholder:text-slate-400'
-                  : 'text-slate-100 placeholder:text-slate-500'"
-              />
-            </div>
+          <div class="flex justify-end gap-1 border-t border-line px-3 py-2">
+            <button type="button" class="btn-ghost btn-sm" (click)="openEditPlan(plan)"><span class="material-symbols-outlined">edit</span>{{ t().edit }}</button>
+            <button type="button" class="btn-danger-ghost btn-sm" (click)="deletePlan(plan)"><span class="material-symbols-outlined">delete</span>{{ t().delete }}</button>
           </div>
-
-          <div class="grid gap-3 sm:grid-cols-2 lg:w-[320px]">
-            <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/40'">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Visible plans</p>
-              <p class="mt-2 text-lg font-semibold tabular-nums" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ sortedPlans().length }}</p>
-            </div>
-            <div class="rounded-2xl border px-4 py-3" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/40'">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Catalog order</p>
-              <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Sorted by display order</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      @if (loading()) {
-        <app-loading-state message="Loading plan catalog..." [theme]="theme()" />
-      } @else if (sortedPlans().length === 0) {
-        <app-empty-state
-          icon="inventory_2"
-          [message]="search().trim() ? 'No plans match the current search.' : 'No plans exist for this application yet.'"
-          [action]="!search().trim()"
-          [theme]="theme()"
-        >
-          @if (!search().trim()) {
-            <button
-              action
-              type="button"
-              class="rounded-2xl px-4 py-2 text-sm font-medium text-white transition"
-              [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
-              (click)="openCreatePlan()"
-            >
-              Create first plan
-            </button>
-          }
-        </app-empty-state>
-      } @else {
-        <section class="grid gap-5 xl:grid-cols-2">
-          @for (plan of sortedPlans(); track plan.id) {
-            <article
-              class="rounded-3xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-white hover:border-sky-200'
-                : 'border-slate-700/70 bg-slate-800/85 hover:border-sky-500/30'"
-            >
-              <div class="flex flex-col gap-5">
-                <div class="flex items-start justify-between gap-4">
-                  <div class="flex min-w-0 items-start gap-4">
-                    <div
-                      class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-white shadow-sm"
-                      [ngClass]="plan.isActive ? 'bg-gradient-to-br from-sky-500 to-cyan-400' : 'bg-gradient-to-br from-slate-500 to-slate-700'"
-                    >
-                      @if (isIconUrl(plan.icon)) {
-                        <img [src]="plan.icon" alt="Plan icon" class="h-full w-full object-cover" />
-                      } @else {
-                        <span class="material-symbols-outlined text-[28px]">{{ plan.icon || 'inventory_2' }}</span>
-                      }
-                    </div>
-
-                    <div class="min-w-0">
-                      <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="truncate text-lg font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ plan.name }}</h3>
-                        <span
-                          class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                          [ngClass]="plan.isActive
-                            ? (theme() === 'light' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300')
-                            : (theme() === 'light' ? 'bg-slate-200 text-slate-600' : 'bg-slate-700/70 text-slate-300')"
-                        >
-                          {{ plan.isActive ? 'Active' : 'Draft' }}
-                        </span>
-                        @if (plan.monthlyPrice === 0 && plan.yearlyPrice === 0) {
-                          <span
-                            class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                            [ngClass]="theme() === 'light' ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'"
-                          >
-                            Free
-                          </span>
-                        }
-                        @if (annualSavingsPercent(plan); as savings) {
-                          <span
-                            class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                            [ngClass]="theme() === 'light' ? 'bg-amber-100 text-amber-700' : 'bg-amber-500/20 text-amber-300'"
-                          >
-                            Save {{ savings }}% yearly
-                          </span>
-                        }
-                      </div>
-
-                      <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                        {{ plan.description || 'No description provided for this plan yet.' }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      class="flex h-10 w-10 items-center justify-center rounded-2xl border transition"
-                      [ngClass]="theme() === 'light'
-                        ? 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                        : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-                      (click)="openEditPlan(plan)"
-                    >
-                      <span class="material-symbols-outlined text-[18px]">edit</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="flex h-10 w-10 items-center justify-center rounded-2xl border transition"
-                      [ngClass]="theme() === 'light'
-                        ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-                        : 'border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20'"
-                      (click)="deletePlan(plan)"
-                    >
-                      <span class="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Monthly</p>
-                    <p class="mt-2 text-sm font-semibold text-sky-600" [ngClass]="theme() === 'dark' ? 'text-sky-300' : ''">{{ plan.monthlyPrice | planPriceVnd }}</p>
-                  </div>
-                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Yearly</p>
-                    <p class="mt-2 text-sm font-semibold text-cyan-600" [ngClass]="theme() === 'dark' ? 'text-cyan-300' : ''">{{ plan.yearlyPrice | planPriceVnd }}</p>
-                  </div>
-                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Max users</p>
-                    <p class="mt-2 text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ displayQuota(plan.maxUsers) }}</p>
-                  </div>
-                  <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">API calls</p>
-                    <p class="mt-2 text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ displayQuota(plan.maxApiCalls) }}</p>
-                  </div>
-                </div>
-
-                <div class="space-y-3">
-                  <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Included features</p>
-                    <span
-                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      [ngClass]="theme() === 'light' ? 'bg-slate-100 text-slate-600' : 'bg-slate-700/70 text-slate-300'"
-                    >
-                      {{ planFeatures(plan).length }}
-                    </span>
-                  </div>
-
-                  @if (planFeatures(plan).length) {
-                    <div class="flex flex-wrap gap-2">
-                      @for (feature of planFeatures(plan); track feature) {
-                        @let meta = featureMeta(feature);
-                        <span
-                          class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium"
-                          [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                        >
-                          <span class="material-symbols-outlined text-[15px]">{{ meta.icon }}</span>
-                          {{ meta.label }}
-                        </span>
-                      }
-                    </div>
-                  } @else {
-                    <p class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                      No bundled feature is enabled for this plan.
-                    </p>
-                  }
-                </div>
-
-                <div class="flex flex-wrap items-center justify-between gap-3 border-t pt-4" [ngClass]="theme() === 'light' ? 'border-slate-200' : 'border-slate-700'">
-                  <div class="flex flex-wrap gap-4 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                    <span>Display order: {{ plan.displayOrder }}</span>
-                    <span class="font-mono">{{ plan.id }}</span>
-                  </div>
-                </div>
-              </div>
-            </article>
-          }
-        </section>
+        </article>
       }
-    }
+    </div>
+  }
+
+  @if (showPlanModal()) {
+    <app-drawer [title]="editingPlanId() ? t().ctEdit : t().ctNew" [subtitle]="getApplicationName()" [closing]="closingPlan()" (close)="closePlanModal()">
+      <div class="space-y-4">
+        <div><label class="label" for="pl-name">{{ t().rlName }} <span class="text-bad">*</span></label><input id="pl-name" class="input" [(ngModel)]="planForm.name" autofocus /></div>
+        <div><label class="label" for="pl-desc">{{ t().rlDescription }}</label><textarea id="pl-desc" class="input" rows="2" [(ngModel)]="planForm.description"></textarea></div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div><label class="label" for="pl-m">{{ t().ctMonthly }}</label><input id="pl-m" type="number" min="0" class="input tabular-nums" [(ngModel)]="planForm.monthlyPrice" /></div>
+          <div><label class="label" for="pl-y">{{ t().ctYearly }}</label><input id="pl-y" type="number" min="0" class="input tabular-nums" [(ngModel)]="planForm.yearlyPrice" /></div>
+          <app-form-field [label]="t().ctMaxUsers" type="number" [unlimitedSentinel]="-1" [hint]="t().ctUnlimitedHint" [model]="'' + planForm.maxUsers" (modelChange)="planForm.maxUsers = +$event" />
+          <app-form-field [label]="t().ctMaxApiCalls" type="number" [unlimitedSentinel]="-1" [hint]="t().ctUnlimitedHint" [model]="'' + planForm.maxApiCalls" (modelChange)="planForm.maxApiCalls = +$event" />
+        </div>
+        <fieldset>
+          <legend class="label">{{ t().ctFeatures }}</legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label class="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" class="checkbox" [(ngModel)]="planForm.includeAnalytics" />{{ t().ctFeatAnalytics }}</label>
+            <label class="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" class="checkbox" [(ngModel)]="planForm.includeSupport" />{{ t().ctFeatSupport }}</label>
+            <label class="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" class="checkbox" [(ngModel)]="planForm.includeAdvancedSecurity" />{{ t().ctFeatSecurity }}</label>
+            <label class="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-sm"><input type="checkbox" class="checkbox" [(ngModel)]="planForm.includeCustomDomain" />{{ t().ctFeatDomain }}</label>
+          </div>
+        </fieldset>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div><label class="label" for="pl-o">{{ t().ctOrder }}</label><input id="pl-o" type="number" class="input tabular-nums" [(ngModel)]="planForm.displayOrder" /></div>
+          <div><label class="label" for="pl-i">{{ t().ctIcon }}</label><input id="pl-i" class="input" placeholder="workspace_premium" [ngModel]="planForm.icon" (ngModelChange)="planForm.icon = $event" /></div>
+        </div>
+        <label class="flex items-center gap-2.5 text-sm"><input type="checkbox" class="checkbox" [(ngModel)]="planForm.isActive" />{{ t().ctActive }}</label>
+      </div>
+      <app-drawer-footer-actions [cancelLabel]="t().cancel" [saveLabel]="t().ctSave" [loadingLabel]="t().saving" [loading]="savingPlan()" (cancel)="closePlanModal()" (save)="savePlan()" />
+    </app-drawer>
   }
 </div>
-
-@if (showPlanModal()) {
-  <app-drawer
-    [title]="editingPlanId() ? 'Edit plan' : 'Create plan'"
-    [closing]="closingPlan()"
-    [theme]="theme()"
-    (close)="closePlanModal()"
-  >
-    <div class="space-y-8 py-2">
-      <section class="space-y-5">
-        <div class="flex items-center gap-2">
-          <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
-          <h4 class="text-[10px] font-black uppercase tracking-widest opacity-40">Basics</h4>
-        </div>
-
-        <div class="space-y-2">
-          <label class="block text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
-            Application
-          </label>
-          <app-dropdown
-            [options]="appOptions()"
-            [(ngModel)]="planForm.applicationId"
-            [theme]="theme()"
-            [placeholder]="'Select application...'"
-          />
-        </div>
-
-        <app-form-field
-          label="Plan name"
-          [model]="planForm.name"
-          (modelChange)="planForm.name = $event.toString()"
-          [theme]="theme()"
-          [required]="true"
-          placeholder="Starter, Growth, Enterprise"
-        />
-        <app-form-field
-          label="Description"
-          [model]="planForm.description"
-          (modelChange)="planForm.description = $event.toString()"
-          [theme]="theme()"
-          type="textarea"
-          placeholder="Summarize the audience and included value"
-        />
-        <app-form-field
-          label="Icon"
-          [model]="planForm.icon ?? ''"
-          (modelChange)="planForm.icon = $event.toString().trim() || null"
-          [theme]="theme()"
-          hint="Use a public image URL or a Material Symbol name such as rocket, workspace_premium or inventory_2."
-        />
-      </section>
-
-      <div class="grid gap-8 md:grid-cols-2">
-        <section class="space-y-4">
-          <div class="flex items-center gap-2">
-            <span class="h-1.5 w-1.5 rounded-full bg-cyan-500"></span>
-            <h4 class="text-[10px] font-black uppercase tracking-widest opacity-40">Pricing</h4>
-          </div>
-
-          <app-form-field
-            label="Monthly price"
-            type="number"
-            suffix="VND"
-            [model]="planForm.monthlyPrice.toString()"
-            (modelChange)="planForm.monthlyPrice = +$event"
-            [theme]="theme()"
-            max="99999999999999"
-          />
-          <app-form-field
-            label="Yearly price"
-            type="number"
-            suffix="VND"
-            [model]="planForm.yearlyPrice.toString()"
-            (modelChange)="planForm.yearlyPrice = +$event"
-            [theme]="theme()"
-            max="99999999999999"
-          />
-          <app-form-field
-            label="Display order"
-            type="number"
-            [model]="planForm.displayOrder.toString()"
-            (modelChange)="planForm.displayOrder = +$event"
-            [theme]="theme()"
-          />
-        </section>
-
-        <section class="space-y-4">
-          <div class="flex items-center gap-2">
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-            <h4 class="text-[10px] font-black uppercase tracking-widest opacity-40">Quotas</h4>
-          </div>
-
-          <app-form-field
-            label="Max users"
-            type="number"
-            [unlimitedSentinel]="-1"
-            [model]="planForm.maxUsers.toString()"
-            (modelChange)="planForm.maxUsers = +$event"
-            [theme]="theme()"
-          />
-          <app-form-field
-            label="Max API calls / month"
-            type="number"
-            [unlimitedSentinel]="-1"
-            [model]="planForm.maxApiCalls.toString()"
-            (modelChange)="planForm.maxApiCalls = +$event"
-            [theme]="theme()"
-          />
-        </section>
-      </div>
-
-      <section
-        class="space-y-5 rounded-3xl border p-6"
-        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'"
-      >
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <h4 class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Bundled features</h4>
-            <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-              Toggle the capabilities included with this plan.
-            </p>
-          </div>
-
-          <label class="inline-flex items-center gap-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
-            <input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500/20" [(ngModel)]="planForm.isActive" />
-            Active plan
-          </label>
-        </div>
-
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label
-            class="flex items-center gap-3 rounded-2xl border p-3.5 transition"
-            [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white hover:border-sky-200' : 'border-slate-700 bg-slate-800/70 hover:border-sky-500/30'"
-          >
-            <input type="checkbox" class="h-5 w-5 rounded text-sky-500" [(ngModel)]="planForm.includeAnalytics" />
-            <div>
-              <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Analytics</p>
-              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Reporting and usage insights.</p>
-            </div>
-          </label>
-
-          <label
-            class="flex items-center gap-3 rounded-2xl border p-3.5 transition"
-            [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white hover:border-sky-200' : 'border-slate-700 bg-slate-800/70 hover:border-sky-500/30'"
-          >
-            <input type="checkbox" class="h-5 w-5 rounded text-sky-500" [(ngModel)]="planForm.includeSupport" />
-            <div>
-              <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Priority support</p>
-              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Faster support and operations handling.</p>
-            </div>
-          </label>
-
-          <label
-            class="flex items-center gap-3 rounded-2xl border p-3.5 transition"
-            [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white hover:border-sky-200' : 'border-slate-700 bg-slate-800/70 hover:border-sky-500/30'"
-          >
-            <input type="checkbox" class="h-5 w-5 rounded text-sky-500" [(ngModel)]="planForm.includeAdvancedSecurity" />
-            <div>
-              <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Advanced security</p>
-              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Higher security posture and access controls.</p>
-            </div>
-          </label>
-
-          <label
-            class="flex items-center gap-3 rounded-2xl border p-3.5 transition"
-            [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white hover:border-sky-200' : 'border-slate-700 bg-slate-800/70 hover:border-sky-500/30'"
-          >
-            <input type="checkbox" class="h-5 w-5 rounded text-sky-500" [(ngModel)]="planForm.includeCustomDomain" />
-            <div>
-              <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Custom domain</p>
-              <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Use a branded customer-facing domain.</p>
-            </div>
-          </label>
-        </div>
-      </section>
-    </div>
-
-    <app-drawer-footer-actions
-      [theme]="theme()"
-      cancelLabel="Cancel"
-      [saveLabel]="editingPlanId() ? 'Save changes' : 'Create plan'"
-      [loadingLabel]="'Saving...'"
-      [loading]="savingPlan()"
-      (cancel)="closePlanModal()"
-      (save)="savePlan()"
-    />
-  </app-drawer>
-}

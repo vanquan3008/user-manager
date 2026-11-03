@@ -19,7 +19,7 @@ import { TranslateService } from '../../../core/services/translate.service';
 export interface MultiSelectOption {
   value: string;
   label: string;
-  /** Role không có trong catalog — tô màu cảnh báo */
+  /** Value not present in the catalog — highlighted as a warning. */
   variant?: 'default' | 'warning';
 }
 
@@ -51,14 +51,14 @@ export class MultiSelectDropdownComponent implements ControlValueAccessor {
   private positionRetry = 0;
 
   options = input<MultiSelectOption[]>([]);
-  placeholder = input<string>('-- Chọn --');
+  placeholder = input<string>('Select…');
   disabled = input<boolean>(false);
   theme = input<'light' | 'dark'>('dark');
 
   valueChange = output<string[]>();
 
   open = signal(false);
-  /** Giá trị đã chọn (value của option) */
+  /** Selected option values. */
   selected = signal<string[]>([]);
   private controlDisabled = signal(false);
   private onChange: (v: string[]) => void = () => {};
@@ -105,15 +105,14 @@ export class MultiSelectDropdownComponent implements ControlValueAccessor {
   }
 
   /**
-   * Một role: chỉ tên (value), không ghép label dài.
-   * Nhiều role: chỉ số lượng — không hiển thị CSV trên nút.
+   * One value: show its name; several: show a count instead of a long CSV.
    */
   triggerSummary(): string {
     const vals = this.selected();
     const n = vals.length;
     if (n === 0) return '';
     if (n === 1) return vals[0];
-    return `Đã chọn ${n} role`;
+    return `${n} selected`;
   }
 
   private closePanel(): void {

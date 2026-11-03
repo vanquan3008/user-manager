@@ -9,16 +9,16 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import { FileUploadService } from '../../core/services/file-upload.service';
 import { RolesService } from '../../core/services/roles.service';
 import { UsersService } from '../../core/services/users.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { TranslateService } from '../../core/services/translate.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
+import { formatDateTime } from '../../shared/utils/format';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { environment } from '../../../environments/environment';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
-import { DropdownComponent } from '../../shared/components/dropdown/dropdown.component';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import type {
   ApplicationCapabilitiesDto,
   ApplicationCredentialItem,
@@ -38,9 +38,7 @@ import type {
     FormsModule,
     DrawerComponent,
     DrawerFooterActionsComponent,
-    DropdownComponent,
-    LoadingStateComponent,
-    EmptyStateComponent
+    LoadingStateComponent
   ],
   templateUrl: './application-detail.component.html'
 })
@@ -54,7 +52,47 @@ export class ApplicationDetailComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   private readonly confirm = inject(ConfirmService);
   private readonly pageToolbar = inject(PageToolbarService);
-  readonly theme = inject(ThemeService).theme;
+  private readonly translate = inject(TranslateService);
+  readonly t = this.translate.t;
+  readonly removingUserId = signal<string | null>(null);
+  readonly integrationRows = computed(() => {
+    const api = (environment.apiUrl || '').replace(/\/$/, '');
+    const t = this.t();
+    return [
+      { label: t.sysDiscovery, value: `${api}/.well-known/openid-configuration` },
+      { label: t.adAuthorizeEndpoint, value: `${window.location.origin}/oauth/authorize` },
+      { label: t.adTokenEndpoint, value: `${api}/api/oauth/token` },
+      { label: t.sysJwks, value: `${api}/.well-known/jwks.json` }
+    ];
+  });
+
+  when(iso: string | null | undefined) { return formatDateTime(iso, this.translate.locale()); }
+
+  async removeMember(user: ApplicationUserDto) {
+    const app = this.app();
+    if (!app) return;
+    const ok = await this.confirm.confirm({
+      title: this.t().adRemoveMember,
+      message: this.t().adRemoveMemberConfirm.replace('{{user}}', this.getUserDisplayName(user)),
+      confirmText: this.t().adRemoveMember,
+      variant: 'danger'
+    });
+    if (!ok) return;
+    this.removingUserId.set(user.userId);
+    this.applicationsService.removeUserFromApplication(app.id, user.userId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.removingUserId.set(null);
+          this.appUsers.update(list => list.filter(u => u.userId !== user.userId));
+          this.notify.success(this.t().adMemberRemoved);
+        },
+        error: (err: unknown) => {
+          this.removingUserId.set(null);
+          this.notify.error(apiErrorMessage(err));
+        }
+      });
+  }
 
   readonly app = signal<ApplicationListItem | null>(null);
   readonly credentials = signal<ApplicationCredentialItem | null>(null);

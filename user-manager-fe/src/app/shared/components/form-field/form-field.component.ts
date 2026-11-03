@@ -2,93 +2,47 @@ import { Component, input, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+let nextFieldId = 0;
+
 @Component({
   selector: 'app-form-field',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="space-y-2.5">
-      <div class="flex items-center justify-between gap-3">
-        <label
-          class="block text-sm font-semibold"
-          [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'"
-        >
-          {{ label() }}
-          @if (required()) {
-            <span class="text-rose-500">*</span>
-          }
+    <div>
+      <div class="mb-1.5 flex items-center justify-between gap-3">
+        <label class="text-[13px] font-medium text-fg" [attr.for]="fieldId">
+          {{ label() }}@if (required()) {<span class="ml-0.5 text-bad">*</span>}
         </label>
-        @if (hint()) {
-          <span class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ hint() }}</span>
-        }
+        @if (hint()) { <span class="text-xs text-fg-3">{{ hint() }}</span> }
       </div>
 
       @if (type() === 'textarea') {
-        <textarea
-          [ngModel]="model()"
-          (ngModelChange)="onModelChange($event)"
-          [placeholder]="placeholder()"
-          [readOnly]="readonly()"
-          [disabled]="disabled()"
-          [rows]="rows()"
-          [attr.aria-invalid]="invalid()"
-          class="w-full resize-y rounded-lg border px-4 py-3 text-sm leading-6 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-70"
-          [ngClass]="fieldClasses()"
-        ></textarea>
+        <textarea [id]="fieldId" class="input resize-y" [class.input-invalid]="invalid()"
+          [ngModel]="model()" (ngModelChange)="onModelChange($event)" [placeholder]="placeholder()"
+          [readOnly]="readonly()" [disabled]="disabled()" [rows]="rows()" [attr.aria-invalid]="invalid()"></textarea>
       } @else if (useCompositeField()) {
-        <div
-          class="flex w-full min-w-0 overflow-hidden rounded-lg border transition focus-within:border-sky-400 focus-within:ring-2 focus-within:ring-sky-500/20 disabled:opacity-70"
-          [ngClass]="compositeContainerClasses()"
-        >
-          <div class="relative min-w-0 flex-1">
-            <input
-              [type]="type()"
-              [ngModel]="displayForInput()"
-              (ngModelChange)="onInputChange($event)"
-              [placeholder]="resolvedPlaceholder()"
-              [readonly]="readonly()"
-              [disabled]="disabled()"
-              [min]="min()"
-              [max]="max()"
-              [attr.aria-invalid]="invalid()"
-              class="w-full min-w-0 border-0 bg-transparent px-4 py-3 text-sm outline-none ring-0 focus:ring-0 disabled:opacity-70"
-              [ngClass]="innerInputClasses()"
-            />
-          </div>
+        <div class="flex w-full min-w-0 overflow-hidden rounded-lg border bg-surface shadow-xs transition focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/15"
+             [class]="invalid() ? 'border-bad' : 'border-line-strong'">
+          <input [id]="fieldId" [type]="type()" class="h-9 w-full min-w-0 border-0 bg-transparent px-3 text-sm text-fg outline-none placeholder:text-fg-3"
+            [ngModel]="displayForInput()" (ngModelChange)="onInputChange($event)" [placeholder]="resolvedPlaceholder()"
+            [readonly]="readonly()" [disabled]="disabled()" [min]="min()" [max]="max()" [attr.aria-invalid]="invalid()" />
           @if (suffix()) {
-            <span
-              class="flex shrink-0 items-center border-l px-3 py-2 text-xs font-medium tabular-nums"
-              [ngClass]="suffixSpanClasses()"
-            >
-              {{ suffix() }}
-            </span>
+            <span class="flex shrink-0 items-center border-l border-line bg-surface-2 px-3 text-xs font-medium tabular-nums text-fg-2">{{ suffix() }}</span>
           }
         </div>
       } @else {
-        <input
-          [type]="type()"
-          [ngModel]="model()"
-          (ngModelChange)="onModelChange($event)"
-          [placeholder]="placeholder()"
-          [readonly]="readonly()"
-          [disabled]="disabled()"
-          [min]="min()"
-          [max]="max()"
-          [attr.aria-invalid]="invalid()"
-          class="w-full rounded-lg border px-4 py-3 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 disabled:opacity-70"
-          [ngClass]="fieldClasses()"
-        />
+        <input [id]="fieldId" [type]="type()" class="input" [class.input-invalid]="invalid()"
+          [ngModel]="model()" (ngModelChange)="onModelChange($event)" [placeholder]="placeholder()"
+          [readonly]="readonly()" [disabled]="disabled()" [min]="min()" [max]="max()" [attr.aria-invalid]="invalid()" />
       }
 
-      @if (invalid() && error()) {
-        <p class="text-xs font-medium" [ngClass]="theme() === 'light' ? 'text-rose-600' : 'text-rose-300'">
-          {{ error() }}
-        </p>
-      }
+      @if (invalid() && error()) { <p class="error-text">{{ error() }}</p> }
     </div>
   `
 })
 export class FormFieldComponent {
+  readonly fieldId = `ff-${++nextFieldId}`;
   label = input.required<string>();
   model = model<string>('');
   type = input<'text' | 'email' | 'number' | 'date' | 'password' | 'textarea'>('text');
@@ -102,6 +56,7 @@ export class FormFieldComponent {
   invalid = input(false);
   error = input<string>('');
   rows = input(4);
+  /** @deprecated kept for template compatibility */
   theme = input<'light' | 'dark'>('dark');
 
   /** Shown on the right inside the field border (e.g. VND, đơn vị). */
@@ -155,7 +110,7 @@ export class FormFieldComponent {
     const p = this.placeholder();
     if (p) return p;
     if (this.shouldUseUnlimitedEmptyDisplay()) {
-      return 'Nhập số (để trống = tất cả)';
+      return 'Leave empty for unlimited';
     }
     return '';
   }
@@ -177,39 +132,7 @@ export class FormFieldComponent {
     );
   }
 
-  innerInputClasses(): string {
-    const themeText = this.theme() === 'light' ? 'text-slate-900' : 'text-slate-100';
-    const placeholder = this.theme() === 'light' ? 'placeholder:text-slate-400' : 'placeholder:text-slate-500';
-    return `${themeText} ${placeholder}`;
-  }
 
-  compositeContainerClasses(): string {
-    const light = this.theme() === 'light'
-      ? 'border-slate-200 bg-white'
-      : 'border-slate-600 bg-slate-900/80';
 
-    if (!this.invalid()) {
-      return light;
-    }
 
-    return `${light} motion-invalid border-rose-300 bg-rose-50/60 ${this.theme() === 'light' ? '' : 'border-rose-500/40 bg-rose-500/10'}`;
-  }
-
-  suffixSpanClasses(): string {
-    return this.theme() === 'light'
-      ? 'border-slate-200 bg-slate-50 text-slate-600'
-      : 'border-slate-600 bg-slate-800/80 text-slate-400';
-  }
-
-  fieldClasses(): string {
-    const base = this.theme() === 'light'
-      ? 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 disabled:bg-slate-100'
-      : 'border-slate-600 bg-slate-900/80 text-slate-100 placeholder:text-slate-500 disabled:bg-slate-800';
-
-    if (!this.invalid()) {
-      return base;
-    }
-
-    return `${base} motion-invalid border-rose-300 bg-rose-50/60 focus:border-rose-400 focus:ring-rose-500/10 ${this.theme() === 'light' ? 'text-slate-900' : 'border-rose-500/40 bg-rose-500/10 text-slate-100'}`;
-  }
 }

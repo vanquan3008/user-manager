@@ -10,7 +10,7 @@ public record IdentityUserDto(
     string? BanReason,
     DateTime CreatedAt,
     Guid? UserProfileId,
-    bool IsSSOAccount = false,
+    [property: System.Text.Json.Serialization.JsonPropertyName("isSsoAccount")] bool IsSSOAccount = false,
     bool TwoFactorEnabled = false,
     DateTime? LastLoginAt = null,
     DateTimeOffset? LockoutEnd = null

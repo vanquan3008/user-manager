@@ -1,38 +1,35 @@
+import { ActivatedRoute, Router } from '@angular/router';
+import { TranslateService } from '../../core/services/translate.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
+import { initials, relativeTime } from '../../shared/utils/format';
 import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsersService } from '../../core/services/users.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { PageToolbarService } from '../../core/services/page-toolbar.service';
-import { StatusBadgeComponent } from '../../shared/components/status-badge/status-badge.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
 import { SsoCreateFormComponent } from '../../shared/components/sso-create-form/sso-create-form.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { ThemeService } from '../../core/services/theme.service';
 import { hasAdminRole } from '../../core/constants/roles';
 import type { IdentityUser } from '../../core/models';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { TablePaginationComponent } from '../../shared/components/table-pagination/table-pagination.component';
-import { UserDetailComponent } from './user-detail.component';
 
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  host: { class: 'app-host-fill' },
   imports: [
     CommonModule,
     FormsModule,
-    StatusBadgeComponent,
     EmptyStateComponent,
     DrawerComponent,
     SsoCreateFormComponent,
     DrawerFooterActionsComponent,
     LoadingStateComponent,
-    TablePaginationComponent,
-    UserDetailComponent
+    TablePaginationComponent
   ],
   templateUrl: './users-list.component.html'
 })
@@ -40,8 +37,15 @@ export class UsersListComponent implements OnInit {
   private usersService = inject(UsersService);
   private auth = inject(AuthService);
   private notify = inject(NotificationService);
-  theme = inject(ThemeService).theme;
-  private pageToolbar = inject(PageToolbarService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  /** Route data `accountType: 'sso'` turns this page into the SSO accounts directory. */
+  readonly accountType = (this.route.snapshot.data['accountType'] as 'sso' | 'console' | undefined) ?? undefined;
+  readonly title = computed(() => (this.accountType === 'sso' ? this.t().ssoAccountsTitle : this.t().usersTitle));
+  readonly subtitle = computed(() => (this.accountType === 'sso' ? this.t().ssoAccountsSubtitle : this.t().usersSubtitle));
+  private translate = inject(TranslateService);
+  readonly t = this.translate.t;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
   readonly listPageSizeSvc = inject(ListPageSizeService);
 
   users = signal<IdentityUser[]>([]);
@@ -77,24 +81,37 @@ export class UsersListComponent implements OnInit {
   );
 
   ngOnInit() {
-    this.pageToolbar.setMeta({
-      badge: 'Identity',
-      description: 'A lighter user directory with focused details on demand.'
-    });
     this.load();
   }
+
+  onSearchInput(value: string) {
+    this.search.set(value);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.onSearch(), 300);
+  }
+
+  openUser(user: IdentityUser) {
+    this.router.navigate(['/users', user.id]);
+  }
+
+  isLocked(user: IdentityUser) {
+    return !!user.lockoutEnd && new Date(user.lockoutEnd).getTime() > Date.now();
+  }
+
+  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  initialsOf = initials;
 
   load() {
     this.loading.set(true);
     this.error.set('');
-    this.usersService.getUsers(this.page(), this.pageSize(), this.search() || undefined).subscribe({
+    this.usersService.getUsers(this.page(), this.pageSize(), this.search() || undefined, this.accountType).subscribe({
       next: (res) => {
         this.users.set(res.data || []);
         this.totalCount.set(res.totalCount ?? 0);
         this.loading.set(false);
       },
       error: (err: any) => {
-        this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load users');
+        this.error.set(apiErrorMessage(err));
         this.loading.set(false);
       }
     });
@@ -160,11 +177,11 @@ export class UsersListComponent implements OnInit {
   createSsoUser() {
     const f = this.ssoForm;
     if (!f.email?.trim() || !f.password?.trim() || !f.username?.trim()) {
-      this.notify.error('Email, mật khẩu và username là bắt buộc.');
+      this.notify.error(this.t().usersRequired);
       return;
     }
     if (!f.dateOfBirth?.trim()) {
-      this.notify.error('Vui lòng chọn ngày sinh.');
+      this.notify.error(this.t().usersRequired);
       return;
     }
     this.ssoSaving.set(true);
@@ -178,16 +195,16 @@ export class UsersListComponent implements OnInit {
     }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notify.success('Đã tạo SSO user thành công.');
+          this.notify.success(this.t().usersCreated);
           this.closeSsoModal();
           this.load();
         } else {
-          this.notify.error(res.message || 'Tạo SSO user thất bại.');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.ssoSaving.set(false);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || err.error?.error?.message || 'Tạo SSO user thất bại.');
+        this.notify.error(apiErrorMessage(err));
         this.ssoSaving.set(false);
       }
     });
@@ -198,7 +215,7 @@ export class UsersListComponent implements OnInit {
   }
 
   joinedLabel(user: IdentityUser) {
-    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(
+    return new Intl.DateTimeFormat(this.translate.locale(), { month: 'short', day: 'numeric', year: 'numeric' }).format(
       new Date(user.createdAt)
     );
   }

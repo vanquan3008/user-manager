@@ -14,7 +14,10 @@ import type {
 import { ApplicationsService } from '../../core/services/applications.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { RolesService } from '../../core/services/roles.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { SecurityService } from '../../core/services/security.service';
+import { TranslateService } from '../../core/services/translate.service';
+import type { AuditLogEntry, MfaStatus, SessionInfo } from '../../core/models';
+import { describeUserAgent, eventIcon, humanizeEvent, relativeTime } from '../../shared/utils/format';
 import { UsersService } from '../../core/services/users.service';
 import {
   UNREACHABLE_SERVER_MESSAGE_VI,
@@ -53,7 +56,9 @@ export class UserDetailComponent implements OnInit {
   private pageToolbar = inject(PageToolbarService);
   private auth = inject(AuthService);
   private confirm = inject(ConfirmService);
-  theme = inject(ThemeService).theme;
+  private security = inject(SecurityService);
+  private translate = inject(TranslateService);
+  readonly t = this.translate.t;
   userId = input<string | null>(null);
   embedded = input(false);
   private lastLoadedUserId: string | null = null;
@@ -76,13 +81,19 @@ export class UserDetailComponent implements OnInit {
   granting = signal(false);
   revoking = signal<string | null>(null);
 
+  // Security (MFA, sessions, activity)
+  mfa = signal<MfaStatus | null>(null);
+  sessions = signal<SessionInfo[]>([]);
+  activity = signal<AuditLogEntry[]>([]);
+  securityBusy = signal(false);
+
   assignedRoles = computed(() => this.userWithRoles()?.roles ?? []);
   resolvedUserId = computed(() => this.userWithRoles()?.user?.id ?? '');
   isSsoUser = computed(() => this.userWithRoles()?.user?.isSsoAccount === true);
-  accountTypeLabel = computed(() => (this.isSsoUser() ? 'SSO account' : 'Standard account'));
+  accountTypeLabel = computed(() => (this.isSsoUser() ? this.t().accSso : this.t().accConsole));
   availabilityLabel = computed(() => {
     const user = this.userWithRoles()?.user;
-    return user?.isActive && !user?.isBanned ? 'Active' : 'Disabled';
+    return user?.isActive && !user?.isBanned ? this.t().usersActive : this.t().usersInactive;
   });
   canManageBan = computed(() => canBanUsers(this.auth.user()?.roles, this.auth.applications()));
   primaryRoleLabel = computed(() => this.sortRoleNames(this.assignedRoles())[0] ?? 'No role');
@@ -323,10 +334,9 @@ export class UserDetailComponent implements OnInit {
     }
 
     const accepted = await this.confirm.confirm({
-      title: 'Disable user',
-      message: 'Disable this account? They will lose access until restored.',
-      confirmText: 'Disable',
-      cancelText: 'Cancel',
+      title: this.t().udDisable,
+      message: this.t().udBanConfirm,
+      confirmText: this.t().udDisable,
       variant: 'danger'
     });
 
@@ -336,6 +346,37 @@ export class UserDetailComponent implements OnInit {
 
     this.banUser(current.id);
   }
+
+  loadSecurity(userId: string) {
+    this.security.userMfa(userId).subscribe({ next: m => this.mfa.set(m), error: () => this.mfa.set(null) });
+    this.security.userSessions(userId).subscribe({ next: s => this.sessions.set(s), error: () => this.sessions.set([]) });
+    this.security.auditLogs({ page: 1, pageSize: 8, userId }).subscribe({ next: r => this.activity.set(r.data ?? []), error: () => this.activity.set([]) });
+  }
+
+  async resetMfa() {
+    const uid = this.resolvedUserId();
+    if (!uid || !(await this.confirm.confirm({ title: this.t().udMfaReset, message: this.t().udMfaResetConfirm, confirmText: this.t().udMfaReset, variant: 'danger' }))) return;
+    this.securityBusy.set(true);
+    this.security.resetUserMfa(uid).subscribe({
+      next: () => { this.securityBusy.set(false); this.notify.success(this.t().udMfaResetDone); this.loadSecurity(uid); this.patchUserState({ twoFactorEnabled: false }); },
+      error: err => { this.securityBusy.set(false); this.notify.error(getHttpErrorMessage(err, this.t().authFailed, UNREACHABLE_SERVER_MESSAGE_VI)); }
+    });
+  }
+
+  async revokeAllSessions() {
+    const uid = this.resolvedUserId();
+    if (!uid || !(await this.confirm.confirm({ title: this.t().udRevokeAll, message: this.t().udRevokeAllConfirm, confirmText: this.t().udRevokeAll, variant: 'danger' }))) return;
+    this.securityBusy.set(true);
+    this.security.revokeUserSessions(uid).subscribe({
+      next: r => { this.securityBusy.set(false); this.notify.success(r.data?.message ?? this.t().udRevokeAll); this.loadSecurity(uid); },
+      error: err => { this.securityBusy.set(false); this.notify.error(getHttpErrorMessage(err, this.t().authFailed, UNREACHABLE_SERVER_MESSAGE_VI)); }
+    });
+  }
+
+  device(ua: string | null | undefined) { return describeUserAgent(ua); }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  humanize = humanizeEvent;
+  eventIcon = eventIcon;
 
   copyUserId() {
     this.copyText(this.userWithRoles()?.user?.id, 'User ID');
@@ -393,6 +434,7 @@ export class UserDetailComponent implements OnInit {
             });
           }
 
+          this.loadSecurity(userId);
           if (user.data.user.isSsoAccount) {
             this.loadSsoApplications(userId);
           } else {

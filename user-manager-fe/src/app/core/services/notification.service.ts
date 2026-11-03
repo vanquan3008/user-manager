@@ -16,7 +16,8 @@ export class NotificationService {
 
   private nextId = 1;
 
-  show(type: NotificationType, message: string, durationMs = 2000) {
+  show(type: NotificationType, message: string, durationMs?: number) {
+    durationMs ??= type === 'error' || type === 'validation' ? 6000 : 3500;
     const note: Notification = { id: this.nextId++, type, message };
     this._list.update(list => [...list, note]);
     setTimeout(() => {

@@ -1,230 +1,213 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
+import type { DashboardSummary, IdentityUser } from '../../core/models';
+import { SecurityService } from '../../core/services/security.service';
 import { UsersService } from '../../core/services/users.service';
-import { RolesService } from '../../core/services/roles.service';
-import { ApplicationsService } from '../../core/services/applications.service';
-import { ThemeService } from '../../core/services/theme.service';
 import { TranslateService } from '../../core/services/translate.service';
-import { AuthService } from '../../core/services/auth.service';
-import { NotificationService } from '../../core/services/notification.service';
-import { ConfirmService } from '../../core/services/confirm.service';
-import { environment } from '../../../environments/environment';
-import { canBanUsers } from '../../core/constants/roles';
-import type { ApplicationListItem, IdentityUser } from '../../core/models';
-import { PageToolbarService } from '../../core/services/page-toolbar.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
-import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-
-type DailyPoint = { date: string; label: string; count: number };
+import { StackedBarChartComponent, type StackedBarPoint } from '../../shared/components/charts/stacked-bar-chart.component';
+import { eventIcon, humanizeEvent, initials, relativeTime } from '../../shared/utils/format';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, StatCardComponent, LoadingStateComponent, EmptyStateComponent],
-  templateUrl: './dashboard.component.html'
+  imports: [RouterLink, StatCardComponent, StackedBarChartComponent],
+  template: `
+    <div class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">{{ t().dashTitle }}</h1>
+          <p class="page-subtitle">{{ t().dashSubtitle }}</p>
+        </div>
+        <button type="button" class="btn-secondary" (click)="load()" [disabled]="loading()">
+          <span class="material-symbols-outlined" [class.animate-spin]="loading()">refresh</span>{{ t().dashRefresh }}
+        </button>
+      </div>
+
+      @if (error()) {
+        <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div>
+      }
+
+      <!-- KPI row -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        @if (summary(); as s) {
+          <app-stat-card [label]="t().dashKpiUsers" [value]="s.users.total" icon="group" variant="primary" [sublabel]="fill(t().dashKpiUsersSub, { n: s.users.newSince })" />
+          <app-stat-card [label]="t().dashKpiSessions" [value]="s.activeSessions" icon="devices" [sublabel]="t().dashKpiSessionsSub" />
+          <app-stat-card [label]="t().dashKpiMfa" [value]="s.mfaAdoptionRate + '%'" icon="phonelink_lock" [variant]="s.mfaAdoptionRate >= 50 ? 'success' : 'warning'"
+                         [sublabel]="fill(t().dashKpiMfaSub, { n: s.users.mfaEnabled, total: s.users.total })" />
+          <app-stat-card [label]="t().dashKpiApps" [value]="s.applications" icon="apps" [sublabel]="t().dashKpiAppsSub" />
+        } @else {
+          @for (i of [0, 1, 2, 3]; track i) { <div class="card h-[118px] p-5"><div class="skeleton h-3 w-24"></div><div class="skeleton mt-6 h-7 w-16"></div></div> }
+        }
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <!-- Sign-in activity -->
+        <section class="card xl:col-span-2">
+          <div class="card-header">
+            <div><h2 class="card-title">{{ t().dashLoginActivity }}</h2><p class="card-desc">{{ t().dashLoginActivityDesc }}</p></div>
+          </div>
+          <div class="card-body">
+            @if (summary()) {
+              <app-stacked-bar-chart [points]="chartPoints()" [series]="chartSeries()" [ariaLabel]="t().dashLoginActivity"
+                                     [chartLabel]="t().dashChart" [tableLabel]="t().dashTable" />
+            } @else {
+              <div class="skeleton h-64 w-full"></div>
+            }
+          </div>
+        </section>
+
+        <!-- Identity health -->
+        <section class="card">
+          <div class="card-header">
+            <div><h2 class="card-title">{{ t().dashIdentityHealth }}</h2><p class="card-desc">{{ t().dashIdentityHealthDesc }}</p></div>
+          </div>
+          <div class="card-body space-y-4">
+            @for (row of healthRows(); track row.label) {
+              <div>
+                <div class="mb-1.5 flex items-center justify-between text-[13px]">
+                  <span class="inline-flex items-center gap-2 text-fg-2"><span class="material-symbols-outlined text-[17px] text-fg-3">{{ row.icon }}</span>{{ row.label }}</span>
+                  <span class="tabular-nums"><span class="font-medium text-fg">{{ row.value }}</span><span class="ml-1.5 text-fg-3">{{ row.pct }}%</span></span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-surface-3" role="meter" [attr.aria-valuenow]="row.pct" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="row.label">
+                  <div class="h-full rounded-full transition-[width] duration-500" [class]="row.bar" [style.width.%]="row.pct"></div>
+                </div>
+              </div>
+            }
+            @if (summary() && summary()!.mfaAdoptionRate < 50) {
+              <div class="alert-warn"><span class="material-symbols-outlined">shield</span><span>{{ t().dashMfaNudge }}</span></div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <!-- Recent events -->
+        <section class="card xl:col-span-2">
+          <div class="card-header">
+            <h2 class="card-title">{{ t().dashRecentEvents }}</h2>
+            <a routerLink="/audit-logs" class="btn-ghost btn-sm">{{ t().dashViewAuditLog }}<span class="material-symbols-outlined">arrow_forward</span></a>
+          </div>
+          @if (summary()?.recentSecurityEvents?.length) {
+            <ul class="divide-y divide-line">
+              @for (e of summary()!.recentSecurityEvents; track e.id) {
+                <li class="flex items-center gap-3 px-5 py-3">
+                  <span class="icon-tile h-8 w-8" [class]="e.succeeded ? '' : '!bg-bad-soft !text-bad !ring-bad/20'"><span class="material-symbols-outlined text-[17px]">{{ icon(e.eventType) }}</span></span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium">{{ humanize(e.eventType) }}</p>
+                    <p class="truncate text-xs text-fg-3">{{ e.actorEmail || e.actorUserId || '—' }}@if (e.ipAddress) { · {{ e.ipAddress }} }</p>
+                  </div>
+                  <span [class]="e.succeeded ? 'badge-ok' : 'badge-bad'"><span class="dot"></span>{{ e.succeeded ? t().statusSucceeded : t().statusFailed }}</span>
+                  <span class="hidden w-24 text-right text-xs text-fg-3 sm:block">{{ ago(e.occurredAt) }}</span>
+                </li>
+              }
+            </ul>
+          } @else if (summary()) {
+            <p class="px-5 py-10 text-center text-sm text-fg-3">{{ t().dashNoEvents }}</p>
+          } @else {
+            <div class="space-y-3 p-5">@for (i of [0,1,2,3]; track i) { <div class="skeleton h-10 w-full"></div> }</div>
+          }
+        </section>
+
+        <!-- Newest users -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">{{ t().dashRecentUsers }}</h2>
+            <a routerLink="/users" class="btn-ghost btn-sm">{{ t().viewAll }}<span class="material-symbols-outlined">arrow_forward</span></a>
+          </div>
+          <ul class="divide-y divide-line">
+            @for (u of recentUsers(); track u.id) {
+              <li>
+                <a [routerLink]="['/users', u.id]" class="flex items-center gap-3 px-5 py-3 transition hover:bg-surface-2/60">
+                  <span class="avatar">{{ initialsOf(u.userName || u.email) }}</span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium">{{ u.userName }}</p>
+                    <p class="truncate text-xs text-fg-3">{{ u.email }}</p>
+                  </div>
+                  @if (u.isBanned) { <span class="badge-bad">{{ t().dashBanned }}</span> }
+                  @else if (u.twoFactorEnabled) { <span class="badge-ok" title="MFA"><span class="material-symbols-outlined text-[14px]">verified_user</span>MFA</span> }
+                </a>
+              </li>
+            } @empty {
+              <li class="px-5 py-10 text-center text-sm text-fg-3">{{ t().noUsers }}</li>
+            }
+          </ul>
+        </section>
+      </div>
+    </div>
+  `
 })
 export class DashboardComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
+  private readonly security = inject(SecurityService);
   private readonly usersService = inject(UsersService);
-  private readonly rolesService = inject(RolesService);
-  private readonly applicationsService = inject(ApplicationsService);
-  private readonly notification = inject(NotificationService);
-  private readonly confirm = inject(ConfirmService);
-  readonly auth = inject(AuthService);
-  readonly theme = inject(ThemeService).theme;
-  readonly translate = inject(TranslateService);
-  private readonly pageToolbar = inject(PageToolbarService);
+  private readonly translate = inject(TranslateService);
+  readonly t = this.translate.t;
 
-  readonly canBan = computed(() => canBanUsers(this.auth.user()?.roles, this.auth.applications()));
-  readonly banActionId = signal<string | null>(null);
   readonly loading = signal(true);
   readonly error = signal('');
-  readonly rolesCount = signal(0);
-  readonly totalUsers = signal(0);
-  readonly activeUsers = signal(0);
-  readonly bannedUsers = signal(0);
-  readonly ssoUsers = signal(0);
-  readonly verifiedUsers = signal(0);
+  readonly summary = signal<DashboardSummary | null>(null);
   readonly recentUsers = signal<IdentityUser[]>([]);
-  readonly applications = signal<ApplicationListItem[]>([]);
-  readonly registrations7d = signal<DailyPoint[]>([]);
-  readonly appLogoFailed = signal<Set<string>>(new Set());
 
-  readonly totalApplications = computed(() => this.applications().length);
-  readonly activePercent = computed(() => this.toPercent(this.activeUsers(), this.totalUsers()));
-  readonly bannedPercent = computed(() => this.toPercent(this.bannedUsers(), this.totalUsers()));
-  readonly verifiedPercent = computed(() => this.toPercent(this.verifiedUsers(), this.totalUsers()));
-  readonly ssoPercent = computed(() => this.toPercent(this.ssoUsers(), this.totalUsers()));
-  readonly registrationMax = computed(() => Math.max(...this.registrations7d().map(item => item.count), 1));
+  readonly chartSeries = computed(() => [
+    { name: this.t().dashSucceeded, color: 'var(--series-1)' },
+    { name: this.t().dashFailed, color: 'var(--series-2)' }
+  ]);
 
-  ngOnInit() {
-    this.pageToolbar.setMeta({
-      badge: this.translate.t().badge,
-      description: this.translate.t().overviewDesc
+  readonly chartPoints = computed<StackedBarPoint[]>(() => {
+    const locale = this.translate.locale();
+    return (this.summary()?.loginActivity ?? []).map(p => {
+      const d = new Date(p.day + 'T00:00:00');
+      return {
+        label: d.toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+        detail: d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+        values: [p.succeeded, p.failed]
+      };
     });
-    this.load();
-  }
+  });
+
+  readonly healthRows = computed(() => {
+    const u = this.summary()?.users;
+    const t = this.t();
+    const pct = (v: number) => (u && u.total ? Math.round((v / u.total) * 100) : 0);
+    if (!u) return [];
+    return [
+      { label: t.dashActive, value: u.active, pct: pct(u.active), icon: 'check_circle', bar: 'bg-ok' },
+      { label: t.dashVerified, value: u.emailVerified, pct: pct(u.emailVerified), icon: 'mark_email_read', bar: 'bg-brand' },
+      { label: t.dashSignedIn30, value: u.signedInSince, pct: pct(u.signedInSince), icon: 'login', bar: 'bg-info' },
+      { label: t.dashLocked, value: u.locked, pct: pct(u.locked), icon: 'lock_clock', bar: 'bg-warn' },
+      { label: t.dashBanned, value: u.banned, pct: pct(u.banned), icon: 'block', bar: 'bg-bad' }
+    ];
+  });
+
+  ngOnInit() { this.load(); }
 
   load() {
     this.loading.set(true);
     this.error.set('');
-
     forkJoin({
-      users: this.usersService.getUsers(1, environment.usersPageSize),
-      roles: this.rolesService.getRoles().pipe(catchError(() => of([]))),
-      applications: this.applicationsService.getApplications().pipe(catchError(() => of([])))
+      summary: this.security.dashboard(),
+      users: this.usersService.getUsers(1, 6).pipe(catchError(() => of(null)))
     })
-      .pipe(
-        finalize(() => this.loading.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
+      .pipe(finalize(() => this.loading.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ users, roles, applications }) => {
-          const list = users.data || [];
-          const recentUsers = [...list].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()).slice(0, 6);
-          const activeUsers = list.filter(user => user.isActive && !user.isBanned).length;
-          const bannedUsers = list.filter(user => user.isBanned).length;
-          const ssoUsers = list.filter(user => user.isSsoAccount).length;
-          const verifiedUsers = list.filter(user => user.emailConfirmed).length;
-
-          this.totalUsers.set(users.totalCount ?? list.length);
-          this.activeUsers.set(activeUsers);
-          this.bannedUsers.set(bannedUsers);
-          this.ssoUsers.set(ssoUsers);
-          this.verifiedUsers.set(verifiedUsers);
-          this.rolesCount.set(roles.length);
-          this.recentUsers.set(recentUsers);
-          this.applications.set(applications);
-          this.registrations7d.set(this.buildRegistrationSeries(list));
-          this.appLogoFailed.set(new Set());
+        next: ({ summary, users }) => {
+          this.summary.set(summary);
+          this.recentUsers.set((users?.data ?? []).slice(0, 6));
         },
-        error: (err: any) => {
-          this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load dashboard overview.');
-        }
+        error: err => this.error.set(apiErrorMessage(err, this.t().dashLoadFailed))
       });
   }
 
-  async banUser(user: IdentityUser, event: Event): Promise<void> {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (!this.canBan() || this.auth.user()?.id === user.id) {
-      return;
-    }
-
-    const ok = await this.confirm.confirm({
-      title: 'Confirm',
-      message: this.translate.t().banUserConfirm,
-      confirmText: 'OK',
-      cancelText: this.translate.t().cancel || 'Cancel',
-      variant: 'danger'
-    });
-
-    if (!ok) {
-      return;
-    }
-
-    this.banActionId.set(user.id);
-    this.usersService.banUser(user.id)
-      .pipe(
-        finalize(() => this.banActionId.set(null)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: response => {
-          if (!response.success) {
-            this.notification.error(response.error?.message || response.message || 'Error');
-            return;
-          }
-
-          this.notification.success(response.data?.message ?? 'User banned.');
-          this.load();
-        },
-        error: (err: any) => {
-          const message = err?.error?.error?.message ?? err?.error?.message ?? 'Error';
-          this.notification.error(typeof message === 'string' ? message : 'Error');
-        }
-      });
+  fill(template: string, values: Record<string, number>) {
+    return Object.entries(values).reduce((acc, [k, v]) => acc.replace(`{{${k}}}`, String(v)), template);
   }
 
-  unbanUser(user: IdentityUser, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (!this.canBan()) {
-      return;
-    }
-
-    this.banActionId.set(user.id);
-    this.usersService.unbanUser(user.id)
-      .pipe(
-        finalize(() => this.banActionId.set(null)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        next: response => {
-          if (!response.success) {
-            this.notification.error(response.error?.message || response.message || 'Error');
-            return;
-          }
-
-          this.notification.success(response.data?.message ?? 'User unbanned.');
-          this.load();
-        },
-        error: (err: any) => {
-          const message = err?.error?.error?.message ?? err?.error?.message ?? 'Error';
-          this.notification.error(typeof message === 'string' ? message : 'Error');
-        }
-      });
-  }
-
-  onAppLogoError(appId: string): void {
-    this.appLogoFailed.update(current => new Set(current).add(appId));
-  }
-
-  registrationHeight(point: DailyPoint): number {
-    return Math.max((point.count / this.registrationMax()) * 100, point.count > 0 ? 10 : 0);
-  }
-
-  private toPercent(value: number, total: number): number {
-    if (!total) {
-      return 0;
-    }
-
-    return Math.round((value / total) * 100);
-  }
-
-  private buildRegistrationSeries(users: IdentityUser[]): DailyPoint[] {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const buckets = new Map<string, DailyPoint>();
-    for (let offset = 6; offset >= 0; offset--) {
-      const current = new Date(today);
-      current.setDate(today.getDate() - offset);
-      const date = current.toISOString().slice(0, 10);
-      buckets.set(date, {
-        date,
-        label: `${current.getDate()}/${current.getMonth() + 1}`,
-        count: 0
-      });
-    }
-
-    for (const user of users) {
-      const createdDate = new Date(user.createdAt);
-      createdDate.setHours(0, 0, 0, 0);
-      const key = createdDate.toISOString().slice(0, 10);
-      const bucket = buckets.get(key);
-      if (bucket) {
-        bucket.count += 1;
-      }
-    }
-
-    return Array.from(buckets.values());
-  }
+  ago(iso: string) { return relativeTime(iso, this.translate.locale()); }
+  humanize = humanizeEvent;
+  icon = eventIcon;
+  initialsOf = initials;
 }

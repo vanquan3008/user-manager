@@ -27,13 +27,15 @@ public class UsersController(IMediator mediator) : ApiControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] string? search = null,
+        [FromQuery] string? type = null,
         CancellationToken cancellationToken = default)
     {
         var normalizedPage = Math.Max(page, 1);
+        bool? sso = type?.ToLowerInvariant() switch { "sso" => true, "console" => false, _ => null };
         var normalizedPageSize = pageSize is < 1 or > 100 ? 50 : pageSize;
 
         var response = await mediator.Send(
-            new GetUsersQuery(normalizedPage, normalizedPageSize, search),
+            new GetUsersQuery(normalizedPage, normalizedPageSize, search, sso),
             cancellationToken);
 
         return Ok(response);

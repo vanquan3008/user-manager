@@ -27,6 +27,11 @@ export interface AuthResponse {
     isSsoAccount?: boolean;
   };
   applications?: SsoApplication[];
+  /** True when the password was correct but a second factor is required. */
+  mfaRequired?: boolean;
+  mfaToken?: string | null;
+  mfaExpiresAt?: string | null;
+  sessionId?: string | null;
 }
 
 export interface HostedSsoLoginResponse {
@@ -40,6 +45,10 @@ export interface HostedSsoLoginResponse {
     roles: string[];
     permissions?: string[];
   };
+  mfaRequired?: boolean;
+  mfaToken?: string | null;
+  mfaExpiresAt?: string | null;
+  sessionId?: string | null;
 }
 
 export interface SsoUserApplication {

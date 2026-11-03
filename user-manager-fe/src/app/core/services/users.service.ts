@@ -14,9 +14,14 @@ export class UsersService {
 
   constructor(private http: HttpClient) {}
 
-  getUsers(page = 1, pageSize = 20, search?: string) {
+  getMe() {
+    return this.http.get<ApiResponse<UserWithRoles>>(`${this.api}/me`);
+  }
+
+  getUsers(page = 1, pageSize = 20, search?: string, type?: 'sso' | 'console') {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search?.trim()) params = params.set('search', search.trim());
+    if (type) params = params.set('type', type);
     return this.http.get<PagedResponse<IdentityUser>>(this.api, { params });
   }
 

@@ -1,34 +1,37 @@
-import { Injectable, signal, effect } from '@angular/core';
+import { Injectable, effect, signal } from '@angular/core';
 
 const STORAGE_KEY = 'app_theme';
 
 export type Theme = 'light' | 'dark';
 
+/** Light/dark theme. Defaults to the OS preference until the user picks one explicitly. */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   readonly theme = signal<Theme>(this.loadTheme());
 
   constructor() {
     effect(() => {
-      const t = this.theme();
-      document.body.classList.remove('theme-light', 'theme-dark');
-      document.body.classList.add(t === 'light' ? 'theme-light' : 'theme-dark');
+      const dark = this.theme() === 'dark';
+      document.documentElement.classList.toggle('dark', dark);
+      document.body.classList.toggle('theme-dark', dark);
+      document.body.classList.toggle('theme-light', !dark);
     });
-  }
-
-  private loadTheme(): Theme {
-    if (typeof localStorage === 'undefined') return 'light';
-    const v = localStorage.getItem(STORAGE_KEY);
-    return v === 'light' || v === 'dark' ? v : 'light';
   }
 
   setTheme(theme: Theme) {
     this.theme.set(theme);
-    localStorage.setItem(STORAGE_KEY, theme);
+    try { localStorage.setItem(STORAGE_KEY, theme); } catch { /* storage unavailable */ }
   }
 
   toggleTheme() {
-    const next = this.theme() === 'light' ? 'dark' : 'light';
-    this.setTheme(next);
+    this.setTheme(this.theme() === 'light' ? 'dark' : 'light');
+  }
+
+  private loadTheme(): Theme {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === 'light' || stored === 'dark') return stored;
+    } catch { /* storage unavailable */ }
+    return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 }

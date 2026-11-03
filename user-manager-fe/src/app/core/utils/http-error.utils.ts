@@ -1,7 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-export const UNREACHABLE_SERVER_MESSAGE_VI =
-  'KhÃ´ng thá»ƒ káº¿t ná»‘i tá»›i mÃ¡y chá»§. HÃ£y kiá»ƒm tra API Ä‘Ã£ cháº¡y vÃ  Ä‘á»‹a chá»‰ trong cáº¥u hÃ¬nh.';
+export const UNREACHABLE_SERVER_MESSAGE =
+  'Cannot reach the server. Check that the API is running and the configured URL is correct.';
+/** @deprecated kept for existing imports; the message was double-encoded in the original source. */
+export const UNREACHABLE_SERVER_MESSAGE_VI = UNREACHABLE_SERVER_MESSAGE;
 
 const GENERIC_SERVER_MESSAGES = new Set([
   'internal server error',
@@ -94,4 +96,18 @@ export function getHttpErrorMessage(
   }
 
   return fallback;
+}
+
+/** Convenience wrapper with the default "server unreachable" message. */
+export function apiErrorMessage(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  return getHttpErrorMessage(err, fallback, UNREACHABLE_SERVER_MESSAGE);
+}
+
+/** Stable error code from the API envelope (e.g. INVALID_CREDENTIALS, MFA_REQUIRED). */
+export function apiErrorCode(err: unknown): string | null {
+  if (err instanceof HttpErrorResponse && err.error && typeof err.error === 'object') {
+    const code = (err.error as ApiErrorPayload).error?.code;
+    return typeof code === 'string' ? code : null;
+  }
+  return null;
 }

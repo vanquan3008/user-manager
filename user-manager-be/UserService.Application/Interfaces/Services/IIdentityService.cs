@@ -34,7 +34,7 @@ public interface IIdentityService
     Task<bool> AddToRoleAsync(Guid userId, string roleName, CancellationToken cancellationToken = default);
     Task<bool> RemoveFromRoleAsync(Guid userId, string roleName, CancellationToken cancellationToken = default);
     Task<IList<string>> GetUserRolesAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default);
+    Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default, bool? ssoAccounts = null);
     Task<(bool Succeeded, IEnumerable<string> Errors)> DeleteUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<(bool Succeeded, IEnumerable<string> Errors)> BanUserAsync(Guid userId, string? reason, CancellationToken cancellationToken = default);
     Task<(bool Succeeded, IEnumerable<string> Errors)> UnbanUserAsync(Guid userId, CancellationToken cancellationToken = default);

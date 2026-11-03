@@ -1,28 +1,14 @@
-<div class="pointer-events-none fixed right-4 top-4 z-[99999] flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-2">
+<div class="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex flex-col items-end gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[24rem]"
+     role="region" aria-live="polite" aria-label="Notifications">
   @for (n of notifications(); track n.id) {
-    <div
-      class="pointer-events-auto relative overflow-hidden rounded-2xl border text-sm backdrop-blur-xl shadow-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
-      [ngClass]="[typeClass(n.type), stateClass(n)]"
-    >
-      <span class="absolute inset-y-0 left-0 w-1.5" [ngClass]="accentClass(n.type)"></span>
-      <div
-        class="pointer-events-none absolute inset-0 opacity-90"
-        [ngClass]="theme() === 'light'
-          ? 'bg-gradient-to-b from-white/60 to-transparent'
-          : 'bg-gradient-to-b from-white/5 to-transparent'"
-      ></div>
-      <div class="relative flex items-start gap-3 px-4 py-3.5 pl-5">
-        <span class="material-symbols-outlined mt-0.5 shrink-0 text-lg">{{ iconFor(n.type) }}</span>
-        <span class="flex-1 leading-snug">{{ n.message }}</span>
-        <button
-          type="button"
-          class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent active:scale-95"
-          [ngClass]="theme() === 'light' ? 'hover:bg-white/70' : 'hover:bg-white/10'"
-          (click)="dismiss(n.id)"
-        >
-          <span class="material-symbols-outlined text-base">close</span>
-        </button>
-      </div>
+    <div class="pointer-events-auto flex w-full items-start gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm shadow-pop transition-all duration-200"
+         [class.opacity-0]="n.leaving" [class.translate-y-1]="n.leaving" [class.animate-fade-up]="!n.leaving"
+         [attr.role]="n.type === 'error' ? 'alert' : 'status'">
+      <span class="material-symbols-outlined icon-fill mt-px text-[20px]" [class]="toneClass(n.type)">{{ iconFor(n.type) }}</span>
+      <p class="min-w-0 flex-1 leading-snug text-fg">{{ n.message }}</p>
+      <button type="button" class="btn-icon-sm -mr-1.5 -mt-1" (click)="dismiss(n.id)" aria-label="Dismiss">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
     </div>
   }
 </div>

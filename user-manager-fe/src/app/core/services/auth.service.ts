@@ -9,8 +9,7 @@ import type {
   AuthResponse,
   AuthenticatedUser,
   HostedSsoLoginResponse,
-  SsoApplication,
-  SsoExchangeTokenRequest
+  SsoApplication
 } from '../models';
 import { SessionStorageService } from './session-storage.service';
 
@@ -134,10 +133,13 @@ export class AuthService {
     });
   }
 
-  ssoExchangeToken(request: SsoExchangeTokenRequest) {
-    return this.http.post<ApiResponse<AuthResponse>>(`${this.api}/token-exchange`, request, {
-      withCredentials: true
-    });
+  /** Second sign-in step for accounts with MFA (TOTP or recovery code). */
+  verifyMfa(mfaToken: string, code: string) {
+    return this.http.post<ApiResponse<AuthResponse>>(`${this.api}/mfa/verify`, { mfaToken, code });
+  }
+
+  verifySsoMfa(mfaToken: string, code: string) {
+    return this.http.post<ApiResponse<HostedSsoLoginResponse>>(`${this.api}/sso/mfa/verify`, { mfaToken, code });
   }
 
   requestMagicLink(email: string) {
@@ -269,20 +271,31 @@ export class AuthService {
     };
   }
 
-  logout(options?: { queryParams?: Record<string, string> }) {
+  /** Ends the server session (and with allSessions every device), then clears local state. */
+  logout(options?: { queryParams?: Record<string, string>; allSessions?: boolean; navigate?: boolean }) {
     const token = this.tokenSignal();
     this.http.post<ApiResponse<SuccessResponse>>(
       `${this.api}/logout`,
-      {},
+      { allSessions: !!options?.allSessions },
       token ? { headers: { Authorization: `Bearer ${token}` } } : {}
     ).subscribe({ error: () => {} });
 
     this.clearSession();
-    this.router.navigate(['/login'], { queryParams: options?.queryParams });
+    if (options?.navigate !== false) {
+      this.router.navigate(['/login'], { queryParams: options?.queryParams });
+    }
   }
 
   discardSession() {
     this.clearSession();
+  }
+
+  /** Local sign-out after the server rejected the session (expired, revoked or reused refresh token). */
+  expireSession() {
+    const kind = this.sessionKindSignal();
+    this.clearSession();
+    if (kind === 'hosted_sso') return; // hosted pages handle their own redirect with returnUrl
+    this.router.navigate(['/login'], { queryParams: { expired: '1' } });
   }
 
   private readAccessToken(): string | null {

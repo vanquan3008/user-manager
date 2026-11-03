@@ -30,10 +30,10 @@ export class ConfirmService {
       this.state.set({
         open: true,
         options: {
-          title: options.title?.trim() || 'Xác nhận',
+          title: options.title?.trim() || 'Are you sure?',
           message: options.message,
-          confirmText: options.confirmText?.trim() || 'OK',
-          cancelText: options.cancelText?.trim() || 'Hủy',
+          confirmText: options.confirmText?.trim() || 'Confirm',
+          cancelText: options.cancelText?.trim() || 'Cancel',
           variant: options.variant || 'default'
         },
         resolve

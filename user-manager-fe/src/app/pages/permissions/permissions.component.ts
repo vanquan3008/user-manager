@@ -1,17 +1,16 @@
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PermissionsService } from '../../core/services/permissions.service';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
-import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
-import { IconButtonComponent } from '../../shared/components/icon-button/icon-button.component';
 import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
 import { NotificationService } from '../../core/services/notification.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { TranslateService } from '../../core/services/translate.service';
-import { DropdownComponent, type DropdownOption } from '../../shared/components/dropdown/dropdown.component';
+import type { DropdownOption } from '../../shared/components/dropdown/dropdown.component';
 import type { PermissionDto } from '../../core/models';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { paginateSlice, totalListPages } from '../../core/utils/pagination';
@@ -20,25 +19,14 @@ import { TablePaginationComponent } from '../../shared/components/table-paginati
 @Component({
   selector: 'app-permissions',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [
-    CommonModule,
-    FormsModule,
-    DropdownComponent,
-    DrawerComponent,
-    FormFieldComponent,
-    DrawerFooterActionsComponent,
-    IconButtonComponent,
-    LoadingStateComponent,
-    TablePaginationComponent
-  ],
+  imports: [CommonModule, FormsModule, DrawerComponent, DrawerFooterActionsComponent, LoadingStateComponent, TablePaginationComponent, EmptyStateComponent],
   templateUrl: './permissions.component.html'
 })
 export class PermissionsComponent implements OnInit {
   private permissionsService = inject(PermissionsService);
   private notify = inject(NotificationService);
-  theme = inject(ThemeService).theme;
   translate = inject(TranslateService);
+  readonly t = this.translate.t;
   private pageToolbar = inject(PageToolbarService);
   readonly listPageSizeSvc = inject(ListPageSizeService);
 
@@ -149,7 +137,7 @@ export class PermissionsComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err: any) => {
-        this.error.set(err.error?.message || 'Không thể tải danh sách permissions');
+        this.error.set(apiErrorMessage(err));
         this.loading.set(false);
       }
     });
@@ -172,7 +160,7 @@ export class PermissionsComponent implements OnInit {
 
   saveCreate() {
     if (!this.form.code.trim()) {
-      this.notify.error('Mã permission không được để trống');
+      this.notify.error(this.t().pmCodeHint);
       return;
     }
     this.saving.set(true);
@@ -186,16 +174,16 @@ export class PermissionsComponent implements OnInit {
       .subscribe({
         next: (res) => {
           if (res.success) {
-            this.notify.success('Tạo permission thành công');
+            this.notify.success(this.t().pmCreated);
             this.load();
             this.closeModal();
           } else {
-            this.notify.error(res.message || 'Tạo permission thất bại');
+            this.notify.error(res.message || this.t().authFailed);
           }
           this.saving.set(false);
         },
         error: (err: any) => {
-          this.notify.error(err.error?.message || 'Tạo permission thất bại');
+          this.notify.error(apiErrorMessage(err));
           this.saving.set(false);
         }
       });
