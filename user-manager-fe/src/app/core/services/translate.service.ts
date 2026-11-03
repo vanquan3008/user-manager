@@ -770,6 +770,18 @@ export interface AppTranslations {
   ctFeatSecurity: string;
   ctFeatDomain: string;
   ctPerYear: string;
+  paletteTitle: string;
+  palettePlaceholder: string;
+  paletteEmpty: string;
+  palettePages: string;
+  paletteActions: string;
+  paletteNavigate: string;
+  paletteOpen: string;
+  paletteSetupMfa: string;
+  paletteMySessions: string;
+  paletteTrigger: string;
+  authStandardsLabel: string;
+  accMfaOnBadge: string;
 }
 
 const TRANSLATIONS: { en: AppTranslations } & Record<Exclude<Locale, 'en'>, Partial<AppTranslations>> = {
@@ -1506,7 +1518,19 @@ const TRANSLATIONS: { en: AppTranslations } & Record<Exclude<Locale, 'en'>, Part
     ctFeatSupport: "Hỗ trợ ưu tiên",
     ctFeatSecurity: "Bảo mật nâng cao",
     ctFeatDomain: "Tên miền riêng",
-    ctPerYear: "/ năm"
+    ctPerYear: "/ năm",
+    paletteTitle: "Bảng lệnh",
+    palettePlaceholder: "Tìm trang và thao tác…",
+    paletteEmpty: "Không có trang hoặc thao tác phù hợp.",
+    palettePages: "Trang",
+    paletteActions: "Thao tác",
+    paletteNavigate: "Di chuyển",
+    paletteOpen: "Mở",
+    paletteSetupMfa: "Xác thực hai lớp",
+    paletteMySessions: "Phiên và thiết bị của tôi",
+    paletteTrigger: "Tìm kiếm hoặc chuyển tới…",
+    authStandardsLabel: "Xây dựng trên chuẩn mở",
+    accMfaOnBadge: "Đã bật MFA"
   },
   en: {
     overview: 'Overview',
@@ -2262,7 +2286,19 @@ const TRANSLATIONS: { en: AppTranslations } & Record<Exclude<Locale, 'en'>, Part
     ctFeatSupport: "Priority support",
     ctFeatSecurity: "Advanced security",
     ctFeatDomain: "Custom domain",
-    ctPerYear: "/ year"
+    ctPerYear: "/ year",
+    paletteTitle: "Command palette",
+    palettePlaceholder: "Search pages and actions…",
+    paletteEmpty: "No matching pages or actions.",
+    palettePages: "Pages",
+    paletteActions: "Actions",
+    paletteNavigate: "Navigate",
+    paletteOpen: "Open",
+    paletteSetupMfa: "Two-factor authentication",
+    paletteMySessions: "My sessions and devices",
+    paletteTrigger: "Search or jump to…",
+    authStandardsLabel: "Built on open standards",
+    accMfaOnBadge: "MFA enabled"
   },
   zh: {
     overview: '概览',
@@ -2996,7 +3032,19 @@ const TRANSLATIONS: { en: AppTranslations } & Record<Exclude<Locale, 'en'>, Part
     ctFeatSupport: "优先支持",
     ctFeatSecurity: "高级安全",
     ctFeatDomain: "自定义域名",
-    ctPerYear: "/ 年"
+    ctPerYear: "/ 年",
+    paletteTitle: "命令面板",
+    palettePlaceholder: "搜索页面和操作…",
+    paletteEmpty: "没有匹配的页面或操作。",
+    palettePages: "页面",
+    paletteActions: "操作",
+    paletteNavigate: "导航",
+    paletteOpen: "打开",
+    paletteSetupMfa: "双重身份验证",
+    paletteMySessions: "我的会话和设备",
+    paletteTrigger: "搜索或跳转到…",
+    authStandardsLabel: "基于开放标准",
+    accMfaOnBadge: "已启用 MFA"
   }
 };
 

@@ -21,7 +21,7 @@ import { UNREACHABLE_SERVER_MESSAGE_VI, getHttpErrorMessage } from '../../../cor
       } @else if (error()) {
         <div class="mb-6">
           <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-bad-soft text-bad"><span class="material-symbols-outlined">gpp_bad</span></div>
-          <h1 class="text-2xl font-semibold tracking-tight">{{ translate.t().oauthAuthorizeFailed }}</h1>
+          <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ translate.t().oauthAuthorizeFailed }}</h1>
         </div>
         <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div>
       } @else if (consentRequired()) {
@@ -32,7 +32,7 @@ import { UNREACHABLE_SERVER_MESSAGE_VI, getHttpErrorMessage } from '../../../cor
             <span class="material-symbols-outlined icon-fill">shield_lock</span>
           </div>
         </div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ appName() }}</h1>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ appName() }}</h1>
         <p class="mt-1.5 text-sm text-fg-2">{{ translate.t().oauthAuthorizeSubtitle }}</p>
 
         <div class="card mt-6 divide-y divide-line">

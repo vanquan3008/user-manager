@@ -23,7 +23,7 @@
             @for (role of paginatedRoles(); track role.id) {
               <tr>
                 <td class="min-w-[220px]">
-                  <div class="flex items-center gap-2"><span class="font-medium">{{ role.name }}</span>@if (role.isSystemRole) { <span class="badge-warn">{{ t().rlSystem }}</span> }</div>
+                  <div class="flex items-center gap-2"><span class="font-medium">{{ role.name }}</span>@if (role.isSystemRole) { <span class="badge-neutral"><span class="material-symbols-outlined text-[12px]">lock</span>{{ t().rlSystem }}</span> }</div>
                   <p class="mt-0.5 max-w-md truncate text-xs text-fg-3">{{ role.description || '—' }}</p>
                 </td>
                 <td>

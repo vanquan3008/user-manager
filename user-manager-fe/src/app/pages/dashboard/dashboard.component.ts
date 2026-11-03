@@ -34,11 +34,11 @@ import { eventIcon, humanizeEvent, initials, relativeTime } from '../../shared/u
       <!-- KPI row -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @if (summary(); as s) {
-          <app-stat-card [label]="t().dashKpiUsers" [value]="s.users.total" icon="group" variant="primary" [sublabel]="fill(t().dashKpiUsersSub, { n: s.users.newSince })" />
+          <app-stat-card [label]="t().dashKpiUsers" [value]="s.users.total" icon="group" variant="primary" link="/users" [sublabel]="fill(t().dashKpiUsersSub, { n: s.users.newSince })" />
           <app-stat-card [label]="t().dashKpiSessions" [value]="s.activeSessions" icon="devices" [sublabel]="t().dashKpiSessionsSub" />
-          <app-stat-card [label]="t().dashKpiMfa" [value]="s.mfaAdoptionRate + '%'" icon="phonelink_lock" [variant]="s.mfaAdoptionRate >= 50 ? 'success' : 'warning'"
+          <app-stat-card [label]="t().dashKpiMfa" [value]="s.mfaAdoptionRate + '%'" icon="phonelink_lock" link="/users" [variant]="s.mfaAdoptionRate >= 50 ? 'success' : 'warning'"
                          [sublabel]="fill(t().dashKpiMfaSub, { n: s.users.mfaEnabled, total: s.users.total })" />
-          <app-stat-card [label]="t().dashKpiApps" [value]="s.applications" icon="apps" [sublabel]="t().dashKpiAppsSub" />
+          <app-stat-card [label]="t().dashKpiApps" [value]="s.applications" icon="apps" link="/applications" [sublabel]="t().dashKpiAppsSub" />
         } @else {
           @for (i of [0, 1, 2, 3]; track i) { <div class="card h-[118px] p-5"><div class="skeleton h-3 w-24"></div><div class="skeleton mt-6 h-7 w-16"></div></div> }
         }

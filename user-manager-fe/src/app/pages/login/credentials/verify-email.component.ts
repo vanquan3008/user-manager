@@ -12,7 +12,7 @@ import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-s
   imports: [RouterLink, AuthShellComponent],
   template: `
     <app-auth-shell>
-      <h1 class="text-2xl font-semibold tracking-tight">{{ t().verifyTitle }}</h1>
+      <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().verifyTitle }}</h1>
       <div class="mt-6">
         @if (loading()) {
           <div class="flex items-center gap-3 text-sm text-fg-2" role="status"><span class="spinner text-brand-text"></span>{{ t().verifyWorking }}</div>

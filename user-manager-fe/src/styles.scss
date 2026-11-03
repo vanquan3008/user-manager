@@ -132,11 +132,21 @@
   .page { @apply mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 animate-fade-up; }
   .page-narrow { @apply mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 animate-fade-up; }
   .page-header { @apply flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between; }
-  .page-title { @apply text-[22px] font-semibold leading-tight text-fg; }
+  .page-title { @apply text-[22px] font-semibold leading-tight tracking-[-0.015em] text-fg; }
   .page-subtitle { @apply mt-1 max-w-2xl text-sm text-fg-2; }
   .eyebrow { @apply text-2xs font-semibold uppercase tracking-[0.08em] text-fg-3; }
   .section-title { @apply text-[15px] font-semibold text-fg; }
   .section-desc { @apply mt-0.5 text-[13px] text-fg-2; }
+
+  /* ---- Navigation ---- */
+  .nav-link {
+    @apply relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg;
+  }
+  .nav-link .nav-icon { @apply text-[19px] text-fg-3 transition-colors; }
+  .nav-link:hover .nav-icon { @apply text-fg-2; }
+  .nav-link.is-active { @apply bg-brand-soft text-brand-text; }
+  .nav-link.is-active .nav-icon { @apply text-brand-text; font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
+  .nav-link.is-active::before { content: ''; @apply absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-brand; }
 
   /* ---- Card ---- */
   .card { @apply rounded-xl border border-line bg-surface shadow-card; }
@@ -197,9 +207,9 @@
 
   /* ---- Tables ---- */
   .table-wrap { @apply overflow-x-auto; }
-  .table { @apply w-full border-collapse text-left text-sm; }
+  .table { @apply w-full border-collapse text-left text-[13.5px]; font-variant-numeric: tabular-nums; }
   .table thead th { @apply whitespace-nowrap border-b border-line bg-surface-2/60 px-4 py-2.5 text-2xs font-semibold uppercase tracking-[0.06em] text-fg-3; }
-  .table tbody td { @apply border-b border-line px-4 py-3 align-middle text-fg; }
+  .table tbody td { @apply border-b border-line px-4 py-2.5 align-middle text-fg; }
   .table tbody tr { @apply transition-colors; }
   .table tbody tr:hover { @apply bg-surface-2/50; }
   .table tbody tr:last-child td { @apply border-b-0; }

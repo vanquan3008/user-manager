@@ -4,6 +4,13 @@
     <div class="min-w-0">
       <h1 class="page-title truncate">{{ me()?.user?.userName || auth.user()?.username }}</h1>
       <p class="truncate text-sm text-fg-2">{{ me()?.user?.email || auth.user()?.email }}</p>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        @for (role of auth.user()?.roles ?? []; track role) { <span class="badge-brand">{{ role }}</span> }
+        @if (mfa(); as m) {
+          @if (m.enabled) { <span class="badge-ok"><span class="material-symbols-outlined text-[13px]">verified_user</span>{{ t().accMfaOnBadge }}</span> }
+          @else { <span class="badge-warn"><span class="material-symbols-outlined text-[13px]">gpp_maybe</span>{{ t().usersNoMfa }}</span> }
+        }
+      </div>
     </div>
   </div>
 

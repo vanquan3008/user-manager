@@ -20,7 +20,7 @@ import { MfaStepComponent } from '../../../shared/components/mfa-step/mfa-step.c
         <app-mfa-step [email]="pending.email" [loading]="loading()" [error]="error()" (verify)="verifyMfa($event)" (back)="mfa.set(null)" />
       } @else {
         <div class="mb-8">
-          <h1 class="text-2xl font-semibold tracking-tight">{{ t().ssoPortalTitle }}</h1>
+          <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().ssoPortalTitle }}</h1>
           <p class="mt-1.5 text-sm text-fg-2">{{ t().ssoPortalSubtitle }}</p>
           @if (returnUrl) {
             <p class="mt-3 inline-flex items-center gap-1.5 text-xs text-fg-3"><span class="material-symbols-outlined text-[15px]">subdirectory_arrow_right</span>{{ t().ssoContinuingTo }}</p>

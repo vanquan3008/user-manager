@@ -13,7 +13,7 @@ import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-s
     <app-auth-shell>
       <div class="mb-8">
         <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand-text"><span class="material-symbols-outlined">lock_reset</span></div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t().forgotTitle }}</h1>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().forgotTitle }}</h1>
         <p class="mt-1.5 text-sm text-fg-2">{{ t().forgotSubtitle }}</p>
       </div>
 

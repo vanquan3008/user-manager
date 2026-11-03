@@ -13,7 +13,7 @@ import { UNREACHABLE_SERVER_MESSAGE_VI, getHttpErrorMessage } from '../../../cor
   imports: [RouterLink, AuthShellComponent],
   template: `
     <app-auth-shell>
-      <h1 class="text-2xl font-semibold tracking-tight">{{ translate.t().oauthCallbackTitle }}</h1>
+      <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ translate.t().oauthCallbackTitle }}</h1>
       <p class="mt-1.5 text-sm text-fg-2">{{ translate.t().oauthCallbackSubtitle }}</p>
       <div class="mt-6">
         @if (error()) {

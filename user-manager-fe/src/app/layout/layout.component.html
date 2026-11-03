@@ -32,10 +32,10 @@
           <ul class="space-y-0.5">
             @for (item of group.items; track item.path) {
               <li>
-                <a [routerLink]="item.path" routerLinkActive="!bg-surface-2 !text-fg [&>span:first-child]:!text-brand-text"
+                <a [routerLink]="item.path" routerLinkActive="is-active"
                    [routerLinkActiveOptions]="{ exact: !!item.exact }" #rla="routerLinkActive" [attr.aria-current]="rla.isActive ? 'page' : null"
-                   class="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg">
-                  <span class="material-symbols-outlined text-[19px] text-fg-3 transition-colors group-hover:text-fg-2">{{ item.icon }}</span>
+                   class="nav-link group">
+                  <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
                   <span class="truncate">{{ item.label }}</span>
                 </a>
               </li>
@@ -52,7 +52,7 @@
           <span class="block truncate text-[13px] font-medium text-fg">{{ auth.user()?.displayName || auth.user()?.username }}</span>
           <span class="block truncate text-2xs text-fg-3">{{ auth.user()?.email }}</span>
         </span>
-        <span class="material-symbols-outlined text-[18px] text-fg-3">settings</span>
+        @if (primaryRole()) { <span class="badge-neutral shrink-0 !text-2xs">{{ primaryRole() }}</span> }
       </a>
     </div>
   </aside>
@@ -65,12 +65,23 @@
       </button>
 
       <nav class="flex min-w-0 items-center gap-1.5 text-[13px]" aria-label="Breadcrumb">
-        <span class="hidden truncate text-fg-3 sm:inline">{{ breadcrumb().group }}</span>
-        <span class="material-symbols-outlined hidden text-[16px] text-fg-3 sm:inline">chevron_right</span>
-        <span class="truncate font-medium text-fg">{{ breadcrumb().title }}</span>
+        @if (breadcrumb().group) {
+          <span class="hidden truncate text-fg-3 sm:inline">{{ breadcrumb().group }}</span>
+          <span class="material-symbols-outlined hidden text-[16px] text-fg-3 sm:inline">chevron_right</span>
+        }
+        <span class="truncate font-medium text-fg" aria-current="page">{{ breadcrumb().title }}</span>
       </nav>
 
       <div class="ml-auto flex items-center gap-1">
+        <button type="button" class="mr-1 hidden h-8 w-64 items-center gap-2 rounded-lg border border-line bg-surface-2/60 px-2.5 text-[13px] text-fg-3 transition hover:border-line-strong hover:text-fg-2 md:flex xl:w-72"
+                (click)="palette.open()" [attr.aria-label]="translate.t().paletteTitle" aria-haspopup="dialog">
+          <span class="material-symbols-outlined text-[17px]">search</span>
+          <span class="flex-1 truncate text-left">{{ translate.t().paletteTrigger }}</span>
+          <span class="kbd">{{ shortcutLabel }}</span>
+        </button>
+        <button type="button" class="btn-icon md:hidden" (click)="palette.open()" [attr.aria-label]="translate.t().paletteTitle" aria-haspopup="dialog">
+          <span class="material-symbols-outlined">search</span>
+        </button>
         <div class="relative" data-menu>
           <button type="button" class="btn-ghost btn-sm uppercase" (click)="localeMenuOpen.set(!localeMenuOpen()); userMenuOpen.set(false)"
                   [attr.aria-expanded]="localeMenuOpen()" [attr.aria-label]="translate.t().language">
@@ -124,5 +135,6 @@
   </div>
 </div>
 
+<app-command-palette #palette [groups]="navGroups()" />
 <app-notification />
 <app-confirm-dialog />

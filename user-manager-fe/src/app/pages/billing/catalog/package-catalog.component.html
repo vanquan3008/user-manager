@@ -43,7 +43,7 @@
               </div>
               <span [class]="plan.isActive ? 'badge-ok' : 'badge-neutral'"><span class="dot"></span>{{ plan.isActive ? t().ctLive : t().ctDraft }}</span>
             </div>
-            <p class="mt-5 text-2xl font-semibold tracking-tight tabular-nums">{{ plan.monthlyPrice | planPriceVnd }} <span class="text-sm font-normal text-fg-3">{{ t().sbPerMonth }}</span></p>
+            <p class="mt-5 text-[26px] font-semibold leading-tight tracking-[-0.02em] tabular-nums">{{ plan.monthlyPrice | planPriceVnd }} <span class="text-sm font-normal text-fg-3">{{ t().sbPerMonth }}</span></p>
             <p class="mt-1 text-xs text-fg-3">
               {{ plan.yearlyPrice | planPriceVnd }} {{ t().ctPerYear }}
               @if (annualSavingsPercent(plan); as pct) { <span class="badge-ok ml-1">{{ t().ctSave2.replace('{{n}}', '' + pct) }}</span> }

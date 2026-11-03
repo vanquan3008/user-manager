@@ -18,7 +18,7 @@ import { MfaStepComponent } from '../../../shared/components/mfa-step/mfa-step.c
       @if (mfa(); as pending) {
         <app-mfa-step [email]="pending.email" [loading]="loading()" [error]="error()" (verify)="verifyMfa($event)" (back)="router.navigate(['/login'])" />
       } @else if (error()) {
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t().authMagicTab }}</h1>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().authMagicTab }}</h1>
         <div class="alert-bad mt-6" role="alert"><span class="material-symbols-outlined">link_off</span><span>{{ error() }}</span></div>
         <a routerLink="/login" class="btn-secondary btn-block mt-4">{{ t().backToSignIn }}</a>
       } @else {

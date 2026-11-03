@@ -8,6 +8,7 @@ import { TranslateService, type Locale } from '../core/services/translate.servic
 import { NotificationComponent } from '../shared/components/notification/notification.component';
 import { ConfirmDialogComponent } from '../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageToolbarService } from '../core/services/page-toolbar.service';
+import { CommandPaletteComponent } from '../shared/components/command-palette/command-palette.component';
 
 type NavItem = { path: string; icon: string; label: string; exact?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
@@ -15,7 +16,7 @@ type NavGroup = { label: string; items: NavItem[] };
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NotificationComponent, ConfirmDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NotificationComponent, ConfirmDialogComponent, CommandPaletteComponent],
   templateUrl: './layout.component.html'
 })
 export class LayoutComponent {
@@ -80,7 +81,7 @@ export class LayoutComponent {
   readonly breadcrumb = computed(() => {
     const path = this.currentPath();
     const t = this.translate.t();
-    if (path.startsWith('/account')) return { group: t.navAccount, title: this.pageToolbar.titleOverride() ?? t.navAccount };
+    if (path.startsWith('/account')) return { group: '', title: this.pageToolbar.titleOverride() ?? t.navAccount };
     for (const group of this.navGroups()) {
       for (const item of group.items) {
         const match = item.exact ? path === item.path : path === item.path || path.startsWith(item.path + '/');
@@ -88,6 +89,15 @@ export class LayoutComponent {
       }
     }
     return { group: t.productName, title: this.pageToolbar.titleOverride() ?? t.navDashboard };
+  });
+
+  /** Platform-appropriate shortcut hint for the command palette. */
+  readonly shortcutLabel = /Mac|iPhone|iPad/i.test(globalThis.navigator?.platform ?? '') ? '⌘K' : 'Ctrl K';
+
+  /** Highest-privilege role, shown next to the signed-in user. */
+  readonly primaryRole = computed(() => {
+    const roles = this.auth.user()?.roles ?? [];
+    return ['SuperAdmin', 'Admin'].find(r => roles.includes(r)) ?? roles[0] ?? '';
   });
 
   readonly initials = computed(() => {

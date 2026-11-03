@@ -16,7 +16,7 @@ import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-s
     <app-auth-shell>
       <div class="mb-8">
         <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand-text"><span class="material-symbols-outlined">password</span></div>
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t().resetTitle }}</h1>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().resetTitle }}</h1>
         <p class="mt-1.5 text-sm text-fg-2">{{ t().resetSubtitle }}</p>
         @if (email()) { <p class="mt-3 inline-flex rounded-md bg-surface-2 px-2 py-1 text-xs font-medium text-fg-2">{{ email() }}</p> }
       </div>

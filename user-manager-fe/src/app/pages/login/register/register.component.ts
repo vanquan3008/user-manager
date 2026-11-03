@@ -21,7 +21,7 @@ function passwordPolicy(control: AbstractControl): ValidationErrors | null {
   template: `
     <app-auth-shell [wide]="true">
       <div class="mb-8">
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t().registerTitle }}</h1>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().registerTitle }}</h1>
         <p class="mt-1.5 text-sm text-fg-2">{{ t().registerSubtitle }}</p>
       </div>
 

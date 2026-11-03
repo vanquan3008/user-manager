@@ -89,6 +89,7 @@ export class AccountComponent implements OnInit {
       this.selectTab(tab && ['profile', 'security', 'sessions', 'activity'].includes(tab) ? tab : 'profile', false);
     });
     this.users.getMe().subscribe({ next: r => this.me.set(r.data ?? null) });
+    if (!this.mfa()) this.loadMfa();
   }
 
   selectTab(tab: Tab, updateUrl = true) {
