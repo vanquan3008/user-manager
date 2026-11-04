@@ -33,6 +33,7 @@ public class RequestLoggingMiddleware
 
         LogRequestStarted(context, requestId);
 
+        using var _ = Serilog.Context.LogContext.PushProperty("CorrelationId", requestId);
         try
         {
             await _next(context);

@@ -41,9 +41,10 @@ public sealed class RegistrationService : IRegistrationService
             request.ApplicationId,
             cancellationToken);
 
-        var response = await _authResponseFactory.BuildUserAuthResponseAsync(
+        var response = await _authResponseFactory.StartConsoleSessionAsync(
             registeredUserId,
             scopedApplicationId,
+            Domain.Entities.AuthenticationMethods.Registration,
             cancellationToken);
 
         return response with { RequiresEmailVerification = true };

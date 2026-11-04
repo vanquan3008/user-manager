@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
 using UserService.Application.Interfaces.Services;
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Exceptions;
 using UserService.Application.Mapping;
 using UserService.Domain.Repositories;
 using UserService.Infrastructure.Identity;
@@ -16,14 +16,24 @@ public class IdentityService : IIdentityService
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IMagicLinkService _magicLinkService;
     private readonly IUserRepository _userRepository;
+    private readonly IRequestContext _requestContext;
+    private readonly UserService.Infrastructure.Data.UserDbContext _db;
+
+    // Pre-computed hash used to equalise timing when the account does not exist.
+    private static readonly Lazy<string> DummyPasswordHash = new(() =>
+        new PasswordHasher<AppUser>().HashPassword(new AppUser(), Guid.NewGuid().ToString("N")));
 
     public IdentityService(
         UserManager<AppUser> userManager,
         RoleManager<AppRole> roleManager,
         SignInManager<AppUser> signInManager,
         IMagicLinkService magicLinkService,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IRequestContext requestContext,
+        UserService.Infrastructure.Data.UserDbContext db)
     {
+        _requestContext = requestContext;
+        _db = db;
         _userManager = userManager;
         _roleManager = roleManager;
         _signInManager = signInManager;
@@ -51,56 +61,84 @@ public class IdentityService : IIdentityService
     }
 
 
-    public async Task<(bool Succeeded, IdentityUserDto? User, IEnumerable<string> Errors)> LoginAsync(
+    public async Task<PasswordLoginResult> LoginAsync(
         string email,
         string password,
         CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(email);
+        const string invalid = "Invalid email or password.";
+        var user = string.IsNullOrWhiteSpace(email) ? null : await _userManager.FindByEmailAsync(email.Trim());
         if (user == null)
         {
-            return (false, null, new[] { "Invalid email or password" });
+            _userManager.PasswordHasher.VerifyHashedPassword(new AppUser(), DummyPasswordHash.Value, password ?? string.Empty);
+            return PasswordLoginResult.Failure(AuthErrorCodes.InvalidCredentials, invalid);
         }
 
-        if (!user.IsActive)
-        {
-            return (false, null, new[] { "Account is not active" });
-        }
+        var result = await _signInManager.CheckPasswordSignInAsync(user, password ?? string.Empty, lockoutOnFailure: true);
+        if (result.IsLockedOut)
+            return PasswordLoginResult.Failure(AuthErrorCodes.AccountLocked, "Too many failed attempts. The account is temporarily locked.");
+        if (!result.Succeeded && !result.RequiresTwoFactor)
+            return PasswordLoginResult.Failure(AuthErrorCodes.InvalidCredentials, invalid);
 
-        if (user.IsBanned)
-        {
-            return (false, null, new[] { $"Account is banned. Reason: {user.BanReason}" });
-        }
+        // Account state is disclosed only to callers that proved knowledge of the password.
+        if (!user.IsActive || user.IsBanned)
+            return PasswordLoginResult.Failure(AuthErrorCodes.AccountDisabled, "This account is disabled. Contact your administrator.");
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
+        return PasswordLoginResult.Success(await ToDtoAsync(user, cancellationToken));
+    }
 
-        if (!result.Succeeded)
-        {
-            if (result.IsLockedOut)
-            {
-                return (false, null, new[] { "Account is locked out" });
-            }
-
-            return (false, null, new[] { "Invalid email or password" });
-        }
+    public async Task RecordSuccessfulLoginAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            return;
 
         user.LastLoginAt = DateTime.UtcNow;
+        user.LastLoginIp = _requestContext.IpAddress is { Length: > 50 } ip ? ip[..50] : _requestContext.IpAddress;
         await _userManager.UpdateAsync(user);
-        var domainUser = await _userRepository.GetByIdAsync(user.Id, cancellationToken);
-        var userDto = IdentityUserMapper.ToDto(
-            user.Id,
-            user.UserName ?? string.Empty,
-            user.Email ?? string.Empty,
-            user.EmailConfirmed,
-            user.IsActive,
-            user.IsBanned,
-            user.BanReason ?? string.Empty,
-            user.CreatedAt,
-            user.UserProfileId,
-            domainUser?.IsSSOAccount ?? false);
-        
-        return (true, userDto, Enumerable.Empty<string>());
     }
+
+    public async Task<bool> IsSignInAllowedAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        return user != null && user.IsActive && !user.IsBanned && !await _userManager.IsLockedOutAsync(user);
+    }
+
+    public async Task<UserStatistics> GetUserStatisticsAsync(DateTime sinceUtc, CancellationToken cancellationToken = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var users = _userManager.Users;
+        return new UserStatistics(
+            Total: await users.CountAsync(cancellationToken),
+            Active: await users.CountAsync(u => u.IsActive && !u.IsBanned, cancellationToken),
+            Banned: await users.CountAsync(u => u.IsBanned, cancellationToken),
+            Locked: await users.CountAsync(u => u.LockoutEnd != null && u.LockoutEnd > now, cancellationToken),
+            MfaEnabled: await users.CountAsync(u => u.TwoFactorEnabled, cancellationToken),
+            EmailVerified: await users.CountAsync(u => u.EmailConfirmed, cancellationToken),
+            NewSince: await users.CountAsync(u => u.CreatedAt >= sinceUtc, cancellationToken),
+            SignedInSince: await users.CountAsync(u => u.LastLoginAt != null && u.LastLoginAt >= sinceUtc, cancellationToken));
+    }
+
+    private async Task<IdentityUserDto> ToDtoAsync(AppUser user, CancellationToken cancellationToken)
+    {
+        var domainUser = await _userRepository.GetByIdAsync(user.Id, cancellationToken);
+        return ToDto(user, domainUser?.IsSSOAccount ?? false);
+    }
+
+    private static IdentityUserDto ToDto(AppUser user, bool isSso) => IdentityUserMapper.ToDto(
+        user.Id,
+        user.UserName ?? string.Empty,
+        user.Email ?? string.Empty,
+        user.EmailConfirmed,
+        user.IsActive,
+        user.IsBanned,
+        user.BanReason ?? string.Empty,
+        user.CreatedAt,
+        user.UserProfileId,
+        isSso,
+        user.TwoFactorEnabled,
+        user.LastLoginAt,
+        user.LockoutEnd);
 
     public async Task<bool> VerifyEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default)
     {
@@ -172,85 +210,14 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user == null) return null;
-        
-        var domainUser = await _userRepository.GetByIdAsync(userId, cancellationToken);
-        return IdentityUserMapper.ToDto(
-            user.Id,
-            user.UserName ?? string.Empty,
-            user.Email ?? string.Empty,
-            user.EmailConfirmed,
-            user.IsActive,
-            user.IsBanned,
-            user.BanReason ?? string.Empty,
-            user.CreatedAt,
-            user.UserProfileId,
-            domainUser?.IsSSOAccount ?? false);
+        return await ToDtoAsync(user, cancellationToken);
     }
 
     public async Task<IdentityUserDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null) return null;
-        var domainUser = await _userRepository.GetByIdAsync(user.Id, cancellationToken);
-        return IdentityUserMapper.ToDto(
-            user.Id,
-            user.UserName ?? string.Empty,
-            user.Email ?? string.Empty,
-            user.EmailConfirmed,
-            user.IsActive,
-            user.IsBanned,
-            user.BanReason ?? string.Empty,
-            user.CreatedAt,
-            user.UserProfileId,
-            domainUser?.IsSSOAccount ?? false);
-    }
-
-    public async Task<bool> UpdateRefreshTokenAsync(Guid userId, string refreshToken, DateTime expiryTime, CancellationToken cancellationToken = default)
-    {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        
-        if (user == null)
-            return false;
-
-        user.RefreshToken = HashRefreshToken(refreshToken);
-        user.RefreshTokenExpiryTime = expiryTime;
-        user.UpdatedAt = DateTime.UtcNow;
-        var result = await _userManager.UpdateAsync(user);
-        return result.Succeeded;
-    }
-
-    public async Task<IdentityUserDto?> GetUserByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(refreshToken))
-            return null;
-
-        var hashedRefreshToken = HashRefreshToken(refreshToken);
-        var user = await _userManager.Users
-            .FirstOrDefaultAsync(
-                u => u.RefreshToken == hashedRefreshToken || u.RefreshToken == refreshToken,
-                cancellationToken);
-
-        if (user == null || !user.RefreshTokenExpiryTime.HasValue || user.RefreshTokenExpiryTime.Value < DateTime.UtcNow)
-            return null;
-
-        var domainUser = await _userRepository.GetByIdAsync(user.Id, cancellationToken);
-        return IdentityUserMapper.ToDto(
-            user.Id,
-            user.UserName ?? string.Empty,
-            user.Email ?? string.Empty,
-            user.EmailConfirmed,
-            user.IsActive,
-            user.IsBanned,
-            user.BanReason ?? string.Empty,
-            user.CreatedAt,
-            user.UserProfileId,
-            domainUser?.IsSSOAccount ?? false);
-    }
-
-    private static string HashRefreshToken(string refreshToken)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken));
-        return Convert.ToHexString(bytes);
+        return await ToDtoAsync(user, cancellationToken);
     }
 
     public async Task<bool> UpdateUserProfileIdAsync(Guid userId, Guid userProfileId, CancellationToken cancellationToken = default)
@@ -286,13 +253,22 @@ public class IdentityService : IIdentityService
         return result.Succeeded;
     }
 
-    public async Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default)
+    public async Task<(IReadOnlyList<IdentityUserDto> Items, int TotalCount)> GetUsersAsync(int pageIndex, int pageSize, string? search, CancellationToken cancellationToken = default, bool? ssoAccounts = null)
     {
         var query = _userManager.Users.AsQueryable();
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim();
-            query = query.Where(u => (u.Email != null && u.Email.Contains(s)) || (u.UserName != null && u.UserName.Contains(s)));
+            // Normalized columns make the search case-insensitive and index-friendly.
+            var s = search.Trim().ToUpperInvariant();
+            query = query.Where(u => (u.NormalizedEmail != null && u.NormalizedEmail.Contains(s)) || (u.NormalizedUserName != null && u.NormalizedUserName.Contains(s)));
+        }
+        if (ssoAccounts.HasValue)
+        {
+            var wanted = ssoAccounts.Value;
+            var profiles = _db.DomainUsers.AsNoTracking();
+            query = wanted
+                ? query.Where(u => profiles.Any(d => d.Id == u.Id && d.IsSSOAccount))
+                : query.Where(u => !profiles.Any(d => d.Id == u.Id && d.IsSSOAccount));
         }
         var totalCount = await query.CountAsync(cancellationToken);
         var list = await query
@@ -305,17 +281,7 @@ public class IdentityService : IIdentityService
         var domainUserDict = domainUsers.ToDictionary(du => du.Id);
         var items = list.Select(u => {
             var du = domainUserDict.GetValueOrDefault(u.Id);
-            return IdentityUserMapper.ToDto(
-                u.Id,
-                u.UserName ?? string.Empty,
-                u.Email ?? string.Empty,
-                u.EmailConfirmed,
-                u.IsActive,
-                u.IsBanned,
-                u.BanReason ?? string.Empty,
-                u.CreatedAt,
-                u.UserProfileId,
-                du?.IsSSOAccount ?? false);
+            return ToDto(u, du?.IsSSOAccount ?? false);
         }).ToList();
         
         return (items, totalCount);
@@ -390,8 +356,4 @@ public class IdentityService : IIdentityService
         return role?.Id;
     }
 
-    public Task<(bool Succeeded, IEnumerable<string> Errors)> UnbanUserAsync(Guid userId, string? reason, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
 }

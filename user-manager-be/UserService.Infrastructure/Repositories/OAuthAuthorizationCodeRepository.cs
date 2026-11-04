@@ -9,10 +9,13 @@ public sealed class OAuthAuthorizationCodeRepository : Repository<OAuthAuthoriza
 {
     public OAuthAuthorizationCodeRepository(UserDbContext context) : base(context) { }
 
-    public Task<OAuthAuthorizationCode?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    public Task<OAuthAuthorizationCode?> GetByCodeHashAsync(string codeHash, CancellationToken cancellationToken = default)
     {
-        var normalized = (code ?? string.Empty).Trim();
-        return _dbSet.AsTracking().FirstOrDefaultAsync(x => x.Code == normalized, cancellationToken);
+        var normalized = (codeHash ?? string.Empty).Trim();
+        return _dbSet.AsTracking().FirstOrDefaultAsync(x => x.CodeHash == normalized, cancellationToken);
     }
-}
 
+    // Authorization codes are ephemeral: hard-delete (bypassing soft-delete) once well past expiry.
+    public Task<int> DeleteExpiredAsync(DateTime olderThan, CancellationToken cancellationToken = default)
+        => _dbSet.IgnoreQueryFilters().Where(x => x.ExpiresAtUtc < olderThan).ExecuteDeleteAsync(cancellationToken);
+}

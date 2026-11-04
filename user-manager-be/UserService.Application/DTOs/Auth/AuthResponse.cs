@@ -13,5 +13,9 @@ public record AuthResponse(
     DateTime ExpiresAt,
     UserDto User,
     bool RequiresEmailVerification = false,
-    IReadOnlyList<ApplicationInfoDto>? Applications = null
+    IReadOnlyList<ApplicationInfoDto>? Applications = null,
+    bool MfaRequired = false,
+    string? MfaToken = null,
+    DateTime? MfaExpiresAt = null,
+    Guid? SessionId = null
 );

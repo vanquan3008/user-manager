@@ -8,12 +8,8 @@ public sealed class ExchangeOAuthCodeCommandValidator : AbstractValidator<Exchan
     public ExchangeOAuthCodeCommandValidator()
     {
         RuleFor(x => x.Request.ClientId).NotEmpty();
-        RuleFor(x => x.Request.GrantType)
-            .NotEmpty()
-            .Must(gt =>
-                string.Equals(gt, "authorization_code", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(gt, "refresh_token", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Unsupported grant_type.");
+        // Unsupported values are rejected by the flow service with unsupported_grant_type (RFC 6749 §5.2).
+        RuleFor(x => x.Request.GrantType).NotEmpty().WithMessage("grant_type is required.");
 
         When(x => string.Equals(x.Request.GrantType, "authorization_code", StringComparison.OrdinalIgnoreCase), () =>
         {

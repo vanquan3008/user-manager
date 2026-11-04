@@ -19,7 +19,7 @@ export interface SsoFormModel {
   imports: [CommonModule, FormsModule, FormFieldComponent],
   template: `
     @if (info()) {
-      <p class="mb-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">{{ info() }}</p>
+      <p class="alert-info mb-4"><span class="material-symbols-outlined">info</span><span>{{ info() }}</span></p>
     }
     <div class="flex flex-col gap-4">
       <app-form-field
@@ -32,7 +32,7 @@ export interface SsoFormModel {
         [theme]="theme()"
       />
       <app-form-field
-        label="Mật khẩu"
+        label="Password"
         [model]="form().password"
         (modelChange)="form().password = $event"
         placeholder="••••••••"
@@ -65,7 +65,7 @@ export interface SsoFormModel {
         />
       </div>
       <app-form-field
-        label="Ngày sinh"
+        label="Date of birth"
         [model]="form().dateOfBirth"
         (modelChange)="form().dateOfBirth = $event"
         type="date"

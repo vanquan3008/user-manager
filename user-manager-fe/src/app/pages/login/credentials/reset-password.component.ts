@@ -1,18 +1,54 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
+import { Location } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { ThemeService } from '../../../core/services/theme.service';
-import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../core/utils/http-error.utils';
+import { TranslateService } from '../../../core/services/translate.service';
+import { apiErrorMessage } from '../../../core/utils/http-error.utils';
+import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
-  templateUrl: './reset-password.component.html'
+  imports: [ReactiveFormsModule, RouterLink, AuthShellComponent],
+  template: `
+    <app-auth-shell>
+      <div class="mb-8">
+        <div class="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-soft text-brand-text"><span class="material-symbols-outlined">password</span></div>
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().resetTitle }}</h1>
+        <p class="mt-1.5 text-sm text-fg-2">{{ t().resetSubtitle }}</p>
+        @if (email()) { <p class="mt-3 inline-flex rounded-md bg-surface-2 px-2 py-1 text-xs font-medium text-fg-2">{{ email() }}</p> }
+      </div>
+
+      @if (success()) {
+        <div class="alert-ok" role="status"><span class="material-symbols-outlined">check_circle</span><span>{{ t().resetDone }}</span></div>
+        <a routerLink="/login" class="btn-primary btn-lg btn-block mt-4">{{ t().authSignIn }}</a>
+      } @else if (!token() || !email()) {
+        <div class="alert-bad" role="alert"><span class="material-symbols-outlined">link_off</span><span>{{ t().resetInvalidLink }}</span></div>
+        <a routerLink="/forgot-password" class="btn-secondary btn-block mt-4">{{ t().forgotSubmit }}</a>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4" novalidate>
+          <div>
+            <label class="label" for="rp-new">{{ t().resetNewPassword }}</label>
+            <input id="rp-new" type="password" class="input input-lg" formControlName="newPassword" autocomplete="new-password" autofocus
+                   [class.input-invalid]="form.controls.newPassword.invalid && form.controls.newPassword.touched" />
+            <p class="hint">{{ t().passwordPolicyHint }}</p>
+          </div>
+          <div>
+            <label class="label" for="rp-confirm">{{ t().resetConfirmPassword }}</label>
+            <input id="rp-confirm" type="password" class="input input-lg" formControlName="confirmPassword" autocomplete="new-password"
+                   [class.input-invalid]="form.hasError('mismatch') && form.controls.confirmPassword.touched" />
+            @if (form.hasError('mismatch') && form.controls.confirmPassword.touched) { <p class="error-text">{{ t().resetMismatch }}</p> }
+          </div>
+          @if (error()) { <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div> }
+          <button type="submit" class="btn-primary btn-lg btn-block" [disabled]="loading() || form.invalid">
+            @if (loading()) { <span class="spinner"></span> } {{ t().resetSubmit }}
+          </button>
+        </form>
+      }
+    </app-auth-shell>
+  `
 })
 export class ResetPasswordComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -21,9 +57,7 @@ export class ResetPasswordComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly notify = inject(NotificationService);
   private readonly location = inject(Location);
-  private readonly themeService = inject(ThemeService);
-
-  readonly theme = this.themeService.theme;
+  readonly t = inject(TranslateService).t;
   readonly error = signal('');
   readonly loading = signal(false);
   readonly success = signal(false);
@@ -49,7 +83,7 @@ export class ResetPasswordComponent implements OnInit {
     this.clearSensitiveUrlState();
 
     if (!this.token() || !this.email()) {
-      this.error.set('Invalid reset link. Missing token or email.');
+      this.error.set('');
     }
   }
 
@@ -64,21 +98,16 @@ export class ResetPasswordComponent implements OnInit {
     this.auth.resetPassword(this.email(), this.token(), newPassword).subscribe({
       next: () => {
         this.success.set(true);
-        this.notify.success('Password updated. You can sign in now.');
+        this.notify.success(this.t().resetDone);
         this.loading.set(false);
-        setTimeout(() => this.router.navigate(['/login'], { replaceUrl: true }), 2000);
       },
       error: (err: any) => {
-        this.error.set(getHttpErrorMessage(err, 'Password reset failed.', UNREACHABLE_SERVER_MESSAGE_VI));
-        this.notify.error(this.error());
+        this.error.set(apiErrorMessage(err, this.t().resetInvalidLink));
         this.loading.set(false);
       }
     });
   }
 
-  toggleTheme() {
-    this.themeService.toggleTheme();
-  }
 
   private readLinkParams(): URLSearchParams {
     const fragment = this.route.snapshot.fragment?.trim();

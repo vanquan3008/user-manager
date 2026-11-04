@@ -19,6 +19,7 @@ public class AppSettings
     public OpenIddictConfiguration OpenIddict { get; set; } = new();
     public SwaggerConfiguration Swagger { get; set; } = new();
     public OutboxConfiguration Outbox { get; set; } = new();
+    public SecurityConfiguration Security { get; set; } = new();
     
     public bool IsProduction() => Environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
     public bool IsDevelopment() => Environment.Equals("Development", StringComparison.OrdinalIgnoreCase);

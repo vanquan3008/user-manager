@@ -5,3 +5,4 @@ export * from './oauth.model';
 export * from './role.model';
 export * from './subscription.model';
 export * from './user.model';
+export * from './security.model';

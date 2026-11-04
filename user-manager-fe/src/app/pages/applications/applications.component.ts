@@ -8,20 +8,15 @@ import { ApplicationsService } from '../../core/services/applications.service';
 import type { ApplicationCredentialItem, ApplicationListItem } from '../../core/models';
 import { FileUploadService } from '../../core/services/file-upload.service';
 import { AuthService } from '../../core/services/auth.service';
-import { ThemeService } from '../../core/services/theme.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { environment } from '../../../environments/environment';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { TranslateService } from '../../core/services/translate.service';
 import { DrawerComponent } from '../../shared/components/drawer/drawer.component';
-import { FormFieldComponent } from '../../shared/components/form-field/form-field.component';
 import { DrawerFooterActionsComponent } from '../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
-import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
-import { IconButtonComponent } from '../../shared/components/icon-button/icon-button.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-import { StatCardComponent } from '../../shared/components/stat-card/stat-card.component';
-import { ApplicationSummaryCardComponent } from './components/application-summary-card.component';
 import { ListPageSizeService } from '../../core/services/list-page-size.service';
 import { paginateSlice, totalListPages } from '../../core/utils/pagination';
 import { TablePaginationComponent } from '../../shared/components/table-pagination/table-pagination.component';
@@ -31,19 +26,13 @@ type SortMode = 'name' | 'owner' | 'branding';
 @Component({
   selector: 'app-applications',
   standalone: true,
-  host: { class: 'app-host-fill' },
   imports: [
     CommonModule,
     FormsModule,
     RouterLink,
     DrawerComponent,
-    FormFieldComponent,
     DrawerFooterActionsComponent,
-    LoadingStateComponent,
-    IconButtonComponent,
     EmptyStateComponent,
-    StatCardComponent,
-    ApplicationSummaryCardComponent,
     TablePaginationComponent
   ],
   templateUrl: './applications.component.html'
@@ -55,8 +44,12 @@ export class ApplicationsComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly notify = inject(NotificationService);
   private readonly confirm = inject(ConfirmService);
-  readonly theme = inject(ThemeService).theme;
   private readonly translate = inject(TranslateService);
+  readonly t = this.translate.t;
+  readonly clientTypes = computed(() => [
+    { value: 'Public', label: this.t().appsPublic, desc: this.t().appsPublicDesc },
+    { value: 'Confidential', label: this.t().appsConfidential, desc: this.t().appsConfidentialDesc }
+  ]);
   private readonly pageToolbar = inject(PageToolbarService);
   readonly listPageSizeSvc = inject(ListPageSizeService);
 
@@ -176,7 +169,7 @@ export class ApplicationsComponent implements OnInit {
           this.loading.set(false);
         },
         error: (err: any) => {
-          this.error.set(err.error?.message || err.error?.error?.message || 'Failed to load applications.');
+          this.error.set(apiErrorMessage(err));
           this.loading.set(false);
         }
       });
@@ -186,10 +179,9 @@ export class ApplicationsComponent implements OnInit {
     if (!app.id) return;
 
     const ok = await this.confirm.confirm({
-      title: 'Delete application',
-      message: `Delete "${app.name}" and remove it from the admin catalog?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: this.t().appsDelete,
+      message: this.t().appsDeleteConfirm.replace('{{name}}', app.name),
+      confirmText: this.t().appsDelete,
       variant: 'danger'
     });
 
@@ -202,14 +194,14 @@ export class ApplicationsComponent implements OnInit {
         next: res => {
           if (res.success) {
             this.apps.update(list => list.filter(item => item.id !== app.id));
-            this.notify.success('Application deleted.');
+            this.notify.success(this.t().appsDeleted);
           } else {
             this.notify.error(res.message || 'Delete failed.');
           }
           this.deletingId.set(null);
         },
         error: (err: any) => {
-          this.notify.error(err.error?.message || err.error?.error?.message || 'Delete failed.');
+          this.notify.error(apiErrorMessage(err));
           this.deletingId.set(null);
         }
       });
@@ -236,7 +228,7 @@ export class ApplicationsComponent implements OnInit {
     this.createAttempted.set(true);
     const name = this.form.name.trim();
     if (!name) {
-      this.notify.validation('Application name is required.');
+      this.notify.validation(this.t().appsNameRequired);
       return;
     }
 
@@ -277,14 +269,14 @@ export class ApplicationsComponent implements OnInit {
               this.showCreatedCredentials.set(true);
               this.closingCreatedCredentials.set(false);
             }
-            this.notify.success('Application created.');
+            this.notify.success(this.t().appsCreated);
           } else {
             this.notify.error(res.message || 'Create application failed.');
           }
           this.saving.set(false);
         },
         error: (err: any) => {
-          this.notify.error(err.error?.message || err.error?.error?.message || 'Create application failed.');
+          this.notify.error(apiErrorMessage(err));
           this.saving.set(false);
         }
       });
@@ -384,7 +376,7 @@ export class ApplicationsComponent implements OnInit {
       return;
     }
     navigator.clipboard.writeText(normalized)
-      .then(() => this.notify.success(`${label} copied.`))
+      .then(() => this.notify.success(this.t().copied))
       .catch(() => this.notify.error(`Failed to copy ${label.toLowerCase()}.`));
   }
 }

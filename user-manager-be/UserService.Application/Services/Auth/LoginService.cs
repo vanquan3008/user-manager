@@ -1,5 +1,6 @@
 using UserService.Application.DTOs.Auth;
 using UserService.Application.Interfaces.Services;
+using UserService.Application.Interfaces.Services.Security;
 using UserService.Domain.Entities;
 using UserService.Domain.Exceptions;
 using UserService.Domain.Repositories;
@@ -11,60 +12,52 @@ public sealed class LoginService : ILoginService
     private readonly IIdentityService _identityService;
     private readonly IUserRepository _userRepository;
     private readonly AuthResponseFactory _authResponseFactory;
+    private readonly ISessionService _sessions;
+    private readonly IAuditLogger _audit;
 
     public LoginService(
         IIdentityService identityService,
         IUserRepository userRepository,
-        AuthResponseFactory authResponseFactory)
+        AuthResponseFactory authResponseFactory,
+        ISessionService sessions,
+        IAuditLogger audit)
     {
         _identityService = identityService;
         _userRepository = userRepository;
         _authResponseFactory = authResponseFactory;
+        _sessions = sessions;
+        _audit = audit;
     }
 
     public async Task<AuthResponse> LoginAsync(
         LoginUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        var (succeeded, appUser, errors) = await _identityService.LoginAsync(
-            request.Email,
-            request.Password,
-            cancellationToken);
+        var result = await _identityService.LoginAsync(request.Email, request.Password, cancellationToken);
+        if (!result.Succeeded || result.User == null)
+        {
+            await _audit.LogAsync(AuditEventTypes.LoginFailed, false,
+                new AuditEntry(ActorEmail: request.Email, Reason: result.ErrorCode), cancellationToken);
+            throw new AuthenticationFlowException(result.ErrorCode ?? AuthErrorCodes.InvalidCredentials, result.Message ?? "Invalid email or password.");
+        }
 
-        if (!succeeded || appUser == null)
-            throw new UnauthorizedException(string.Join(", ", errors));
+        if (result.User.IsSSOAccount)
+        {
+            await _audit.LogAsync(AuditEventTypes.LoginFailed, false,
+                new AuditEntry(ActorUserId: result.User.Id, ActorEmail: request.Email, Reason: AuthErrorCodes.WrongLoginEndpoint), cancellationToken);
+            throw new AuthenticationFlowException(AuthErrorCodes.WrongLoginEndpoint,
+                "This account uses the hosted SSO login flow. Please continue from the hosted sign-in page.");
+        }
 
-        var domainUser = await _userRepository.GetByIdAsync(appUser.Id, cancellationToken);
-        if (domainUser == null)
-            throw new EntityNotFoundException(nameof(User), appUser.Id);
-
-        if (domainUser.IsSSOAccount)
-            throw new InvalidDomainObjectException(
-                nameof(request.Email),
-                request.Email,
-                "This account uses the hosted SSO login flow. Please continue from the hosted auth page.");
-
-        return await _authResponseFactory.BuildUserAuthResponseAsync(
-            appUser.Id,
-            request.ApplicationId,
-            cancellationToken);
+        return await _authResponseFactory.CompleteConsoleSignInAsync(
+            result.User, request.ApplicationId, AuthenticationMethods.Password, cancellationToken);
     }
 
     public async Task<AuthResponse> RefreshTokenAsync(
         string refreshToken,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken))
-            throw new UnauthorizedException("Invalid refresh token");
-
-        var appUser = await _identityService.GetUserByRefreshTokenAsync(refreshToken, cancellationToken);
-        if (appUser == null)
-            throw new UnauthorizedException("Invalid or expired refresh token");
-
-        var domainUser = await _userRepository.GetByIdAsync(appUser.Id, cancellationToken);
-        if (domainUser?.IsSSOAccount == true)
-            return await _authResponseFactory.BuildSSOAuthResponseAsync(appUser.Id, cancellationToken);
-
-        return await _authResponseFactory.BuildUserAuthResponseAsync(appUser.Id, null, cancellationToken);
+        var issued = await _sessions.RotateAsync(refreshToken, cancellationToken);
+        return await _authResponseFactory.BuildRefreshedResponseAsync(issued, cancellationToken);
     }
 }

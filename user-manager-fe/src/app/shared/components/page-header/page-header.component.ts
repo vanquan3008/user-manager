@@ -1,52 +1,24 @@
 import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   template: `
-    <div class="app-page-header-card">
-      <div class="app-page-header-card__inner">
+    <div>
       @if (backLink()) {
-        <a
-          [routerLink]="backLink()!"
-          class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium transition"
-          [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
-        >
-          <span class="material-symbols-outlined text-lg">arrow_back</span>
-          {{ backLabel() }}
+        <a [routerLink]="backLink()!" class="mb-3 inline-flex items-center gap-1 text-[13px] font-medium text-fg-2 transition hover:text-fg">
+          <span class="material-symbols-outlined text-[18px]">arrow_back</span>{{ backLabel() }}
         </a>
       }
-      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          @if (badge()) {
-            <span
-              class="app-header-toolbar-badge inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
-            >
-              {{ badge() }}
-            </span>
-          }
-          <h1
-            class="text-lg font-semibold tracking-tight sm:text-xl"
-            [ngClass]="[
-              theme() === 'light' ? 'text-slate-900' : 'text-slate-50',
-              badge() ? 'mt-1.5' : 'mt-0'
-            ]"
-          >
-            {{ title() }}
-          </h1>
-          @if (description()) {
-            <p class="mt-1 text-sm leading-snug text-[var(--app-text-secondary)]">
-              {{ description() }}
-            </p>
-          }
+      <div class="page-header">
+        <div class="min-w-0">
+          @if (badge()) { <p class="eyebrow mb-1">{{ badge() }}</p> }
+          <h1 class="page-title">{{ title() }}</h1>
+          @if (description()) { <p class="page-subtitle">{{ description() }}</p> }
         </div>
-        <div class="mt-2 flex items-center gap-2 sm:mt-0">
-          <ng-content />
-        </div>
-      </div>
+        <div class="flex flex-wrap items-center gap-2"><ng-content /></div>
       </div>
     </div>
   `
@@ -57,5 +29,6 @@ export class PageHeaderComponent {
   badge = input<string>('');
   backLink = input<string | null>(null);
   backLabel = input<string>('Back');
+  /** @deprecated kept for template compatibility */
   theme = input<'light' | 'dark'>('dark');
 }

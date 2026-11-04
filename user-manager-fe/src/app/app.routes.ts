@@ -1,4 +1,5 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router, Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { LayoutComponent } from './layout/layout.component';
@@ -7,6 +8,7 @@ export const routes: Routes = [
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./pages/login/credentials/login.component').then(m => m.LoginComponent) },
   { path: 'sso-login', canActivate: [guestGuard], loadComponent: () => import('./pages/login/sso/sso-login.component').then(m => m.SsoLoginComponent) },
   { path: 'auth/callback', loadComponent: () => import('./pages/login/oauth/oauth-callback.component').then(m => m.OauthCallbackComponent) },
+  { path: 'register', canActivate: [guestGuard], loadComponent: () => import('./pages/login/register/register.component').then(m => m.RegisterComponent) },
   { path: 'forgot-password', canActivate: [guestGuard], loadComponent: () => import('./pages/login/credentials/forgot-password.component').then(m => m.ForgotPasswordComponent) },
   { path: 'reset-password', loadComponent: () => import('./pages/login/credentials/reset-password.component').then(m => m.ResetPasswordComponent) },
   { path: 'verify-email', loadComponent: () => import('./pages/login/credentials/verify-email.component').then(m => m.VerifyEmailComponent) },
@@ -33,7 +35,8 @@ export const routes: Routes = [
       },
       {
         path: 'user-admin',
-        loadComponent: () => import('./pages/user-admin/user-admin.component').then(m => m.UserAdminComponent)
+        data: { accountType: 'sso' },
+        loadComponent: () => import('./pages/users/users-list.component').then(m => m.UsersListComponent)
       },
       {
         path: 'roles',
@@ -55,10 +58,10 @@ export const routes: Routes = [
         path: 'permissions',
         loadComponent: () => import('./pages/permissions/permissions.component').then(m => m.PermissionsComponent)
       },
-      {
-        path: 'change-password',
-        loadComponent: () => import('./pages/settings/change-password.component').then(m => m.ChangePasswordComponent)
-      }
+      { path: 'account', loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent) },
+      { path: 'change-password', redirectTo: () => inject(Router).createUrlTree(['/account'], { queryParams: { tab: 'security' } }) },
+      { path: 'audit-logs', loadComponent: () => import('./pages/audit-logs/audit-logs.component').then(m => m.AuditLogsComponent) },
+      { path: 'system', loadComponent: () => import('./pages/system/system.component').then(m => m.SystemComponent) }
     ]
   },
   { path: '**', redirectTo: '' }

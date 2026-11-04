@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ public sealed class UserDbContext : IdentityDbContext<
     AppUserRole,
     IdentityUserLogin<Guid>,
     IdentityRoleClaim<Guid>,
-    IdentityUserToken<Guid>>
+    IdentityUserToken<Guid>>, IDataProtectionKeyContext
 {
     private readonly IClock _clock;
     public UserDbContext(
@@ -45,6 +46,10 @@ public sealed class UserDbContext : IdentityDbContext<
     public DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes { get; set; } = null!;
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; set; } = null!;
     public DbSet<OutboxMessage> OutboxMessages { get; set; } = null!;
+    public DbSet<UserSession> UserSessions { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<SigningKey> SigningKeys { get; set; } = null!;
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

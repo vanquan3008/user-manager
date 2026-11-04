@@ -5,9 +5,7 @@ import { SubscriptionPlanCatalogDto } from '../../../core/models/subscription.mo
 import { SubscriptionsService } from '../../../core/services/subscriptions.service';
 import { ApplicationsService } from '../../../core/services/applications.service';
 import { ApplicationListItem } from '../../../core/models/application.model';
-import { DropdownComponent } from '../../../shared/components/dropdown/dropdown.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
-import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { DrawerComponent } from '../../../shared/components/drawer/drawer.component';
 import { DrawerFooterActionsComponent } from '../../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
@@ -15,8 +13,7 @@ import { PlanPriceVndPipe } from '../../../shared/pipes/plan-price-vnd.pipe';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { PageToolbarService } from '../../../core/services/page-toolbar.service';
-import { ThemeService } from '../../../core/services/theme.service';
-import { StatCardComponent } from '../../../shared/components/stat-card/stat-card.component';
+import { TranslateService } from '../../../core/services/translate.service';
 import { parsePlanLimitField } from '../../../core/utils/plan-limit-fields';
 import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../core/utils/http-error.utils';
 
@@ -40,18 +37,7 @@ type PlanFormModel = {
 @Component({
   selector: 'app-package-catalog',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    DropdownComponent,
-    FormFieldComponent,
-    LoadingStateComponent,
-    EmptyStateComponent,
-    DrawerComponent,
-    DrawerFooterActionsComponent,
-    PlanPriceVndPipe,
-    StatCardComponent
-  ],
+  imports: [CommonModule, FormsModule, FormFieldComponent, EmptyStateComponent, DrawerComponent, DrawerFooterActionsComponent, PlanPriceVndPipe],
   templateUrl: './package-catalog.component.html'
 })
 export class PackageCatalogComponent implements OnInit {
@@ -60,7 +46,8 @@ export class PackageCatalogComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   private readonly confirm = inject(ConfirmService);
   private readonly pageToolbar = inject(PageToolbarService);
-  readonly theme = inject(ThemeService).theme;
+  private readonly translate = inject(TranslateService);
+  readonly t = this.translate.t;
 
   apps = signal<ApplicationListItem[]>([]);
   loadingApps = signal(false);
@@ -176,13 +163,13 @@ export class PackageCatalogComponent implements OnInit {
   featureMeta(feature: string): { label: string; icon: string } {
     switch (feature) {
       case 'Analytics':
-        return { label: 'Analytics', icon: 'query_stats' };
+        return { label: this.t().ctFeatAnalytics, icon: 'query_stats' };
       case 'Support':
-        return { label: 'Priority support', icon: 'support_agent' };
+        return { label: this.t().ctFeatSupport, icon: 'support_agent' };
       case 'Advanced security':
-        return { label: 'Advanced security', icon: 'shield_lock' };
+        return { label: this.t().ctFeatSecurity, icon: 'shield_lock' };
       case 'Custom domain':
-        return { label: 'Custom domain', icon: 'language' };
+        return { label: this.t().ctFeatDomain, icon: 'language' };
       default:
         return { label: feature, icon: 'check_circle' };
     }
@@ -198,7 +185,7 @@ export class PackageCatalogComponent implements OnInit {
 
   displayQuota(value: number | null | undefined): string {
     if (value == null || value === -1) {
-      return 'Unlimited';
+      return '∞';
     }
 
     return String(value);
@@ -248,13 +235,13 @@ export class PackageCatalogComponent implements OnInit {
 
   savePlan() {
     if (!this.planForm.name.trim()) {
-      this.notify.warning('Please enter a plan name.');
+      this.notify.warning(this.t().ctNameRequired);
       return;
     }
 
     const applicationId = this.planForm.applicationId || this.applicationId();
     if (!applicationId) {
-      this.notify.warning('Please choose an application.');
+      this.notify.warning(this.t().ctPickApp);
       return;
     }
 
@@ -288,7 +275,7 @@ export class PackageCatalogComponent implements OnInit {
       next: response => {
         this.savingPlan.set(false);
         if (response.success) {
-          this.notify.success(planId ? 'Plan updated successfully.' : 'Plan created successfully.');
+          this.notify.success(this.t().ctSaved);
           this.closePlanModal();
           this.loadCatalog();
         } else {
@@ -304,10 +291,9 @@ export class PackageCatalogComponent implements OnInit {
 
   async deletePlan(plan: SubscriptionPlanCatalogDto) {
     const ok = await this.confirm.confirm({
-      title: 'Delete plan',
-      message: `Delete "${plan.name}"? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: this.t().delete,
+      message: this.t().ctDeleteConfirm.replace('{{name}}', plan.name),
+      confirmText: this.t().delete,
       variant: 'danger'
     });
 
@@ -318,7 +304,7 @@ export class PackageCatalogComponent implements OnInit {
     this.subscriptionsService.deletePlan(plan.id).subscribe({
       next: res => {
         if (res.success) {
-          this.notify.success('Plan deleted.');
+          this.notify.success(this.t().ctDeleted);
           this.loadCatalog();
         } else {
           this.notify.error(res.message || 'Failed to delete plan.');

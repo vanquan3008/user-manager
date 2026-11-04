@@ -1,35 +1,24 @@
 import { Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-empty-state',
   standalone: true,
-  imports: [CommonModule],
   template: `
-    <div
-      class="flex flex-col items-center justify-center rounded-xl border px-8 py-16 text-center"
-      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/50' : 'border-slate-700 bg-slate-800/50'"
-    >
-      <span
-        class="material-symbols-outlined mb-3 text-4xl opacity-50"
-        [ngClass]="theme() === 'light' ? 'text-slate-400' : 'text-slate-500'"
-      >
-        {{ icon() }}
-      </span>
-      <p class="text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-300'">
-        {{ message() }}
-      </p>
+    <div class="flex flex-col items-center justify-center px-6 py-14 text-center">
+      <div class="icon-tile h-11 w-11"><span class="material-symbols-outlined text-[22px]">{{ icon() }}</span></div>
+      <p class="mt-4 text-sm font-medium text-fg">{{ message() }}</p>
+      @if (description()) { <p class="mt-1 max-w-sm text-[13px] text-fg-2">{{ description() }}</p> }
       @if (action()) {
-        <div class="mt-4 flex items-center gap-2">
-          <ng-content select="[action]" />
-        </div>
+        <div class="mt-5 flex items-center gap-2"><ng-content select="[action]" /></div>
       }
     </div>
   `
 })
 export class EmptyStateComponent {
   message = input.required<string>();
-  icon = input<string>('folder_off');
+  description = input<string>('');
+  icon = input<string>('inbox');
   action = input<boolean>(false);
+  /** @deprecated kept for template compatibility */
   theme = input<'light' | 'dark'>('dark');
 }

@@ -20,9 +20,15 @@ public class ClaimsFactory : IClaimsFactory
             new(JwtClaimNames.UserId, request.UserId.ToString()),
             new(JwtRegisteredClaimNames.Email, request.Email),
             new(ClaimTypes.Name, request.DisplayName ?? IdentityDefaults.FallbackDisplayName),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        if (request.SessionId.HasValue)
+            claims.Add(new Claim(JwtClaimNames.SessionId, request.SessionId.Value.ToString()));
+        if (!string.IsNullOrWhiteSpace(request.ClientId))
+            claims.Add(new Claim(JwtClaimNames.ClientId, request.ClientId));
+        if (!string.IsNullOrWhiteSpace(request.AuthenticationMethod))
+            claims.Add(new Claim(JwtClaimNames.AuthenticationMethod, request.AuthenticationMethod));
 
         var roles = request.Roles ?? Enumerable.Empty<string>();
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));

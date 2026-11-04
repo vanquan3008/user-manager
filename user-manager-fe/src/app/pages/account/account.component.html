@@ -1,0 +1,225 @@
+<div class="page-narrow">
+  <div class="flex items-center gap-4">
+    <span class="avatar avatar-lg">{{ initials() }}</span>
+    <div class="min-w-0">
+      <h1 class="page-title truncate">{{ me()?.user?.userName || auth.user()?.username }}</h1>
+      <p class="truncate text-sm text-fg-2">{{ me()?.user?.email || auth.user()?.email }}</p>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        @for (role of auth.user()?.roles ?? []; track role) { <span class="badge-brand">{{ role }}</span> }
+        @if (mfa(); as m) {
+          @if (m.enabled) { <span class="badge-ok"><span class="material-symbols-outlined text-[13px]">verified_user</span>{{ t().accMfaOnBadge }}</span> }
+          @else { <span class="badge-warn"><span class="material-symbols-outlined text-[13px]">gpp_maybe</span>{{ t().usersNoMfa }}</span> }
+        }
+      </div>
+    </div>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    @for (item of tabs(); track item.id) {
+      <button type="button" role="tab" class="tab" [class.tab-active]="tab() === item.id" [attr.aria-selected]="tab() === item.id" (click)="selectTab(item.id)">
+        <span class="material-symbols-outlined text-[18px]">{{ item.icon }}</span>{{ item.label }}
+      </button>
+    }
+  </nav>
+
+  @switch (tab()) {
+    @case ('profile') {
+      <section class="card">
+        <div class="card-header"><div><h2 class="card-title">{{ t().accTabProfile }}</h2><p class="card-desc">{{ t().accSubtitle }}</p></div></div>
+        <div class="card-body">
+          @if (me(); as m) {
+            <dl class="dl">
+              <div><dt>{{ t().accUsername }}</dt><dd>{{ m.user.userName }}</dd></div>
+              <div><dt>{{ t().accEmail }}</dt><dd>{{ m.user.email }}</dd></div>
+              <div><dt>{{ t().accEmailStatus }}</dt><dd>
+                @if (m.user.emailConfirmed) { <span class="badge-ok"><span class="dot"></span>{{ t().accVerified }}</span> }
+                @else { <span class="badge-warn"><span class="dot"></span>{{ t().accUnverified }}</span> }
+              </dd></div>
+              <div><dt>{{ t().accAccountType }}</dt><dd>{{ m.user.isSsoAccount ? t().accSso : t().accConsole }}</dd></div>
+              <div><dt>{{ t().accRoles }}</dt><dd class="flex flex-wrap gap-1">@for (r of m.roles; track r) { <span class="badge-brand">{{ r }}</span> }</dd></div>
+              <div><dt>{{ t().accMemberSince }}</dt><dd>{{ when(m.user.createdAt) }}</dd></div>
+            </dl>
+          } @else {
+            <div class="grid gap-4 sm:grid-cols-2">@for (i of [0,1,2,3]; track i) { <div class="space-y-2"><div class="skeleton h-3 w-20"></div><div class="skeleton h-4 w-40"></div></div> }</div>
+          }
+        </div>
+      </section>
+    }
+
+    @case ('security') {
+      <!-- MFA -->
+      <section class="card">
+        <div class="card-header">
+          <div class="flex items-start gap-3">
+            <span class="icon-tile"><span class="material-symbols-outlined">phonelink_lock</span></span>
+            <div><h2 class="card-title">{{ t().accMfaTitle }}</h2><p class="card-desc max-w-xl">{{ t().accMfaDesc }}</p></div>
+          </div>
+          @if (mfa(); as s) {
+            <span [class]="s.enabled ? 'badge-ok' : 'badge-neutral'"><span class="dot"></span>{{ s.enabled ? t().accMfaOn : t().accMfaOff }}</span>
+          }
+        </div>
+        <div class="card-body space-y-5">
+          @if (mfaError()) { <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ mfaError() }}</span></div> }
+
+          @if (recoveryCodes(); as codes) {
+            <div class="rounded-xl border border-warn/30 bg-warn-soft p-4">
+              <p class="text-sm font-semibold">{{ t().accRecoveryTitle }}</p>
+              <p class="mt-1 text-[13px] text-fg-2">{{ t().accRecoveryDesc }}</p>
+              <ul class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                @for (code of codes; track code) { <li class="code text-center text-[13px]">{{ code }}</li> }
+              </ul>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button type="button" class="btn-secondary btn-sm" (click)="copyCodes()"><span class="material-symbols-outlined">content_copy</span>{{ t().accRecoveryCopy }}</button>
+                <button type="button" class="btn-secondary btn-sm" (click)="downloadCodes()"><span class="material-symbols-outlined">download</span>{{ t().accRecoveryDownload }}</button>
+                <button type="button" class="btn-primary btn-sm ml-auto" (click)="recoveryCodes.set(null)">{{ t().accRecoveryDone }}</button>
+              </div>
+            </div>
+          }
+
+          @if (mfa(); as s) {
+            @if (!s.enabled) {
+              @if (setup(); as st) {
+                <div class="grid gap-6 md:grid-cols-[auto_1fr]">
+                  <div>
+                    <p class="mb-3 text-[13px] font-medium">{{ t().accMfaScan }}</p>
+                    @if (qrDataUrl()) { <img [src]="qrDataUrl()" alt="QR code for authenticator app" width="184" height="184" class="rounded-lg border border-line bg-white p-2" /> }
+                  </div>
+                  <div class="space-y-4">
+                    <div>
+                      <p class="text-[13px] text-fg-2">{{ t().accMfaManual }}</p>
+                      <p class="code mt-1.5 inline-block select-all break-all text-[13px] tracking-wider">{{ st.sharedKey }}</p>
+                    </div>
+                    <div>
+                      <label class="label" for="mfa-enable">{{ t().accMfaEnterCode }}</label>
+                      <input id="mfa-enable" class="code-input max-w-[220px]" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [(ngModel)]="enableCode" placeholder="••••••" (keydown.enter)="confirmEnable()" />
+                    </div>
+                    <div class="flex gap-2">
+                      <button type="button" class="btn-primary" (click)="confirmEnable()" [disabled]="mfaBusy() || enableCode.length !== 6">
+                        @if (mfaBusy()) { <span class="spinner"></span> } {{ t().accMfaConfirm }}
+                      </button>
+                      <button type="button" class="btn-ghost" (click)="cancelSetup()">{{ t().cancel }}</button>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <button type="button" class="btn-primary" (click)="beginSetup()" [disabled]="mfaBusy()">
+                  @if (mfaBusy()) { <span class="spinner"></span> } @else { <span class="material-symbols-outlined">add_moderator</span> }{{ t().accMfaEnable }}
+                </button>
+              }
+            } @else {
+              <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-2 px-4 py-3">
+                <div class="flex items-center gap-2 text-[13px] text-fg-2"><span class="material-symbols-outlined text-[18px] text-fg-3">key</span>{{ recoveryRemaining() }}</div>
+                <div class="flex gap-2">
+                  <button type="button" class="btn-secondary btn-sm" (click)="showRegenerate.set(!showRegenerate()); showDisable.set(false)">{{ t().accRecoveryRegenerate }}</button>
+                  <button type="button" class="btn-danger-ghost btn-sm" (click)="showDisable.set(!showDisable()); showRegenerate.set(false)">{{ t().accMfaDisable }}</button>
+                </div>
+              </div>
+              @if (showRegenerate()) {
+                <div class="flex flex-wrap items-end gap-2 animate-fade-up">
+                  <div class="w-48"><label class="label" for="mfa-regen">{{ t().accCodeFromApp }}</label><input id="mfa-regen" class="input font-mono" inputmode="numeric" maxlength="6" [(ngModel)]="regenerateCode" /></div>
+                  <button type="button" class="btn-primary" (click)="regenerate()" [disabled]="mfaBusy() || regenerateCode.length !== 6">{{ t().accRecoveryRegenerate }}</button>
+                </div>
+              }
+              @if (showDisable()) {
+                <div class="space-y-3 animate-fade-up">
+                  <p class="text-[13px] text-fg-2">{{ t().accMfaDisableDesc }}</p>
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div><label class="label" for="mfa-dis-pw">{{ t().authPassword }}</label><input id="mfa-dis-pw" type="password" class="input" autocomplete="current-password" [(ngModel)]="disablePassword" /></div>
+                    <div><label class="label" for="mfa-dis-code">{{ t().mfaCode }}</label><input id="mfa-dis-code" class="input font-mono" autocomplete="one-time-code" [(ngModel)]="disableCode" /></div>
+                  </div>
+                  <button type="button" class="btn-danger" (click)="disable()" [disabled]="mfaBusy() || !disablePassword || !disableCode">{{ t().accMfaDisable }}</button>
+                </div>
+              }
+            }
+          } @else {
+            <div class="skeleton h-9 w-48"></div>
+          }
+        </div>
+      </section>
+
+      <!-- Password -->
+      <section class="card">
+        <div class="card-header">
+          <div class="flex items-start gap-3">
+            <span class="icon-tile"><span class="material-symbols-outlined">password</span></span>
+            <div><h2 class="card-title">{{ t().accPasswordTitle }}</h2><p class="card-desc">{{ t().accPasswordDesc }}</p></div>
+          </div>
+        </div>
+        <form [formGroup]="pwForm" (ngSubmit)="changePassword()" class="card-body grid max-w-xl gap-4" novalidate>
+          <div><label class="label" for="pw-current">{{ t().accCurrentPassword }}</label><input id="pw-current" type="password" class="input" formControlName="currentPassword" autocomplete="current-password" /></div>
+          <div>
+            <label class="label" for="pw-new">{{ t().resetNewPassword }}</label>
+            <input id="pw-new" type="password" class="input" formControlName="newPassword" autocomplete="new-password" />
+            <p class="hint">{{ t().passwordPolicyHint }}</p>
+          </div>
+          <div>
+            <label class="label" for="pw-confirm">{{ t().resetConfirmPassword }}</label>
+            <input id="pw-confirm" type="password" class="input" formControlName="confirmPassword" autocomplete="new-password" [class.input-invalid]="pwForm.hasError('mismatch') && pwForm.controls.confirmPassword.touched" />
+            @if (pwForm.hasError('mismatch') && pwForm.controls.confirmPassword.touched) { <p class="error-text">{{ t().resetMismatch }}</p> }
+          </div>
+          @if (pwError()) { <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ pwError() }}</span></div> }
+          <div><button type="submit" class="btn-primary" [disabled]="pwLoading()">@if (pwLoading()) { <span class="spinner"></span> } {{ t().accChangePassword }}</button></div>
+        </form>
+      </section>
+    }
+
+    @case ('sessions') {
+      <section class="card">
+        <div class="card-header">
+          <div><h2 class="card-title">{{ t().accTabSessions }}</h2><p class="card-desc">{{ t().accSessionsDesc }}</p></div>
+          <button type="button" class="btn-secondary btn-sm" (click)="revokeOthers()" [disabled]="sessions().length < 2"><span class="material-symbols-outlined">devices_off</span>{{ t().accSignOutOthers }}</button>
+        </div>
+        @if (sessionsLoading() && !sessions().length) {
+          <div class="space-y-3 p-5">@for (i of [0,1,2]; track i) { <div class="skeleton h-12 w-full"></div> }</div>
+        } @else {
+          <ul class="divide-y divide-line">
+            @for (s of sessions(); track s.id) {
+              <li class="flex flex-wrap items-center gap-4 px-5 py-4">
+                <span class="icon-tile h-10 w-10"><span class="material-symbols-outlined">{{ device(s.userAgent).icon }}</span></span>
+                <div class="min-w-0 flex-1">
+                  <p class="flex flex-wrap items-center gap-2 text-sm font-medium">
+                    {{ device(s.userAgent).label }}
+                    @if (s.isCurrent) { <span class="badge-ok"><span class="dot"></span>{{ t().accThisDevice }}</span> }
+                    <span class="badge-neutral">{{ s.kind === 'hosted_sso' ? t().accKindSso : t().accKindConsole }}</span>
+                    @if (s.authenticationMethod === 'mfa') { <span class="badge-brand">MFA</span> }
+                  </p>
+                  <p class="mt-0.5 text-xs text-fg-3">
+                    {{ s.ipAddress || '—' }} · {{ t().accLastActive }} {{ ago(s.lastSeenAt) }} · {{ t().accSignedIn }} {{ when(s.createdAt) }}
+                  </p>
+                </div>
+                <button type="button" class="btn-secondary btn-sm" (click)="revoke(s)">{{ t().accRevoke }}</button>
+              </li>
+            } @empty {
+              <li class="px-5 py-10 text-center text-sm text-fg-3">{{ t().accNoSessions }}</li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
+    @case ('activity') {
+      <section class="card">
+        <div class="card-header"><div><h2 class="card-title">{{ t().accTabActivity }}</h2><p class="card-desc">{{ t().accActivityDesc }}</p></div></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>{{ t().colEvent }}</th><th>{{ t().colResult }}</th><th>{{ t().colIp }}</th><th>{{ t().colDevice }}</th><th class="text-right">{{ t().colWhen }}</th></tr></thead>
+            <tbody>
+              @for (e of activity(); track e.id) {
+                <tr>
+                  <td><span class="inline-flex items-center gap-2"><span class="material-symbols-outlined text-[18px] text-fg-3">{{ icon(e.eventType) }}</span>{{ humanize(e.eventType) }}</span></td>
+                  <td><span [class]="e.succeeded ? 'badge-ok' : 'badge-bad'"><span class="dot"></span>{{ e.succeeded ? t().statusSucceeded : t().statusFailed }}</span></td>
+                  <td class="font-mono text-xs text-fg-2">{{ e.ipAddress || '—' }}</td>
+                  <td class="text-fg-2">{{ device(e.userAgent).label }}</td>
+                  <td class="whitespace-nowrap text-right text-fg-2" [title]="when(e.occurredAt)">{{ ago(e.occurredAt) }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="py-10 text-center text-fg-3">{{ activityLoading() ? t().loading : t().accNoActivity }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-table-pagination [totalItems]="activityTotal()" [page]="activityPage()" [pageSize]="activityPageSize()" (pageChange)="onActivityPage($event)" (pageSizeChange)="onActivityPageSize($event)" />
+      </section>
+    }
+  }
+</div>

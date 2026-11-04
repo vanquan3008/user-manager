@@ -8,7 +8,10 @@ namespace UserService.Application.Mapping;
 
 public static class IdentityUserMapper
 {
-    public static IdentityUserDto ToDto(Guid id, string userName, string email, bool emailConfirmed, bool isActive, bool isBanned, string? banReason, DateTime createdAt, Guid? userProfileId, bool isSSOAccount) =>
+    public static IdentityUserDto ToDto(
+        Guid id, string userName, string email, bool emailConfirmed, bool isActive, bool isBanned, string? banReason,
+        DateTime createdAt, Guid? userProfileId, bool isSSOAccount,
+        bool twoFactorEnabled = false, DateTime? lastLoginAt = null, DateTimeOffset? lockoutEnd = null) =>
         new IdentityUserDto(
             id,
             userName,
@@ -17,11 +20,12 @@ public static class IdentityUserMapper
             isActive,
             isBanned,
             banReason,
-            RefreshToken: null, 
-            RefreshTokenExpiryTime: null,
             createdAt,
             userProfileId,
-            IsSSOAccount: isSSOAccount
+            IsSSOAccount: isSSOAccount,
+            TwoFactorEnabled: twoFactorEnabled,
+            LastLoginAt: lastLoginAt,
+            LockoutEnd: lockoutEnd
         );
 }
 

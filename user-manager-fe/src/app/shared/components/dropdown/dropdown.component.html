@@ -1,58 +1,26 @@
 <div #hostRoot class="app-dropdown relative w-full">
-  <button
-    #triggerBtn
-    type="button"
-    class="flex min-h-11 w-full items-center justify-between rounded-lg border px-4 py-2.5 text-left text-sm font-medium outline-none transition duration-200 focus-visible:ring-2 focus-visible:ring-sky-500/30"
-    [ngClass]="{
-      'border-slate-200 bg-white text-slate-800': theme() === 'light',
-      'border-slate-600 bg-slate-800/80 text-slate-100': theme() === 'dark',
-      'cursor-not-allowed opacity-60': isDisabled(),
-      'cursor-pointer hover:-translate-y-px hover:border-sky-400/60 hover:shadow-[0_18px_36px_-24px_rgba(14,165,233,0.45)]': !isDisabled(),
-      'ring-2 ring-sky-500/30 -translate-y-px shadow-[0_20px_36px_-28px_rgba(14,165,233,0.45)]': open()
-    }"
-    [disabled]="isDisabled()"
-    (click)="toggle()"
-  >
-    <span [ngClass]="!selectedLabel && theme() === 'light' ? 'text-slate-500' : (!selectedLabel && theme() === 'dark' ? 'text-slate-400' : '')">
-      {{ selectedLabel || placeholder() }}
-    </span>
-    <span class="material-symbols-outlined text-xl transition-transform duration-200" [ngClass]="{'rotate-180': open(), 'text-slate-500': theme() === 'light', 'text-slate-400': theme() === 'dark'}">
-      expand_more
-    </span>
+  <button #triggerBtn type="button"
+    class="input flex items-center justify-between gap-2 text-left"
+    [ngClass]="open() ? 'border-brand ring-4 ring-brand/15' : ''"
+    [disabled]="isDisabled()" (click)="toggle()" [attr.aria-expanded]="open()" aria-haspopup="listbox">
+    <span class="truncate" [class.text-fg-3]="!selectedLabel">{{ selectedLabel || placeholder() }}</span>
+    <span class="material-symbols-outlined text-[18px] text-fg-3 transition-transform duration-150" [class.rotate-180]="open()">expand_more</span>
   </button>
 
-  <!-- Panel gắn tạm vào document.body khi mở (tránh tổ tiên có transform như drawer làm hỏng position:fixed) -->
-  <div
-    #dropdownPanel
-    role="listbox"
-    [hidden]="!open()"
-    class="app-dropdown-panel motion-card fixed z-[10050] min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain rounded-lg border p-1 shadow-2xl backdrop-blur"
-    [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white/95' : 'border-slate-600 bg-slate-800/95'"
-    [ngStyle]="panelStyle() ?? {}"
-  >
+  <!-- Panel is temporarily moved to document.body while open (ancestors with transforms break position:fixed). -->
+  <div #dropdownPanel role="listbox" [hidden]="!open()"
+    class="app-dropdown-panel fixed z-[10050] min-w-0 overflow-y-auto overscroll-contain rounded-xl border border-line bg-surface p-1 shadow-pop animate-scale-in"
+    [ngStyle]="panelStyle() ?? {}">
     @for (opt of options(); track opt.value) {
-      <button
-        type="button"
-        class="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition duration-150 hover:-translate-y-px"
-        [ngClass]="{
-          'bg-sky-50 text-sky-700 shadow-[0_10px_24px_-20px_rgba(14,165,233,0.55)]': value() === opt.value && theme() === 'light',
-          'bg-sky-500/15 text-sky-300 shadow-[0_12px_24px_-20px_rgba(14,165,233,0.45)]': value() === opt.value && theme() === 'dark',
-          'bg-slate-50/80 text-slate-500': !opt.value && theme() === 'light',
-          'bg-slate-800/60 text-slate-400': !opt.value && theme() === 'dark',
-          'text-slate-800 hover:bg-slate-100': opt.value && value() !== opt.value && theme() === 'light',
-          'text-slate-200 hover:bg-slate-700/60': opt.value && value() !== opt.value && theme() === 'dark'
-        }"
-        (click)="select(opt)"
-      >
+      <button type="button" role="option" [attr.aria-selected]="value() === opt.value"
+        class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors"
+        [class]="value() === opt.value ? 'bg-brand-soft text-brand-text' : (opt.value ? 'text-fg hover:bg-surface-2' : 'text-fg-3 hover:bg-surface-2')"
+        (click)="select(opt)">
         <span class="truncate">{{ opt.label }}</span>
-        @if (value() === opt.value) {
-          <span class="material-symbols-outlined text-base">check</span>
-        }
+        @if (value() === opt.value) { <span class="material-symbols-outlined text-[18px]">check</span> }
       </button>
     } @empty {
-      <div class="px-4 py-3 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-        {{ translate.t().noOptions }}
-      </div>
+      <div class="px-3 py-2.5 text-sm text-fg-3">{{ translate.t().noOptions }}</div>
     }
   </div>
 </div>

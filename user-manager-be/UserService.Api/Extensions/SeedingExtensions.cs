@@ -108,8 +108,15 @@ public static class SeedingExtensions
             clientSecret.Contains("change-in-production", StringComparison.OrdinalIgnoreCase) ||
             clientSecret.Contains("change-this", StringComparison.OrdinalIgnoreCase))
         {
-            Log.Warning("OpenIddict client seeding: ClientSecret not properly configured. Using default for development only.");
-            clientSecret = "dev-only-secret-not-for-production-use";
+            var env = services.GetRequiredService<IHostEnvironment>();
+            if (!env.IsDevelopment())
+            {
+                Log.Warning("OpenIddict client seeding skipped: OpenIddict:ClientSecret is missing or a placeholder.");
+                return;
+            }
+
+            Log.Warning("OpenIddict client seeding: ClientSecret not configured. Generating a random development secret.");
+            clientSecret = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         }
 
         var descriptor = new OpenIddictApplicationDescriptor

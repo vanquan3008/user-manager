@@ -19,6 +19,8 @@ internal static class OAuthQueryRequestBinding
             ReadQueryValue(query, "code_challenge_method", "codeChallengeMethod"),
             "S256");
         var prompt = FirstNonEmpty(request.Prompt, ReadQueryValue(query, "prompt"));
+        var nonce = FirstNonEmpty(request.Nonce, ReadQueryValue(query, "nonce"));
+        var responseType = FirstNonEmpty(request.ResponseType, ReadQueryValue(query, "response_type", "responseType"));
         var scopeValues = ReadQueryValues(query, "scopes", "scope", "Scopes");
         var scopes = request.Scopes is { Length: > 0 }
             ? request.Scopes
@@ -32,7 +34,9 @@ internal static class OAuthQueryRequestBinding
             CodeChallenge: codeChallenge,
             CodeChallengeMethod: codeChallengeMethod,
             Prompt: prompt,
-            Scopes: scopes);
+            Scopes: scopes,
+            Nonce: nonce,
+            ResponseType: responseType);
     }
 
     internal static OAuthConsentRequest ToConsentRequest(
@@ -54,7 +58,8 @@ internal static class OAuthQueryRequestBinding
             State: authorizeRequest.State,
             CodeChallenge: authorizeRequest.CodeChallenge ?? string.Empty,
             CodeChallengeMethod: authorizeRequest.CodeChallengeMethod ?? "S256",
-            Approve: approve);
+            Approve: approve,
+            Nonce: authorizeRequest.Nonce);
     }
 
     private static string? ReadQueryValue(IQueryCollection query, string key)

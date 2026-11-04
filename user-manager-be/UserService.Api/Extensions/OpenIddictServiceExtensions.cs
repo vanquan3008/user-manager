@@ -24,6 +24,11 @@ public static class OpenIddictServiceExtensions
             {
                 options.SetTokenEndpointUris("connect/token");
                 options.SetAuthorizationEndpointUris("connect/authorize");
+                // Discovery and JWKS are served by WellKnownController for the platform's primary
+                // OAuth/OIDC flow (/api/oauth/*); OpenIddict's own metadata endpoints are disabled
+                // to avoid publishing conflicting documents at the same well-known paths.
+                options.SetConfigurationEndpointUris(Array.Empty<string>());
+                options.SetCryptographyEndpointUris(Array.Empty<string>());
 
                 // Configure grant types based on settings
                 if (config.AllowPasswordFlow)
@@ -42,16 +47,9 @@ public static class OpenIddictServiceExtensions
                     options.RequireProofKeyForCodeExchange();
                 if (config.AcceptAnonymousClients)
                     options.AcceptAnonymousClients();
-                if (appSettings.IsProduction())
+                if (!string.IsNullOrWhiteSpace(config.EncryptionCertificatePath) &&
+                    !string.IsNullOrWhiteSpace(config.SigningCertificatePath))
                 {
-                    if (string.IsNullOrWhiteSpace(config.EncryptionCertificatePath) ||
-                        string.IsNullOrWhiteSpace(config.SigningCertificatePath))
-                    {
-                        throw new InvalidOperationException(
-                            "Production environment requires EncryptionCertificatePath and SigningCertificatePath " +
-                            "to be configured in AppSettings:OpenIddict section.");
-                    }
-
                     options.AddEncryptionCertificate(LoadCertificate(
                         config.EncryptionCertificatePath,
                         config.EncryptionCertificatePassword));
@@ -59,6 +57,15 @@ public static class OpenIddictServiceExtensions
                     options.AddSigningCertificate(LoadCertificate(
                         config.SigningCertificatePath,
                         config.SigningCertificatePassword));
+                }
+                else if (appSettings.IsProduction())
+                {
+                    // The legacy /connect/token endpoint is optional; without certificates it runs with
+                    // in-memory keys (its tokens do not survive restarts). The primary flow uses the
+                    // database-backed RS256 key ring instead.
+                    Serilog.Log.Warning("OpenIddict certificates are not configured; using ephemeral keys for the legacy /connect/token endpoint.");
+                    options.AddEphemeralEncryptionKey();
+                    options.AddEphemeralSigningKey();
                 }
                 else
                 {

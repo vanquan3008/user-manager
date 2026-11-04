@@ -5,6 +5,10 @@ namespace UserService.Api.Controllers.Helpers;
 
 internal static class AuthControllerHelpers
 {
+    /// <summary>The refresh cookie is only ever sent to the auth endpoints that consume it.</summary>
+    internal const string RefreshCookiePath = "/api/auth";
+    internal const string CsrfHeaderName = "X-Requested-With";
+
     internal static string? ResolveRefreshToken(
         HttpRequest request,
         string? refreshTokenFromBody,
@@ -21,6 +25,13 @@ internal static class AuthControllerHelpers
 
         return null;
     }
+
+    /// <summary>
+    /// Cookie-authenticated endpoints require a custom header. Browsers cannot add it cross-origin
+    /// without a CORS preflight, which blocks cross-site request forgery.
+    /// </summary>
+    internal static bool HasCsrfHeader(HttpRequest request, bool usesCookie)
+        => !usesCookie || request.Headers.ContainsKey(CsrfHeaderName);
 
     internal static void IssueRefreshTokenCookie(
         HttpRequest request,
@@ -39,7 +50,7 @@ internal static class AuthControllerHelpers
             SameSite = request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(appSettings.Jwt.RefreshTokenExpirationDays),
             IsEssential = true,
-            Path = "/"
+            Path = RefreshCookiePath
         });
     }
 
@@ -48,16 +59,18 @@ internal static class AuthControllerHelpers
         HttpResponse response,
         string refreshTokenCookieName)
     {
-        response.Cookies.Delete(refreshTokenCookieName, new CookieOptions
+        foreach (var path in new[] { RefreshCookiePath, "/" })
         {
-            HttpOnly = true,
-            Secure = request.IsHttps,
-            SameSite = request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
-            Path = "/"
-        });
+            response.Cookies.Delete(refreshTokenCookieName, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = request.IsHttps,
+                SameSite = request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
+                Path = path
+            });
+        }
     }
 
     internal static AuthResponse ToClientAuthResponse(AuthResponse response)
         => response with { RefreshToken = null };
 }
-

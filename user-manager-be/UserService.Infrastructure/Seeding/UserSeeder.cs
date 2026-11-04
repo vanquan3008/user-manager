@@ -41,6 +41,21 @@ namespace UserService.Infrastructure.Seeding
         public async Task SeedUsersAsync(IServiceProvider services)
         {
             var userManager = (UserManager<AppUser>)services.GetService(typeof(UserManager<AppUser>))!;
+
+            // Demo accounts are SuperAdmins with configured passwords: never create them implicitly
+            // outside Development. Opt in explicitly with SEED_DEMO_USERS=true.
+            var optIn = _configuration["SEED_DEMO_USERS"];
+            var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? _configuration["AppSettings:Environment"];
+            var enabled = string.IsNullOrWhiteSpace(optIn)
+                ? string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase)
+                : bool.TryParse(optIn, out var parsed) && parsed;
+            if (!enabled)
+            {
+                Log.Information("Demo user seeding skipped (set SEED_DEMO_USERS=true to enable).");
+                return;
+            }
+            if (!string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+                Log.Warning("SEED_DEMO_USERS is enabled outside Development: demo SuperAdmin accounts are being created.");
             
             // 1. Seed Regular User
             var testUserName = _configuration["SEED_TEST_USER_NAME"] ;
@@ -63,6 +78,12 @@ namespace UserService.Infrastructure.Seeding
             string role,
             bool isSSO)
         {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(username))
+            {
+                Log.Warning("Demo user seeding skipped for an account with incomplete configuration.");
+                return;
+            }
+
             var user = await userManager.FindByEmailAsync(email);
 
             if (user == null)

@@ -6,6 +6,7 @@ export interface OAuthAuthorizeRequest {
   codeChallenge: string;
   codeChallengeMethod?: 'S256' | 'plain';
   prompt?: string | null;
+  nonce?: string | null;
 }
 
 export interface OAuthAuthorizeResponse {
@@ -27,6 +28,7 @@ export interface OAuthConsentRequest {
   codeChallenge: string;
   codeChallengeMethod?: 'S256' | 'plain';
   approve?: boolean;
+  nonce?: string | null;
 }
 
 export interface OAuthTokenRequest {
@@ -44,6 +46,7 @@ export interface OAuthTokenResponse {
   expiresIn: number;
   refreshToken: string;
   scopes: string[];
+  idToken?: string | null;
   user: {
     id: string;
     email: string;

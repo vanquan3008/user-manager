@@ -8,7 +8,9 @@ public record OAuthAuthorizeRequest(
     string? CodeChallenge = null,
     string? CodeChallengeMethod = "S256",
     string? Prompt = null,
-    string[]? Scopes = null
+    string[]? Scopes = null,
+    string? Nonce = null,
+    string? ResponseType = null
 );
 
 
@@ -30,7 +32,8 @@ public record OAuthConsentRequest(
     string? State,
     string CodeChallenge,
     string CodeChallengeMethod = "S256",
-    bool Approve = true
+    bool Approve = true,
+    string? Nonce = null
 );
 
 public record OAuthTokenRequest(
@@ -57,5 +60,14 @@ public record OAuthTokenResponse(
     int ExpiresIn,
     string RefreshToken,
     string[] Scopes,
-    OAuthUserDto User
+    OAuthUserDto User,
+    string? IdToken = null
 );
+
+/// <summary>OIDC UserInfo response (claims filtered by granted scopes).</summary>
+public record OAuthUserInfoDto(
+    string Sub,
+    string? Email,
+    bool? EmailVerified,
+    string? Name,
+    string? PreferredUsername);

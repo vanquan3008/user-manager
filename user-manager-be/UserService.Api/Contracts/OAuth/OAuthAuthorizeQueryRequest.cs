@@ -10,5 +10,7 @@ public sealed record OAuthAuthorizeQueryRequest(
     [property: FromQuery(Name = "code_challenge")] string? CodeChallenge = null,
     [property: FromQuery(Name = "code_challenge_method")] string? CodeChallengeMethod = "S256",
     [property: FromQuery(Name = "prompt")] string? Prompt = null,
-    [property: FromQuery(Name = "scopes")] string[]? Scopes = null
+    [property: FromQuery(Name = "scopes")] string[]? Scopes = null,
+    [property: FromQuery(Name = "nonce")] string? Nonce = null,
+    [property: FromQuery(Name = "response_type")] string? ResponseType = null
 );

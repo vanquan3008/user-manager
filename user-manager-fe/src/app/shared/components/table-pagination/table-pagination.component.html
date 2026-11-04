@@ -1,60 +1,20 @@
-<div
-  class="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--app-card-border)] px-2 py-4"
-  [ngClass]="theme() === 'light' ? 'bg-transparent' : 'bg-transparent'"
->
-    <p class="rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-1.5 text-sm tabular-nums text-[var(--app-text-secondary)]">
-      {{ rangeLabel() }}
-    </p>
-    <div class="flex flex-wrap items-center gap-3">
-      <label class="flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] px-3 py-1.5 text-sm text-[var(--app-text-secondary)]">
-        <span>{{ translate.t().paginationPerPage }}</span>
-        <select
-          class="rounded-full border px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-sky-500/30"
-          [ngClass]="
-            theme() === 'light'
-              ? 'border-slate-200 bg-white text-slate-800'
-              : 'border-slate-600 bg-slate-900/80 text-slate-100'
-          "
-          [ngModel]="pageSize()"
-          (ngModelChange)="onPageSizeSelect($event)"
-        >
-          @for (opt of pageSizeOptions(); track opt) {
-            <option [ngValue]="opt">{{ opt }}</option>
-          }
-        </select>
-      </label>
-      <div class="flex items-center gap-2 rounded-full border border-[var(--app-card-border)] bg-[var(--app-surface-muted)] p-1.5">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
-          [ngClass]="
-            theme() === 'light'
-              ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-              : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'
-          "
-          [disabled]="!canPrev()"
-          (click)="onPrev()"
-        >
-          <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-          {{ translate.t().paginationPrev }}
-        </button>
-        <span class="min-w-[5rem] px-1 text-center text-xs font-semibold tabular-nums text-[var(--app-text-secondary)]">
-          {{ page() }} / {{ totalPages() }}
-        </span>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-40"
-          [ngClass]="
-            theme() === 'light'
-              ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-              : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'
-          "
-          [disabled]="!canNext()"
-          (click)="onNext()"
-        >
-          {{ translate.t().paginationNext }}
-          <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-        </button>
-      </div>
+<div class="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
+  <p class="text-[13px] tabular-nums text-fg-2">{{ rangeLabel() }}</p>
+  <div class="flex flex-wrap items-center gap-3">
+    <label class="flex items-center gap-2 text-[13px] text-fg-2">
+      <span>{{ translate.t().paginationPerPage }}</span>
+      <select class="input h-8 w-[4.5rem] py-0 text-[13px]" [ngModel]="pageSize()" (ngModelChange)="onPageSizeSelect($event)">
+        @for (opt of pageSizeOptions(); track opt) { <option [ngValue]="opt">{{ opt }}</option> }
+      </select>
+    </label>
+    <div class="flex items-center gap-1">
+      <button type="button" class="btn-secondary btn-sm" [disabled]="!canPrev()" (click)="onPrev()" [attr.aria-label]="translate.t().paginationPrev">
+        <span class="material-symbols-outlined">chevron_left</span><span class="hidden sm:inline">{{ translate.t().paginationPrev }}</span>
+      </button>
+      <span class="min-w-[4.5rem] text-center text-[13px] font-medium tabular-nums text-fg-2">{{ page() }} / {{ totalPages() }}</span>
+      <button type="button" class="btn-secondary btn-sm" [disabled]="!canNext()" (click)="onNext()" [attr.aria-label]="translate.t().paginationNext">
+        <span class="hidden sm:inline">{{ translate.t().paginationNext }}</span><span class="material-symbols-outlined">chevron_right</span>
+      </button>
     </div>
+  </div>
 </div>

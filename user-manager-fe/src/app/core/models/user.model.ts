@@ -10,6 +10,9 @@ export interface IdentityUser {
   userProfileId: string | null;
   /** Có profile domain và đánh dấu SSO (tạo qua SSO / EnableSSO). */
   isSsoAccount?: boolean;
+  twoFactorEnabled?: boolean;
+  lastLoginAt?: string | null;
+  lockoutEnd?: string | null;
 }
 
 export interface UserWithRoles {

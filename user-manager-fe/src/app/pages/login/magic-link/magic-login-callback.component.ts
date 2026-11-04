@@ -1,93 +1,88 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { TranslateService } from '../../../core/services/translate.service';
 import { hasAdminRole } from '../../../core/constants/roles';
+import { apiErrorMessage } from '../../../core/utils/http-error.utils';
 import type { AuthResponse } from '../../../core/models';
+import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-shell.component';
+import { MfaStepComponent } from '../../../shared/components/mfa-step/mfa-step.component';
 
 @Component({
   selector: 'app-magic-login-callback',
   standalone: true,
-  imports: [CommonModule],
+  imports: [RouterLink, AuthShellComponent, MfaStepComponent],
   template: `
-    <div class="h-full overflow-y-auto">
-      <div class="min-h-full flex items-center justify-center bg-slate-950 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-8">
-        <div class="w-full max-w-md rounded-2xl border border-slate-700/80 bg-slate-900/80 px-6 py-5 shadow-2xl shadow-slate-900/80">
-          <h1 class="mb-2 text-lg font-semibold text-slate-50">Authenticating...</h1>
-          @if (error) {
-            <p class="rounded-xl border border-rose-500/60 bg-rose-950/50 px-3 py-2 text-sm text-rose-300">
-              {{ error }}
-            </p>
-          } @else {
-            <p class="text-sm text-slate-300">
-              Please wait while we verify your sign-in link.
-            </p>
-          }
-        </div>
-      </div>
-    </div>
+    <app-auth-shell>
+      @if (mfa(); as pending) {
+        <app-mfa-step [email]="pending.email" [loading]="loading()" [error]="error()" (verify)="verifyMfa($event)" (back)="router.navigate(['/login'])" />
+      } @else if (error()) {
+        <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().authMagicTab }}</h1>
+        <div class="alert-bad mt-6" role="alert"><span class="material-symbols-outlined">link_off</span><span>{{ error() }}</span></div>
+        <a routerLink="/login" class="btn-secondary btn-block mt-4">{{ t().backToSignIn }}</a>
+      } @else {
+        <div class="flex items-center gap-3 text-sm text-fg-2" role="status"><span class="spinner text-brand-text"></span>{{ t().magicWorking }}</div>
+      }
+    </app-auth-shell>
   `
 })
 export class MagicLoginCallbackComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
+  readonly router = inject(Router);
   private readonly location = inject(Location);
+  readonly t = inject(TranslateService).t;
 
-  error = '';
+  readonly error = signal('');
+  readonly loading = signal(false);
+  readonly mfa = signal<{ token: string; email: string } | null>(null);
 
   ngOnInit(): void {
-    const params = this.readLinkParams();
-    const token = params.get('token');
+    // Tokens arrive in the URL fragment (never sent to servers or logs); strip them immediately.
+    const fragment = this.route.snapshot.fragment?.trim();
+    const params = new URLSearchParams(fragment || '');
+    const token = params.get('token') ?? this.route.snapshot.queryParamMap.get('token');
     const purpose = params.get('purpose') ?? 'PasswordlessLogin';
     const clientId = params.get('clientId')?.trim() || undefined;
-
-    this.clearSensitiveUrlState();
+    this.location.replaceState('/magic-login');
 
     if (!token) {
-      this.error = 'Unable to validate this sign-in link.';
+      this.error.set(this.t().magicFailed);
       return;
     }
 
     this.auth.verifyMagicLink(token, purpose, clientId).subscribe({
-      next: (res) => {
-        if (res.success && res.data) {
-          const auth = res.data as AuthResponse;
-          if (!hasAdminRole(auth?.user?.roles)) {
-            this.error = 'Only Admin or SuperAdmin accounts can sign in here.';
-            return;
-          }
-
-          this.auth.setSession(auth);
-          this.router.navigate(['/'], { replaceUrl: true });
-          return;
-        }
-
-        this.error = res.message || res.error?.message || 'The sign-in link is invalid or expired.';
-      },
-      error: (err: any) => {
-        this.error = err.error?.message || err.error?.error?.message || 'The sign-in link is invalid or expired.';
-      }
+      next: res => this.complete(res.data),
+      error: err => this.error.set(apiErrorMessage(err, this.t().magicFailed))
     });
   }
 
-  private readLinkParams(): URLSearchParams {
-    const fragment = this.route.snapshot.fragment?.trim();
-    if (fragment) {
-      return new URLSearchParams(fragment);
-    }
-
-    const params = new URLSearchParams();
-    const queryToken = this.route.snapshot.queryParamMap.get('token');
-    const queryPurpose = this.route.snapshot.queryParamMap.get('purpose');
-    const queryClientId = this.route.snapshot.queryParamMap.get('clientId');
-    if (queryToken) params.set('token', queryToken);
-    if (queryPurpose) params.set('purpose', queryPurpose);
-    if (queryClientId) params.set('clientId', queryClientId);
-    return params;
+  verifyMfa(code: string) {
+    const pending = this.mfa();
+    if (!pending) return;
+    this.loading.set(true);
+    this.error.set('');
+    this.auth.verifyMfa(pending.token, code).subscribe({
+      next: res => { this.loading.set(false); this.complete(res.data); },
+      error: err => { this.loading.set(false); this.error.set(apiErrorMessage(err, this.t().authFailed)); }
+    });
   }
 
-  private clearSensitiveUrlState(): void {
-    this.location.replaceState('/magic-login');
+  private complete(data: AuthResponse | null) {
+    if (data?.mfaRequired && data.mfaToken) {
+      this.mfa.set({ token: data.mfaToken, email: data.user?.email ?? '' });
+      return;
+    }
+    if (!data?.accessToken) {
+      this.error.set(this.t().magicFailed);
+      return;
+    }
+    this.auth.setSession(data);
+    if (!hasAdminRole(data.user?.roles)) {
+      this.auth.logout({ queryParams: { forbidden: '1' } });
+      return;
+    }
+    this.router.navigate(['/'], { replaceUrl: true });
   }
 }

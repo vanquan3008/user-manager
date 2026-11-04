@@ -1,3 +1,5 @@
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Domain.Entities;
 using MediatR;
 using UserService.Application.Features.Users.Commands;
 using UserService.Application.Services;
@@ -11,11 +13,13 @@ namespace UserService.Application.Features.Users.Handlers;
 /// </summary>
 public class AddToRoleCommandHandler : IRequestHandler<AddToRoleCommand, Unit>
 {
+    private readonly IAuditLogger _audit;
     private readonly IIdentityService _identityService;
     private readonly ISystemRoleService _roleService;
 
-    public AddToRoleCommandHandler(IIdentityService identityService, ISystemRoleService roleService)
+    public AddToRoleCommandHandler(IIdentityService identityService, ISystemRoleService roleService, IAuditLogger audit)
     {
+        _audit = audit;
         _identityService = identityService;
         _roleService = roleService;
     }
@@ -44,6 +48,7 @@ public class AddToRoleCommandHandler : IRequestHandler<AddToRoleCommand, Unit>
                 "User may not exist or role assignment failed");
         }
 
+        await _audit.LogAsync(AuditEventTypes.UserRoleAdded, true, new AuditEntry(TargetUserId: command.UserId, TargetType: "user", TargetId: command.UserId.ToString(), Details: new { role = roleDto.Name }), cancellationToken);
         return Unit.Value;
     }
 }

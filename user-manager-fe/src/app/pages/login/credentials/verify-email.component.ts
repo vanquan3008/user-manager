@@ -1,27 +1,36 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { ThemeService } from '../../../core/services/theme.service';
-import { getHttpErrorMessage, UNREACHABLE_SERVER_MESSAGE_VI } from '../../../core/utils/http-error.utils';
+import { TranslateService } from '../../../core/services/translate.service';
+import { apiErrorMessage } from '../../../core/utils/http-error.utils';
+import { AuthShellComponent } from '../../../shared/components/auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-verify-email',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [CommonModule, RouterLink],
-  templateUrl: './verify-email.component.html'
+  imports: [RouterLink, AuthShellComponent],
+  template: `
+    <app-auth-shell>
+      <h1 class="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{{ t().verifyTitle }}</h1>
+      <div class="mt-6">
+        @if (loading()) {
+          <div class="flex items-center gap-3 text-sm text-fg-2" role="status"><span class="spinner text-brand-text"></span>{{ t().verifyWorking }}</div>
+        } @else if (success()) {
+          <div class="alert-ok" role="status"><span class="material-symbols-outlined">verified</span><span>{{ t().verifyDone }}</span></div>
+        } @else {
+          <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() || t().verifyFailed }}</span></div>
+        }
+      </div>
+      @if (!loading()) { <a routerLink="/login" class="btn-secondary btn-block mt-6">{{ t().backToSignIn }}</a> }
+    </app-auth-shell>
+  `
 })
 export class VerifyEmailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
-  private readonly notify = inject(NotificationService);
   private readonly location = inject(Location);
-  private readonly themeService = inject(ThemeService);
-
-  readonly theme = this.themeService.theme;
+  readonly t = inject(TranslateService).t;
   readonly error = signal('');
   readonly loading = signal(true);
   readonly success = signal(false);
@@ -33,7 +42,7 @@ export class VerifyEmailComponent implements OnInit {
     this.clearSensitiveUrlState();
 
     if (!token) {
-      this.error.set('Invalid verification link.');
+      this.error.set(this.t().verifyFailed);
       this.loading.set(false);
       return;
     }
@@ -41,22 +50,15 @@ export class VerifyEmailComponent implements OnInit {
     this.auth.verifyEmail(token).subscribe({
       next: (res: any) => {
         this.success.set(res.success !== false);
-        this.notify.success(this.success() ? 'Email verified successfully.' : res.message || 'Verification handled.');
         this.loading.set(false);
-        setTimeout(() => this.router.navigate(['/login']), 1500);
       },
       error: (err: any) => {
-        this.error.set(getHttpErrorMessage(err, 'Email verification failed.', UNREACHABLE_SERVER_MESSAGE_VI));
-        this.notify.error(this.error());
+        this.error.set(apiErrorMessage(err, this.t().verifyFailed));
         this.loading.set(false);
-        setTimeout(() => this.router.navigate(['/login']), 2000);
       }
     });
   }
 
-  toggleTheme() {
-    this.themeService.toggleTheme();
-  }
 
   private readLinkParams(): URLSearchParams {
     const fragment = this.route.snapshot.fragment?.trim();

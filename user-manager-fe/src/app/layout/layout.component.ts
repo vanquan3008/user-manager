@@ -1,6 +1,5 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
 import { NavigationEnd, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
@@ -9,130 +8,154 @@ import { TranslateService, type Locale } from '../core/services/translate.servic
 import { NotificationComponent } from '../shared/components/notification/notification.component';
 import { ConfirmDialogComponent } from '../shared/components/confirm-dialog/confirm-dialog.component';
 import { PageToolbarService } from '../core/services/page-toolbar.service';
+import { CommandPaletteComponent } from '../shared/components/command-palette/command-palette.component';
 
-type NavItem = {
-  path: string;
-  icon: string;
-  label: string;
-  exact?: boolean;
-  group: 'primary' | 'secondary';
-};
+type NavItem = { path: string; icon: string; label: string; exact?: boolean };
+type NavGroup = { label: string; items: NavItem[] };
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, NotificationComponent, ConfirmDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, NotificationComponent, ConfirmDialogComponent, CommandPaletteComponent],
   templateUrl: './layout.component.html'
 })
 export class LayoutComponent {
   readonly auth = inject(AuthService);
   readonly themeService = inject(ThemeService);
   readonly translate = inject(TranslateService);
+  readonly pageToolbar = inject(PageToolbarService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
-  readonly pageToolbar = inject(PageToolbarService);
+  private readonly host = inject(ElementRef<HTMLElement>);
   private lastNavPath = '';
 
   readonly theme = this.themeService.theme;
   readonly sidebarOpen = signal(false);
-  readonly pageTitle = signal(this.translate.t().layoutPageDashboard);
-  readonly pageEyebrow = signal(this.translate.t().layoutEyebrowOverview);
-  readonly headerTitle = computed(() => this.pageToolbar.titleOverride() ?? this.pageTitle());
-  readonly headerEyebrow = computed(() => this.pageToolbar.eyebrowOverride() ?? this.pageEyebrow());
-  readonly localeOptions: Locale[] = ['vi', 'en', 'zh'];
-  readonly navItems = computed<NavItem[]>(() => {
+  readonly userMenuOpen = signal(false);
+  readonly localeMenuOpen = signal(false);
+  readonly currentPath = signal(this.router.url.split('?')[0]);
+  readonly localeOptions: { code: Locale; label: string }[] = [
+    { code: 'en', label: 'English' },
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'zh', label: '中文' }
+  ];
+
+  readonly navGroups = computed<NavGroup[]>(() => {
     const t = this.translate.t();
     return [
-      { path: '/', icon: 'space_dashboard', label: t.navOverview, exact: true, group: 'primary' },
-      { path: '/users', icon: 'group', label: t.navUsers, group: 'primary' },
-      { path: '/applications', icon: 'apps', label: t.navApplications, group: 'primary' },
-      { path: '/roles', icon: 'shield_person', label: t.navRoles, group: 'primary' },
-      { path: '/subscriptions', icon: 'workspace_premium', label: t.navSubscriptions, group: 'primary' },
-      { path: '/package-catalog', icon: 'inventory_2', label: t.navCatalog, group: 'secondary' },
-      { path: '/permissions', icon: 'key', label: t.navPermissions, group: 'secondary' },
-      { path: '/role-permission', icon: 'link', label: t.navRolePermission, group: 'secondary' },
-      { path: '/change-password', icon: 'lock', label: t.navSecurity, group: 'secondary' }
+      { label: t.navGroupOverview, items: [{ path: '/', icon: 'space_dashboard', label: t.navDashboard, exact: true }] },
+      {
+        label: t.navGroupIdentity,
+        items: [
+          { path: '/users', icon: 'group', label: t.navUsers },
+          { path: '/user-admin', icon: 'badge', label: t.navSsoAccounts }
+        ]
+      },
+      {
+        label: t.navGroupAccess,
+        items: [
+          { path: '/applications', icon: 'apps', label: t.navApplications },
+          { path: '/roles', icon: 'shield_person', label: t.navRoles },
+          { path: '/permissions', icon: 'key', label: t.navPermissions },
+          { path: '/role-permission', icon: 'account_tree', label: t.navRolePermission }
+        ]
+      },
+      {
+        label: t.navGroupSecurity,
+        items: [
+          { path: '/audit-logs', icon: 'receipt_long', label: t.navAuditLogs },
+          { path: '/system', icon: 'encrypted', label: t.navSystem }
+        ]
+      },
+      {
+        label: t.navGroupBilling,
+        items: [
+          { path: '/subscriptions', icon: 'workspace_premium', label: t.navSubscriptions },
+          { path: '/package-catalog', icon: 'inventory_2', label: t.navCatalog }
+        ]
+      }
     ];
   });
-  readonly primaryNav = computed(() => this.navItems().filter(item => item.group === 'primary'));
-  readonly secondaryNav = computed(() => this.navItems().filter(item => item.group === 'secondary'));
+
+  /** Breadcrumb: "Group / Page" derived from the navigation tree (detail pages may override the title). */
+  readonly breadcrumb = computed(() => {
+    const path = this.currentPath();
+    const t = this.translate.t();
+    if (path.startsWith('/account')) return { group: '', title: this.pageToolbar.titleOverride() ?? t.navAccount };
+    for (const group of this.navGroups()) {
+      for (const item of group.items) {
+        const match = item.exact ? path === item.path : path === item.path || path.startsWith(item.path + '/');
+        if (match) return { group: group.label, title: this.pageToolbar.titleOverride() ?? item.label };
+      }
+    }
+    return { group: t.productName, title: this.pageToolbar.titleOverride() ?? t.navDashboard };
+  });
+
+  /** Platform-appropriate shortcut hint for the command palette. */
+  readonly shortcutLabel = /Mac|iPhone|iPad/i.test(globalThis.navigator?.platform ?? '') ? '⌘K' : 'Ctrl K';
+
+  /** Highest-privilege role, shown next to the signed-in user. */
+  readonly primaryRole = computed(() => {
+    const roles = this.auth.user()?.roles ?? [];
+    return ['SuperAdmin', 'Admin'].find(r => roles.includes(r)) ?? roles[0] ?? '';
+  });
+
+  readonly initials = computed(() => {
+    const user = this.auth.user();
+    const source = user?.displayName || user?.username || user?.email || '?';
+    return source.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  });
+
+  constructor() {
+    this.router.events
+      .pipe(filter((e): e is NavigationStart => e instanceof NavigationStart), takeUntilDestroyed(this.destroyRef))
+      .subscribe(e => {
+        const next = e.url.split('?')[0];
+        if (next !== this.lastNavPath) this.pageToolbar.clear();
+        this.lastNavPath = next;
+      });
+
+    this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed(this.destroyRef))
+      .subscribe(e => {
+        this.currentPath.set(e.urlAfterRedirects.split('?')[0]);
+        this.sidebarOpen.set(false);
+        this.userMenuOpen.set(false);
+      });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('[data-menu]')) {
+      this.userMenuOpen.set(false);
+      this.localeMenuOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    this.sidebarOpen.set(false);
+    this.userMenuOpen.set(false);
+    this.localeMenuOpen.set(false);
+  }
 
   setLocale(locale: Locale) {
     this.translate.setLocale(locale);
-    this.updateTitle();
+    this.localeMenuOpen.set(false);
   }
 
-  toggleTheme() {
-    this.themeService.toggleTheme();
+  toggleTheme() { this.themeService.toggleTheme(); }
+  toggleSidebar() { this.sidebarOpen.update(v => !v); }
+  closeSidebar() { this.sidebarOpen.set(false); }
+
+  signOut(everywhere = false) {
+    this.userMenuOpen.set(false);
+    this.auth.logout({ allSessions: everywhere });
   }
 
-  toggleSidebar() {
-    this.sidebarOpen.update(value => !value);
-  }
-
-  closeSidebar() {
-    this.sidebarOpen.set(false);
-  }
-
-  constructor() {
-    this.updateTitle();
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationStart => event instanceof NavigationStart),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((event: NavigationStart) => {
-        const nextPath = event.url.split('?')[0];
-        if (nextPath !== this.lastNavPath) {
-          this.pageToolbar.clear();
-        }
-        this.lastNavPath = nextPath;
-      });
-
-    this.router.events
-      .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => {
-        this.closeSidebar();
-        this.updateTitle();
-      });
-  }
-
-  private updateTitle() {
-    const t = this.translate.t();
-    const [segment1 = '', segment2 = ''] = this.router.url.split('?')[0].split('/').filter(Boolean);
-
-    if (!segment1) {
-      this.pageTitle.set(t.layoutPageDashboard);
-      this.pageEyebrow.set(t.layoutEyebrowOverview);
-      return;
-    }
-
-    const map: Record<string, { title: string; eyebrow: string }> = {
-      users: {
-        title: t.layoutPageUsers,
-        eyebrow: segment2 ? t.layoutEyebrowUserDetail : t.layoutEyebrowIdentity
-      },
-      applications: {
-        title: t.layoutPageApplications,
-        eyebrow: segment2 ? t.layoutEyebrowAppDetail : t.layoutEyebrowAppList
-      },
-      roles: { title: t.layoutPageRoles, eyebrow: t.layoutEyebrowAuthModel },
-      subscriptions: { title: t.layoutPageSubscriptions, eyebrow: t.layoutEyebrowCommerce },
-      'package-catalog': { title: t.layoutPagePackageCatalog, eyebrow: t.layoutEyebrowPackages },
-      permissions: { title: t.layoutPagePermissions, eyebrow: t.layoutEyebrowAccessControl },
-      'role-permission': { title: t.layoutPageRoleMapping, eyebrow: t.layoutEyebrowPermAssignment },
-      'change-password': {
-        title: t.layoutPageSecuritySettings,
-        eyebrow: t.layoutEyebrowAccountSettings
-      },
-      'user-admin': { title: t.layoutPageUserAdmin, eyebrow: t.layoutEyebrowCrmWorkspace }
-    };
-
-    const current = map[segment1] ?? { title: t.layoutPageAdmin, eyebrow: t.layoutEyebrowWorkspace };
-    this.pageTitle.set(current.title);
-    this.pageEyebrow.set(current.eyebrow);
+  focusMain(event: Event) {
+    event.preventDefault();
+    (this.host.nativeElement.querySelector('#main') as HTMLElement | null)?.focus();
   }
 }

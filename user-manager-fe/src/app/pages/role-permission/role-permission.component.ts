@@ -1,8 +1,10 @@
+import { LoadingStateComponent } from '../../shared/components/loading-state/loading-state.component';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ThemeService } from '../../core/services/theme.service';
+import { apiErrorMessage } from '../../core/utils/http-error.utils';
 import { TranslateService } from '../../core/services/translate.service';
 import { PageToolbarService } from '../../core/services/page-toolbar.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -13,13 +15,25 @@ import type { PermissionDto, RoleDto } from '../../core/models';
 @Component({
   selector: 'app-role-permission',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, LoadingStateComponent, EmptyStateComponent],
   templateUrl: './role-permission.component.html'
 })
 export class RolePermissionComponent implements OnInit {
-  theme = inject(ThemeService).theme;
   translate = inject(TranslateService);
+  readonly t = this.translate.t;
+
+  readonly groupedRolePermissions = computed(() => {
+    const groups = new Map<string, PermissionDto[]>();
+    for (const p of [...this.rolePermissions()].sort((a, b) => a.code.localeCompare(b.code))) {
+      const key = p.category || p.code.split('.')[0] || '—';
+      groups.set(key, [...(groups.get(key) ?? []), p]);
+    }
+    return [...groups.entries()].map(([category, items]) => ({ category, items }));
+  });
+
+  pickPermission(id: string) {
+    this.selectedPermissionToAssign.set(this.permissions().find(p => p.id === id) ?? null);
+  }
   private pageToolbar = inject(PageToolbarService);
   private notify = inject(NotificationService);
   private rolesService = inject(RolesService);
@@ -90,7 +104,7 @@ export class RolePermissionComponent implements OnInit {
         this.loadingRoles.set(false);
       },
       error: (err: any) => {
-        this.error.set(err.error?.message || 'Không thể tải roles');
+        this.error.set(apiErrorMessage(err));
         this.loadingRoles.set(false);
       }
     });
@@ -104,7 +118,7 @@ export class RolePermissionComponent implements OnInit {
         this.loadingPermissions.set(false);
       },
       error: (err: any) => {
-        this.error.set(err.error?.message || 'Không thể tải permissions');
+        this.error.set(apiErrorMessage(err));
         this.loadingPermissions.set(false);
       }
     });
@@ -164,23 +178,23 @@ export class RolePermissionComponent implements OnInit {
     const role = this.selectedRoleForPermission();
     const perm = this.selectedPermissionToAssign();
     if (!role || !perm) {
-      this.notify.error('Chọn role và permission');
+      this.notify.error(this.t().rpPickPermission);
       return;
     }
     this.savingAssign.set(true);
     this.permissionsService.addPermissionToRole(role.id, perm.id).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notify.success(`Đã gán "${perm.code}" cho role "${role.name}"`);
+          this.notify.success(this.t().rpAssigned);
           this.loadRolePermissions(role);
           this.selectedPermissionToAssign.set(null);
         } else {
-          this.notify.error(res.message || 'Gán permission thất bại');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.savingAssign.set(false);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || 'Gán permission thất bại');
+        this.notify.error(apiErrorMessage(err));
         this.savingAssign.set(false);
       }
     });
@@ -191,15 +205,15 @@ export class RolePermissionComponent implements OnInit {
     this.permissionsService.removePermissionFromRole(role.id, permissionId).subscribe({
       next: (res) => {
         if (res.success) {
-          this.notify.success('Đã gỡ permission');
+          this.notify.success(this.t().rpRemoved);
           this.loadRolePermissions(role);
         } else {
-          this.notify.error(res.message || 'Gỡ permission thất bại');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.savingRemove.set(null);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || 'Gỡ permission thất bại');
+        this.notify.error(apiErrorMessage(err));
         this.savingRemove.set(null);
       }
     });

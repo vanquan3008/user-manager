@@ -1,0 +1,98 @@
+# Local / single-host deployment: PostgreSQL + API + web console.
+#   cp .env.example .env   # then set the secrets
+#   docker compose up -d --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-UserAuthentication}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-UserAuthentication}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./user-manager-be
+      dockerfile: UserService.Api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-5004}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__UserDatabase: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-UserAuthentication};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD};Maximum Pool Size=50"
+      AppSettings__Environment: ${ASPNETCORE_ENVIRONMENT:-Production}
+      AppSettings__ApplicationName: ${APP_NAME:-Enterprise SSO}
+      AppSettings__IsAutoMigrate: ${AUTO_MIGRATE:-true}
+      AppSettings__ApiPublicBaseUrl: ${API_PUBLIC_BASE_URL:-http://localhost:5004}
+      AppSettings__FrontendBaseUrl: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      AppSettings__BaseUrl: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      AppSettings__Jwt__Issuer: ${JWT_ISSUER:-http://localhost:5004}
+      AppSettings__Jwt__Audience: ${JWT_AUDIENCE:-enterprise-sso-api}
+      AppSettings__Jwt__AccessTokenExpirationMinutes: ${JWT_ACCESS_TOKEN_EXPIRATION:-15}
+      AppSettings__Jwt__RefreshTokenExpirationDays: ${JWT_REFRESH_TOKEN_EXPIRATION:-7}
+      AppSettings__Cors__AllowedOrigins__0: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      AppSettings__Cors__AllowCredentials: "true"
+      AppSettings__RateLimit__RequestLimit: ${RATE_LIMIT_REQUESTS:-100}
+      AppSettings__RateLimit__WindowSeconds: ${RATE_LIMIT_WINDOW:-60}
+      AppSettings__RateLimit__AuthRequestLimit: ${RATE_LIMIT_AUTH_REQUESTS:-10}
+      AppSettings__RateLimit__AuthWindowSeconds: ${RATE_LIMIT_AUTH_WINDOW:-60}
+      AppSettings__Security__ForwardedHeaders__KnownNetworks__0: ${TRUSTED_PROXY_NETWORK:-}
+      AppSettings__Security__DataProtectionCertificatePath: ${DATA_PROTECTION_CERT_PATH:-}
+      AppSettings__Security__DataProtectionCertificatePassword: ${DATA_PROTECTION_CERT_PASSWORD:-}
+      AppSettings__OAuth__AllowedRedirectUriHosts__0: ${OAUTH_ALLOWED_HOST_1:-localhost}
+      AppSettings__OAuth__DefaultApplicationAllowedRedirectUris__0: ${OAUTH_DEFAULT_REDIRECT_URI_1:-http://localhost:8080/oauth/callback}
+      AppSettings__OAuth__DefaultApplicationAllowedRedirectUris__1: ${OAUTH_DEFAULT_REDIRECT_URI_2:-http://localhost:8080/auth/callback}
+      AppSettings__OAuth__AllowHttpForLocalhost: ${OAUTH_ALLOW_HTTP_LOCALHOST:-true}
+      AppSettings__Cloudinary__CloudName: ${CLOUDINARY_CLOUD_NAME:?set CLOUDINARY_CLOUD_NAME in .env}
+      AppSettings__Cloudinary__ApiKey: ${CLOUDINARY_API_KEY:?set CLOUDINARY_API_KEY in .env}
+      AppSettings__Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET:?set CLOUDINARY_API_SECRET in .env}
+      EmailSettings__ApplicationDisplayName: ${EMAIL_DISPLAY_NAME:-Enterprise SSO}
+      EmailSettings__Smtp__Host: ${SMTP_HOST:-}
+      EmailSettings__Smtp__Port: ${SMTP_PORT:-587}
+      EmailSettings__Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
+      EmailSettings__Smtp__UserName: ${SMTP_USERNAME:-}
+      EmailSettings__Smtp__Password: ${SMTP_PASSWORD:-}
+      EmailSettings__Sender__FromEmail: ${EMAIL_FROM:-noreply@example.com}
+      EmailSettings__Sender__FromName: ${EMAIL_FROM_NAME:-Enterprise SSO}
+      EmailSettings__Sender__ReplyToEmail: ${EMAIL_REPLY_TO:-}
+      EmailSettings__Templates__BaseUrl: ${FRONTEND_BASE_URL:-http://localhost:8080}
+      Admin__Email: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      Admin__Password: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      SEED_APP_NAME: ${SEED_APP_NAME:-user-manager}
+      SEED_APP_DESCRIPTION: ${SEED_APP_DESCRIPTION:-Administration console}
+      SEED_APP_API_KEY: ${SEED_APP_API_KEY:-user-manager}
+      # Demo SuperAdmin accounts are only created when explicitly enabled.
+      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-false}
+      SEED_TEST_USER_NAME: ${SEED_TEST_USER_NAME:-}
+      SEED_TEST_USER_EMAIL: ${SEED_TEST_USER_EMAIL:-}
+      SEED_TEST_USER_PASSWORD: ${SEED_TEST_USER_PASSWORD:-}
+      SEED_SSO_USER_NAME: ${SEED_SSO_USER_NAME:-}
+      SEED_SSO_USER_EMAIL: ${SEED_SSO_USER_EMAIL:-}
+      SEED_SSO_USER_PASSWORD: ${SEED_SSO_USER_PASSWORD:-}
+      OpenIddict__ClientSecret: ${OPENIDDICT_CLIENT_SECRET:-}
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./user-manager-fe
+      args:
+        NG_APP_API_URL: ${API_PUBLIC_BASE_URL:-http://localhost:5004}
+        NG_APP_OAUTH_CLIENT_ID: ${SEED_APP_API_KEY:-user-manager}
+        NG_APP_OAUTH_REDIRECT_URI: ${FRONTEND_BASE_URL:-http://localhost:8080}/oauth/callback
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,89 +1,96 @@
-<div class="relative flex flex-col gap-4" [ngClass]="embedded() ? '' : 'main main-layout'">
-  <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 overflow-hidden">
-    <div class="absolute -left-12 top-3 h-32 w-32 rounded-full bg-cyan-400/14 blur-3xl"></div>
-    <div class="absolute right-0 top-10 h-40 w-40 rounded-full bg-indigo-500/16 blur-3xl"></div>
-  </div>
-
+<div [class]="embedded() ? 'space-y-4' : 'page'">
   @if (!embedded()) {
-    <div class="app-toolbar-row flex flex-wrap items-center gap-2">
-      <a
-        routerLink="/users"
-        class="inline-flex items-center gap-1.5 text-sm font-medium transition"
-        [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
-      >
-        <span class="material-symbols-outlined text-lg">arrow_back</span>
-        Users
-      </a>
-    </div>
+    <a routerLink="/users" class="inline-flex items-center gap-1 text-[13px] font-medium text-fg-2 transition hover:text-fg">
+      <span class="material-symbols-outlined text-[18px]">arrow_back</span>{{ t().udBack }}
+    </a>
   }
 
-  @if (loading()) {
-    <app-loading-state [message]="embedded() ? 'Loading profile...' : 'Loading user access details...'" [theme]="theme()" />
+  @if (loading() && !userWithRoles()) {
+    <div class="card"><app-loading-state [rows]="5" /></div>
   } @else if (error()) {
-    <div
-      class="rounded-[1.6rem] border px-5 py-4 text-sm"
-      [ngClass]="theme() === 'light' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-rose-500/30 bg-rose-950/40 text-rose-100'"
-    >
-      {{ error() }}
-    </div>
-  } @else {
-    @let viewModel = userWithRoles();
-    @if (viewModel) {
+    <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div>
+  } @else if (userWithRoles()) {
+    <app-user-access-overview
+      [user]="userWithRoles()!.user" [assignedRoleCount]="assignedRoles().length" [ssoAppCount]="ssoApplications().length"
+      [accountTypeLabel]="accountTypeLabel()" [availabilityLabel]="availabilityLabel()" [primaryRole]="primaryRoleLabel()"
+      [canToggleAccess]="canManageBan()" [accessActionLoading]="banActionLoading()"
+      (copyId)="copyUserId()" (copyEmail)="copyEmail()" (toggleAccess)="toggleUserAccess()" />
+
+    @if (actionMessage()) {
+      <div class="alert-info" role="status"><span class="material-symbols-outlined">info</span><span>{{ actionMessage() }}</span></div>
+    }
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <div class="space-y-4">
-        <app-user-access-overview
-          [user]="viewModel.user"
-          [assignedRoleCount]="assignedRoles().length"
-          [ssoAppCount]="ssoApplications().length"
-          [accountTypeLabel]="accountTypeLabel()"
-          [availabilityLabel]="availabilityLabel()"
-          [primaryRole]="primaryRoleLabel()"
-          [canToggleAccess]="canManageBan()"
-          [accessActionLoading]="banActionLoading()"
-          [theme]="theme()"
-          (copyId)="copyUserId()"
-          (copyEmail)="copyEmail()"
-          (toggleAccess)="toggleUserAccess()"
-        />
-
-        @if (actionMessage()) {
-          <div
-            class="rounded-[1.4rem] border px-4 py-3 text-sm shadow-[0_18px_50px_-38px_rgba(34,211,238,0.55)]"
-            [ngClass]="theme() === 'light' ? 'border-sky-200 bg-sky-50/90 text-sky-800' : 'border-cyan-400/20 bg-cyan-400/10 text-cyan-50'"
-          >
-            {{ actionMessage() }}
-          </div>
-        }
-
         <app-user-role-management
-          [roles]="assignedRoles()"
-          [roleOptions]="roleOptions()"
-          [selectedRole]="selectedRole()"
-          [addingRole]="addingRole()"
-          [removingRole]="removingRole()"
-          [theme]="theme()"
-          (selectedRoleChange)="selectedRole.set($event)"
-          (addRole)="addRole()"
-          (removeRole)="removeRole($event)"
-        />
+          [roles]="assignedRoles()" [roleOptions]="roleOptions()" [selectedRole]="selectedRole()"
+          [addingRole]="addingRole()" [removingRole]="removingRole()"
+          (selectedRoleChange)="selectedRole.set($event)" (addRole)="addRole()" (removeRole)="removeRole($event)" />
 
         @if (isSsoUser()) {
           <app-user-sso-access
-            [applications]="ssoApplications()"
-            [applicationOptions]="applicationOptions()"
-            [roleOptions]="appRoleOptions()"
-            [selectedApplicationId]="grantAppId()"
-            [selectedRole]="grantRole()"
-            [granting]="granting()"
-            [revoking]="revoking()"
+            [applications]="ssoApplications()" [applicationOptions]="applicationOptions()" [roleOptions]="appRoleOptions()"
+            [selectedApplicationId]="grantAppId()" [selectedRole]="grantRole()" [granting]="granting()" [revoking]="revoking()"
             [hasAvailableApplications]="allApplications().length > 0"
-            [theme]="theme()"
-            (selectedApplicationIdChange)="onGrantAppChange($event)"
-            (selectedRoleChange)="grantRole.set($event)"
-            (grant)="grantSsoApplication()"
-            (revoke)="revokeSsoApplication($event)"
-          />
+            (selectedApplicationIdChange)="onGrantAppChange($event)" (selectedRoleChange)="grantRole.set($event)"
+            (grant)="grantSsoApplication()" (revoke)="revokeSsoApplication($event)" />
         }
       </div>
-    }
+
+      <div class="space-y-4">
+        <!-- Security -->
+        <section class="card">
+          <div class="card-header">
+            <div><h2 class="card-title">{{ t().udSecurity }}</h2><p class="card-desc">{{ t().udSecurityDesc }}</p></div>
+            <button type="button" class="btn-danger-ghost btn-sm" (click)="revokeAllSessions()" [disabled]="securityBusy()"><span class="material-symbols-outlined">devices_off</span>{{ t().udRevokeAll }}</button>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+            <div class="flex items-center gap-2.5 text-sm">
+              <span class="material-symbols-outlined text-fg-3">phonelink_lock</span>{{ t().accMfaTitle }}
+              @if (mfa(); as m) {
+                <span [class]="m.enabled ? 'badge-ok' : 'badge-neutral'"><span class="dot"></span>{{ m.enabled ? t().accMfaOn : t().accMfaOff }}</span>
+                @if (m.enabled) { <span class="text-xs text-fg-3">{{ t().accRecoveryRemaining.replace('{{n}}', '' + m.recoveryCodesRemaining) }}</span> }
+              }
+            </div>
+            @if (mfa()?.enabled) {
+              <button type="button" class="btn-secondary btn-sm" (click)="resetMfa()" [disabled]="securityBusy()">{{ t().udMfaReset }}</button>
+            }
+          </div>
+          <p class="px-5 pt-3.5 text-xs font-medium text-fg-3">{{ t().udActiveSessions }} · {{ sessions().length }}</p>
+          <ul class="divide-y divide-line">
+            @for (s of sessions(); track s.id) {
+              <li class="flex items-center gap-3 px-5 py-3">
+                <span class="material-symbols-outlined text-fg-3">{{ device(s.userAgent).icon }}</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[13px] font-medium">{{ device(s.userAgent).label }} <span class="font-normal text-fg-3">· {{ s.kind === 'hosted_sso' ? t().accKindSso : t().accKindConsole }}</span></p>
+                  <p class="truncate text-xs text-fg-3">{{ s.ipAddress || '—' }} · {{ t().accLastActive }} {{ ago(s.lastSeenAt) }}</p>
+                </div>
+              </li>
+            } @empty {
+              <li class="px-5 py-4 text-[13px] text-fg-3">{{ t().accNoSessions }}</li>
+            }
+          </ul>
+        </section>
+
+        <!-- Activity -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">{{ t().udRecentActivity }}</h2>
+            <a routerLink="/audit-logs" class="btn-ghost btn-sm">{{ t().dashViewAuditLog }}<span class="material-symbols-outlined">arrow_forward</span></a>
+          </div>
+          <ul class="divide-y divide-line">
+            @for (e of activity(); track e.id) {
+              <li class="flex items-center gap-3 px-5 py-2.5">
+                <span class="material-symbols-outlined text-[18px]" [class]="e.succeeded ? 'text-fg-3' : 'text-bad'">{{ eventIcon(e.eventType) }}</span>
+                <p class="min-w-0 flex-1 truncate text-[13px]">{{ humanize(e.eventType) }}</p>
+                <span class="whitespace-nowrap text-xs text-fg-3">{{ ago(e.occurredAt) }}</span>
+              </li>
+            } @empty {
+              <li class="px-5 py-4 text-[13px] text-fg-3">{{ t().accNoActivity }}</li>
+            }
+          </ul>
+        </section>
+      </div>
+    </div>
   }
 </div>

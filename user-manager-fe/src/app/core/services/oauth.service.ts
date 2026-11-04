@@ -17,6 +17,8 @@ export interface OAuthAuthorizeContext {
   redirectUri: string;
   codeVerifier?: string | null;
   state?: string | null;
+  /** OIDC nonce echoed in the ID token; verified by the callback. */
+  nonce?: string | null;
   returnUrl?: string | null;
 }
 
@@ -60,6 +62,7 @@ export class OauthService {
 
   private buildAuthorizeParams(request: OAuthAuthorizeRequest) {
     const params: Record<string, string> = {
+      response_type: 'code',
       client_id: request.clientId,
       redirect_uri: request.redirectUri,
       scope: request.scopes.join(' '),
@@ -72,6 +75,10 @@ export class OauthService {
 
     if (request.codeChallengeMethod?.trim()) {
       params['code_challenge_method'] = request.codeChallengeMethod.trim();
+    }
+
+    if (request.nonce?.trim()) {
+      params['nonce'] = request.nonce.trim();
     }
 
     if (request.prompt?.trim()) {

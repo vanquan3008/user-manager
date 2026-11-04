@@ -2,27 +2,12 @@ namespace UserService.Api.Middleware;
 
 public static class HttpContextRealIpExtensions
 {
-    private const string RealIpKey = "RealIpAddress";
-
+    /// <summary>
+    /// The client IP. <c>X-Forwarded-For</c> is only honoured when the request comes from a configured
+    /// trusted proxy (see <c>AppSettings:Security:ForwardedHeaders</c>), so the value cannot be spoofed.
+    /// </summary>
     public static string? GetRealIpAddress(this HttpContext context)
-    {
-        if (context.Items.TryGetValue(RealIpKey, out var ipAddress))
-        {
-            return ipAddress?.ToString();
-        }
-        
-        return context.Connection.RemoteIpAddress?.ToString();
-    }
-
-    public static string GetRequiredRealIpAddress(this HttpContext context)
-    {
-        return context.GetRealIpAddress()
-            ?? throw new InvalidOperationException("Real IP address not found in context");
-    }
-
-    public static bool IsProxied(this HttpContext context)
-    {
-        return context.Request.Headers.ContainsKey("X-Real-IP")
-            || context.Request.Headers.ContainsKey("X-Forwarded-For");
-    }
+        => context.Connection.RemoteIpAddress?.IsIPv4MappedToIPv6 == true
+            ? context.Connection.RemoteIpAddress.MapToIPv4().ToString()
+            : context.Connection.RemoteIpAddress?.ToString();
 }

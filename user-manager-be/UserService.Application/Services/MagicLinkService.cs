@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
+using UserService.Application.Common;
 using UserService.Application.Interfaces.Services;
 using UserService.Application.Services;
 using UserService.Domain.Entities;
@@ -41,7 +42,7 @@ public class MagicLinkService : IMagicLinkService
         var token = GenerateSecureToken();
         var magicLinkToken = MagicLinkToken.Create(
             userId,
-            TokenValue.Create(token),
+            TokenValue.Create(SecureTokens.Hash(token)),
             purpose,
             _clock.UtcNow,
             15,
@@ -69,7 +70,7 @@ public class MagicLinkService : IMagicLinkService
         var token = GenerateSecureToken();
         var magicLinkToken = MagicLinkToken.Create(
             userId,
-            TokenValue.Create(token),
+            TokenValue.Create(SecureTokens.Hash(token)),
             purpose,
             _clock.UtcNow,
             15,
@@ -87,14 +88,25 @@ public class MagicLinkService : IMagicLinkService
         string purpose,
         CancellationToken cancellationToken = default)
     {
-        var magicLinkToken = await _tokenRepository.GetValidTokenAsync(token, purpose, cancellationToken);
+        if (string.IsNullOrWhiteSpace(token))
+            return (false, null);
+
+        // Only the SHA-256 hash is stored, so a database leak does not expose usable links.
+        var magicLinkToken = await _tokenRepository.GetValidTokenAsync(SecureTokens.Hash(token.Trim()), purpose, cancellationToken);
 
         if (magicLinkToken == null || !magicLinkToken.IsValid(_clock.UtcNow))
             return (false, null);
 
         magicLinkToken.MarkAsUsed(_clock.UtcNow);
-        await _tokenRepository.UpdateAsync(magicLinkToken, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Domain.Exceptions.ConcurrencyConflictException)
+        {
+            // Redeemed concurrently by another request: single use wins.
+            return (false, null);
+        }
 
         return (true, magicLinkToken.UserId);
     }
@@ -133,8 +145,8 @@ public class MagicLinkService : IMagicLinkService
             return $"{cleanBaseUrl}/verify-email#token={encodedToken}";
         }
 
-        // Fallback
-        return $"{cleanBaseUrl}/api/auth/magic-link/verify?token={encodedToken}&purpose={encodedPurpose}{clientIdParam}";
+        // Fallback: the SPA callback exchanges the token via POST (tokens never travel in query strings).
+        return $"{cleanBaseUrl}/magic-login#token={encodedToken}&purpose={encodedPurpose}{clientIdParam}";
     }
 
     private static string GenerateSecureToken()

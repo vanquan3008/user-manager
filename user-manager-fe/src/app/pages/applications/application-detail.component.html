@@ -1,676 +1,203 @@
-@if (loading()) {
-  <div class="main">
-    <app-loading-state message="Loading application workspace..." [theme]="theme()" />
-  </div>
-} @else if (error()) {
-  <div class="main">
-    <app-empty-state
-      icon="error"
-      [message]="error()"
-      [action]="true"
-      [theme]="theme()"
-    >
-      <a
-        action
-        routerLink="/applications"
-        class="rounded-2xl px-4 py-2 text-sm font-medium text-white transition"
-        [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
-      >
-        Back to applications
-      </a>
-    </app-empty-state>
-  </div>
-} @else {
-  @let appData = app();
-  @if (appData) {
-    <div class="main main-layout space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <a
-          routerLink="/applications"
-          class="inline-flex items-center gap-1.5 text-sm font-medium transition"
-          [ngClass]="theme() === 'light' ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-slate-100'"
-        >
-          <span class="material-symbols-outlined text-lg">arrow_back</span>
-          Applications
-        </a>
+<div class="page">
+  <a routerLink="/applications" class="inline-flex items-center gap-1 text-[13px] font-medium text-fg-2 transition hover:text-fg">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span>{{ t().adBack }}
+  </a>
 
+  @if (loading()) {
+    <div class="card"><app-loading-state [rows]="5" /></div>
+  } @else if (error()) {
+    <div class="alert-bad" role="alert"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div>
+  } @else if (app()) {
+    @let a = app()!;
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <label class="group relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-line bg-surface-2" [title]="t().adChangeLogo">
+        <img [src]="a.logoUrl || defaultAppLogoDataUri" alt="" class="h-full w-full object-cover" (error)="$any($event.target).src = defaultAppLogoDataUri" />
+        <span class="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition group-hover:opacity-100">
+          @if (updatingLogo()) { <span class="spinner"></span> } @else { <span class="material-symbols-outlined">photo_camera</span> }
+        </span>
+        <input type="file" accept="image/*" class="sr-only" (change)="onLogoFileSelected($event)" [disabled]="updatingLogo()" [attr.aria-label]="t().adChangeLogo" />
+      </label>
+      <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
-            [ngClass]="theme() === 'light'
-              ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
-            [disabled]="!canAddUsers()"
-            (click)="quickAddUser()"
-          >
-            <span class="material-symbols-outlined text-[18px]">person_add</span>
-            Assign user
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white transition"
-            [ngClass]="theme() === 'light' ? 'bg-slate-900 hover:bg-slate-700' : 'bg-sky-500 hover:bg-sky-400'"
-            (click)="openAddRoleModal()"
-          >
-            <span class="material-symbols-outlined text-[18px]">add</span>
-            Add role
-          </button>
+          <h1 class="page-title truncate">{{ a.name }}</h1>
+          <span [class]="clientTypeLabel() === 'Confidential' ? 'badge-brand' : 'badge-neutral'">{{ clientTypeLabel() === 'Confidential' ? t().appsConfidential : t().appsPublic }}</span>
         </div>
+        <p class="mt-1 text-sm text-fg-2">{{ a.description || '—' }}</p>
       </div>
+    </div>
 
-      <section class="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
-        <div
-          class="relative overflow-hidden rounded-[30px] border p-6"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white shadow-sm'
-            : 'border-slate-700/70 bg-slate-800/90 shadow-slate-950/30'"
-        >
-          <div
-            class="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br"
-            [ngClass]="theme() === 'light'
-              ? 'from-sky-100 via-cyan-50 to-transparent'
-              : 'from-sky-500/18 via-cyan-400/10 to-transparent'"
-          ></div>
-
-          <div class="relative space-y-6">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div class="flex min-w-0 items-start gap-4">
-                @if (appData.logoUrl) {
-                  <img
-                    [src]="appData.logoUrl"
-                    alt="Application logo"
-                    class="h-16 w-16 rounded-[20px] border object-cover shadow-sm"
-                    [ngClass]="theme() === 'light' ? 'border-white/80 bg-white' : 'border-slate-700 bg-slate-900/70'"
-                  />
-                } @else {
-                  <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#38bdf8,#2563eb)] text-xl font-semibold text-white shadow-[0_18px_40px_rgba(37,99,235,0.24)]">
-                    {{ getAppInitials() }}
-                  </div>
-                }
-
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <span
-                      class="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                      [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                    >
-                      Application workspace
-                    </span>
-                    <span
-                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      [ngClass]="clientTypeLabel().toLowerCase() === 'confidential'
-                        ? (theme() === 'light' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' : 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/20')
-                        : (theme() === 'light' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/20')"
-                    >
-                      {{ clientTypeLabel() }}
-                    </span>
-                  </div>
-
-                  <h1 class="mt-4 text-[2rem] font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">
-                    {{ appData.name }}
-                  </h1>
-                  <p class="mt-2 max-w-2xl text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                    {{ appData.description || 'Manage sign-in boundaries, branding and access for this workspace.' }}
-                  </p>
-                </div>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition"
-                  [ngClass]="theme() === 'light'
-                    ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                    : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-                  (click)="copyText(appData.id, 'Application ID')"
-                >
-                  <span class="material-symbols-outlined text-[18px]">content_copy</span>
-                  Copy ID
-                </button>
-
-                <label
-                  class="inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition"
-                  [class.pointer-events-none]="updatingLogo()"
-                  [class.opacity-60]="updatingLogo()"
-                  [ngClass]="theme() === 'light'
-                    ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                    : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-                >
-                  <span class="material-symbols-outlined text-[18px]">{{ updatingLogo() ? 'progress_activity' : 'upload' }}</span>
-                  <input type="file" accept="image/*" class="hidden" [disabled]="updatingLogo()" (change)="onLogoFileSelected($event)" />
-                  {{ updatingLogo() ? 'Updating...' : 'Update logo' }}
-                </label>
-              </div>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-3">
-              <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Owner</p>
-                <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ ownerLabel() }}</p>
-                <p class="mt-1 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ appData.ownerId || 'No owner id' }}</p>
-              </div>
-
-              <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Redirect hosts</p>
-                <p class="mt-2 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ redirectHosts().length }}</p>
-                <p class="mt-1 text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ primaryRedirectHost() }}</p>
-              </div>
-
-              <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Workspace access</p>
-                <div class="mt-2 flex items-center gap-5">
-                  <div>
-                    <p class="text-xl font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">{{ totalUsers() }}</p>
-                    <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Users</p>
-                  </div>
-                  <div>
-                    <p class="text-xl font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">{{ totalRoles() }}</p>
-                    <p class="text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Roles</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="rounded-[30px] border p-6"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white shadow-sm'
-            : 'border-slate-700/70 bg-slate-800/90 shadow-slate-950/30'"
-        >
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Authentication</p>
-              <h2 class="mt-2 text-xl font-semibold tracking-tight" [ngClass]="theme() === 'light' ? 'text-slate-950' : 'text-slate-50'">
-                OAuth configuration
-              </h2>
-              <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                Core client settings used by authorize, callback and token exchange flows.
-              </p>
-            </div>
-
-            @if (credentials()?.clientType === 'Confidential') {
-              <button
-                type="button"
-                class="rounded-full border px-3.5 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
-                [disabled]="rotatingSecret()"
-                [ngClass]="theme() === 'light'
-                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-                (click)="rotateClientSecret()"
-              >
-                {{ rotatingSecret() ? 'Rotating...' : 'Rotate secret' }}
-              </button>
-            }
-          </div>
-
-          @if (credentials(); as credentialData) {
-            <div class="mt-6 space-y-4">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                  <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client ID</p>
-                  <div class="mt-3 flex items-start justify-between gap-3">
-                    <p class="min-w-0 truncate font-mono text-xs leading-6" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
-                      {{ credentialData.clientId }}
-                    </p>
-                    <button
-                      type="button"
-                      class="rounded-xl border px-3 py-2 text-sm font-medium transition"
-                      [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
-                      (click)="copyText(credentialData.clientId, 'Client ID')"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-
-                <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                  <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Client type</p>
-                  <p class="mt-3 text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ credentialData.clientType }}</p>
-                  <p class="mt-2 text-xs leading-6" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ getSecretStatusDescription() }}</p>
-                </div>
-              </div>
-
-              <div
-                class="rounded-[22px] border p-4"
-                [ngClass]="credentialData.clientType === 'Confidential'
-                  ? (theme() === 'light' ? 'border-amber-200 bg-amber-50/80' : 'border-amber-500/20 bg-amber-500/10')
-                  : (theme() === 'light' ? 'border-emerald-200 bg-emerald-50/80' : 'border-emerald-500/20 bg-emerald-500/10')"
-              >
-                @if (credentialData.clientType === 'Confidential') {
-                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="min-w-0">
-                      <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[18px]" [ngClass]="theme() === 'light' ? 'text-amber-700' : 'text-amber-300'">key</span>
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-amber-700' : 'text-amber-300'">Client secret</p>
-                      </div>
-                      <p class="mt-3 break-all font-mono text-xs leading-6" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
-                        {{ displayClientSecret() }}
-                      </p>
-                      @if (credentialData.lastClientSecretRotatedAt) {
-                        <p class="mt-3 text-xs" [ngClass]="theme() === 'light' ? 'text-amber-800/85' : 'text-amber-200/85'">
-                          Last rotated: {{ credentialData.lastClientSecretRotatedAt | date:'medium' }}
-                        </p>
-                      }
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        class="rounded-xl border px-3 py-2 text-sm font-medium transition disabled:pointer-events-none disabled:opacity-60"
-                        [disabled]="!visibleClientSecret()"
-                        [ngClass]="theme() === 'light' ? 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50' : 'border-amber-500/30 bg-slate-800 text-amber-200 hover:bg-slate-700'"
-                        (click)="toggleClientSecretVisibility()"
-                      >
-                        {{ showClientSecret() ? 'Hide' : 'Reveal' }}
-                      </button>
-                      <button
-                        type="button"
-                        class="rounded-xl border px-3 py-2 text-sm font-medium transition"
-                        [ngClass]="theme() === 'light' ? 'border-amber-200 bg-white text-amber-700 hover:bg-amber-50' : 'border-amber-500/30 bg-slate-800 text-amber-200 hover:bg-slate-700'"
-                        (click)="copyText(credentialData.clientSecret, 'Client secret')"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                } @else {
-                  <p class="text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-emerald-700' : 'text-emerald-300'">
-                    This client is public, so integrations use PKCE and no client secret is stored here.
-                  </p>
-                }
-              </div>
-
-              <div class="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
-                <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Allowed redirect URIs</p>
-                      <p class="mt-1 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">{{ redirectUris().length }} destinations registered</p>
-                    </div>
-                    @if (redirectUris().length) {
-                      <button
-                        type="button"
-                        class="rounded-xl border px-3 py-1.5 text-xs font-medium transition"
-                        [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' : 'border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700'"
-                        (click)="copyText(redirectUris().join(', '), 'Redirect URIs')"
-                      >
-                        Copy all
-                      </button>
-                    }
-                  </div>
-
-                  @if (redirectUris().length) {
-                    <div class="mt-4 space-y-2">
-                      @for (uri of redirectUris(); track uri) {
-                        <div
-                          class="rounded-2xl border px-3 py-2.5 text-xs font-mono break-all"
-                          [ngClass]="theme() === 'light' ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-700 bg-slate-800/80 text-slate-200'"
-                        >
-                          {{ uri }}
-                        </div>
-                      }
-                    </div>
-                  } @else {
-                    <p class="mt-4 text-sm" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                      No redirect URI has been configured.
-                    </p>
-                  }
-                </div>
-
-                <div class="space-y-3">
-                  <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Backchannel logout</p>
-                    <p class="mt-3 break-all font-mono text-xs leading-6" [ngClass]="theme() === 'light' ? 'text-slate-700' : 'text-slate-200'">
-                      {{ credentialData.backchannelLogoutUri || appData.backchannelLogoutUri || 'No backchannel logout URI configured.' }}
-                    </p>
-                  </div>
-
-                  <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-sky-200 bg-sky-50/80' : 'border-sky-500/20 bg-sky-500/10'">
-                    <div class="flex items-start gap-3">
-                      <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" [ngClass]="theme() === 'light' ? 'bg-white text-sky-700' : 'bg-slate-900/60 text-sky-300'">
-                        <span class="material-symbols-outlined text-[20px]">info</span>
-                      </div>
-                      <div>
-                        <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-sky-900' : 'text-sky-100'">Why the OAuth page still opens with a wrong secret</p>
-                        <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-sky-800/85' : 'text-sky-100/85'">
-                          `client_secret` is validated later at `/api/oauth/token`, not at `/authorize`. So sign-in and consent can render first, then token exchange fails if the secret is wrong.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          } @else {
-            <div class="mt-5">
-              <app-empty-state icon="vpn_key_off" message="Credential metadata is unavailable for this application." [theme]="theme()" />
-            </div>
-          }
-        </div>
-      </section>
-
-      <section class="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-        <div class="space-y-5">
-          <div
-            class="rounded-[30px] border p-5 shadow-sm"
-            [ngClass]="theme() === 'light'
-              ? 'border-slate-200 bg-white'
-              : 'border-slate-700/70 bg-slate-800/90'"
-          >
-            <div class="mb-4 flex items-center justify-between gap-3">
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div class="space-y-4 xl:col-span-2">
+        <!-- Client configuration -->
+        <section class="card">
+          <div class="card-header"><div><h2 class="card-title">{{ t().adOverview }}</h2><p class="card-desc">{{ t().adOverviewDesc }}</p></div></div>
+          <div class="card-body space-y-5">
+            <dl class="dl">
               <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Access model</p>
-                <h3 class="mt-2 text-lg font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Application roles</h3>
+                <dt>{{ t().appsColClientId }}</dt>
+                <dd class="flex items-center gap-2"><code class="code">{{ credentials()?.clientId || a.clientId }}</code>
+                  <button type="button" class="btn-icon-sm" (click)="copyText(credentials()?.clientId || a.clientId, t().appsColClientId)" [attr.aria-label]="t().sysCopy"><span class="material-symbols-outlined text-[16px]">content_copy</span></button></dd>
               </div>
-              <button
-                type="button"
-                class="rounded-full border px-3.5 py-2 text-sm font-medium transition"
-                [ngClass]="theme() === 'light'
-                  ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                  : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-                (click)="loadRoles(appData.id)"
-              >
-                Refresh
-              </button>
-            </div>
-
-            @if (loadingRoles()) {
-              <app-loading-state message="Loading roles..." [theme]="theme()" />
-            } @else if (appRoles().length === 0) {
-              <app-empty-state icon="shield" message="No roles exist in this application yet." [theme]="theme()" />
-            } @else {
-              <div class="space-y-3">
-                @for (role of appRoles(); track role.id) {
-                  <div
-                    class="rounded-[22px] border p-4"
-                    [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'"
-                  >
-                    <div class="flex items-center justify-between gap-3">
-                      <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">{{ role.name }}</p>
-                      <span
-                        class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                        [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                      >
-                        Role
-                      </span>
-                    </div>
-                    <p class="mt-2 text-sm leading-6" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-300'">
-                      {{ role.description || 'No description provided for this role yet.' }}
-                    </p>
-                  </div>
-                }
+              <div><dt>{{ t().adOwner }}</dt><dd>{{ ownerLabel() }}</dd></div>
+              <div>
+                <dt>{{ t().appsBackchannel }}</dt>
+                <dd>@if (hasBackchannelLogout()) { <code class="code break-all">{{ credentials()?.backchannelLogoutUri || a.backchannelLogoutUri }}</code> } @else { <span class="text-fg-3">{{ t().adNotConfigured }}</span> }</dd>
               </div>
-            }
-          </div>
-
-          <div
-            class="rounded-[30px] border p-5 shadow-sm"
-            [ngClass]="theme() === 'light'
-              ? 'border-slate-200 bg-white'
-              : 'border-slate-700/70 bg-slate-800/90'"
-          >
-            <div class="mb-4">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Capabilities</p>
-              <h3 class="mt-2 text-lg font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Features and permissions</h3>
-            </div>
-
-            @if (capabilities(); as capabilityData) {
-              <div class="space-y-4">
-                <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                  <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Enabled features</p>
-                    <span
-                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      [ngClass]="theme() === 'light' ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/20 text-emerald-300'"
-                    >
-                      {{ capabilityData.enabledFeatures.length }}
-                    </span>
-                  </div>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    @for (feature of capabilityData.enabledFeatures; track feature) {
-                      <span
-                        class="rounded-full px-3 py-1 text-xs font-medium"
-                        [ngClass]="theme() === 'light' ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-100' : 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/20'"
-                      >
-                        {{ feature }}
-                      </span>
-                    } @empty {
-                      <span class="text-sm italic" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                        No feature is currently enabled.
-                      </span>
-                    }
-                  </div>
-                </div>
-
-                <div class="rounded-[22px] border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-700 bg-slate-900/35'">
-                  <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Enabled permissions</p>
-                    <span
-                      class="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      [ngClass]="theme() === 'light' ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300'"
-                    >
-                      {{ capabilityData.enabledPermissions.length }}
-                    </span>
-                  </div>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    @for (permission of capabilityData.enabledPermissions; track permission) {
-                      <span
-                        class="rounded-full px-3 py-1 text-xs font-medium"
-                        [ngClass]="theme() === 'light' ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-100' : 'bg-violet-500/15 text-violet-300 ring-1 ring-violet-500/20'"
-                      >
-                        {{ permission }}
-                      </span>
-                    } @empty {
-                      <span class="text-sm italic" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                        No permission is currently enabled.
-                      </span>
-                    }
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <app-empty-state icon="lock" message="Capability metadata is not available for this application." [theme]="theme()" />
-            }
-          </div>
-        </div>
-
-        <div
-          class="rounded-[30px] border p-5 shadow-sm"
-          [ngClass]="theme() === 'light'
-            ? 'border-slate-200 bg-white'
-            : 'border-slate-700/70 bg-slate-800/90'"
-        >
-          <div class="mb-4 flex items-center justify-between gap-3">
+            </dl>
             <div>
-              <p class="text-[11px] font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">Workspace members</p>
-              <h3 class="mt-2 text-lg font-semibold" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">Assigned users</h3>
-            </div>
-            <button
-              type="button"
-              class="rounded-full border px-3.5 py-2 text-sm font-medium transition"
-              [ngClass]="theme() === 'light'
-                ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                : 'border-slate-600 bg-slate-900/40 text-slate-200 hover:bg-slate-700'"
-              (click)="loadAppUsers(appData.id)"
-            >
-              Refresh
-            </button>
-          </div>
-
-          @if (appUsers().length === 0) {
-            <app-empty-state
-              icon="group_off"
-              message="No users are assigned to this application yet."
-              [theme]="theme()"
-            />
-          } @else {
-            <div class="space-y-3">
-              @for (user of appUsers(); track user.userId) {
-                <div
-                  class="flex flex-col gap-3 rounded-[22px] border p-4 transition-all duration-200 md:flex-row md:items-center md:justify-between"
-                  [ngClass]="theme() === 'light'
-                    ? 'border-slate-200 bg-slate-50/70 hover:border-sky-200'
-                    : 'border-slate-700 bg-slate-900/35 hover:border-sky-500/30'"
-                >
-                  <div class="flex min-w-0 items-center gap-3">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#38bdf8,#2563eb)] text-sm font-semibold text-white shadow-sm">
-                      {{ getUserInitial(user) }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium" [ngClass]="theme() === 'light' ? 'text-slate-900' : 'text-slate-100'">
-                        {{ getUserDisplayName(user) }}
-                      </p>
-                      <p class="mt-1 truncate font-mono text-xs" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-                        {{ user.userId }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span
-                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                    [ngClass]="theme() === 'light' ? 'bg-violet-100 text-violet-700' : 'bg-violet-500/20 text-violet-300'"
-                  >
-                    {{ user.role }}
-                  </span>
-                </div>
+              <p class="mb-2 text-xs font-medium text-fg-3">{{ t().appsRedirects }}</p>
+              @if (redirectUris().length) {
+                <ul class="space-y-1.5">
+                  @for (uri of redirectUris(); track uri) {
+                    <li class="flex items-center gap-2 rounded-lg border border-line px-3 py-2"><span class="material-symbols-outlined text-[16px] text-fg-3">link</span><code class="min-w-0 flex-1 truncate font-mono text-[13px]">{{ uri }}</code></li>
+                  }
+                </ul>
+              } @else {
+                <div class="alert-warn"><span class="material-symbols-outlined">warning</span><span>{{ t().adNoRedirects }}</span></div>
               }
             </div>
+          </div>
+        </section>
+
+        <!-- Members -->
+        <section class="card">
+          <div class="card-header">
+            <div><h2 class="card-title">{{ t().adMembers }} <span class="ml-1 text-fg-3">{{ totalUsers() }}</span></h2><p class="card-desc">{{ t().adMembersDesc }}</p></div>
+            <button type="button" class="btn-secondary btn-sm" (click)="openAddUserModal()" [disabled]="!canAddUsers()" [title]="canAddUsers() ? '' : t().adNeedRole"><span class="material-symbols-outlined">person_add</span>{{ t().adAddMember }}</button>
+          </div>
+          @if (loadingUsers()) {
+            <app-loading-state [rows]="3" />
+          } @else {
+            <ul class="divide-y divide-line">
+              @for (u of appUsers(); track u.userId) {
+                <li class="flex items-center gap-3 px-5 py-3">
+                  <span class="avatar">{{ getUserInitial(u) }}</span>
+                  <div class="min-w-0 flex-1"><a [routerLink]="['/users', u.userId]" class="block truncate text-sm font-medium hover:underline">{{ u.userName || getUserDisplayName(u) }}</a><p class="truncate text-xs text-fg-3">{{ u.email }}</p></div>
+                  <span class="badge-neutral">{{ u.role }}</span>
+                  <button type="button" class="btn-danger-ghost btn-sm" (click)="removeMember(u)" [disabled]="removingUserId() === u.userId">
+                    @if (removingUserId() === u.userId) { <span class="spinner h-3 w-3"></span> } {{ t().adRemoveMember }}
+                  </button>
+                </li>
+              } @empty {
+                <li class="px-5 py-8 text-center text-sm text-fg-3">{{ canAddUsers() ? t().adNoMembers : t().adNeedRole }}</li>
+              }
+            </ul>
           }
-        </div>
-      </section>
+        </section>
+
+        <!-- Roles -->
+        <section class="card">
+          <div class="card-header">
+            <div><h2 class="card-title">{{ t().adRoles }} <span class="ml-1 text-fg-3">{{ totalRoles() }}</span></h2><p class="card-desc">{{ t().adRolesDesc }}</p></div>
+            <button type="button" class="btn-secondary btn-sm" (click)="openAddRoleModal()"><span class="material-symbols-outlined">add</span>{{ t().adAddRole }}</button>
+          </div>
+          <div class="card-body">
+            @if (loadingRoles()) { <div class="skeleton h-8 w-64"></div> }
+            @else {
+              <ul class="flex flex-wrap gap-2">
+                @for (r of appRoles(); track r.id) {
+                  <li class="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-[13px]"><span class="font-medium">{{ r.name }}</span>@if (r.description) { <span class="ml-1.5 text-fg-3">{{ r.description }}</span> }</li>
+                } @empty { <li class="text-[13px] text-fg-3">{{ t().adNoRoles }}</li> }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Secret -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">{{ t().adCredentials }}</h2>
+            @if (clientTypeLabel() === 'Confidential') {
+              <button type="button" class="btn-secondary btn-sm" (click)="rotateClientSecret()" [disabled]="rotatingSecret()">
+                @if (rotatingSecret()) { <span class="spinner h-3 w-3"></span> } @else { <span class="material-symbols-outlined">autorenew</span> }{{ t().adRotate }}
+              </button>
+            }
+          </div>
+          <div class="card-body space-y-3">
+            @if (clientTypeLabel() !== 'Confidential') {
+              <p class="text-[13px] text-fg-2">{{ t().adPublicNote }}</p>
+            } @else {
+              @if (visibleClientSecret()) {
+                <div class="alert-warn"><span class="material-symbols-outlined">warning</span><span>{{ t().appsSecretOnce }}</span></div>
+                <div class="flex gap-2">
+                  <code class="input flex h-auto min-h-9 items-center break-all py-2 font-mono text-[12px]">{{ displayClientSecret() }}</code>
+                  <button type="button" class="btn-secondary btn-icon shrink-0" (click)="toggleClientSecretVisibility()" [attr.aria-label]="showClientSecret() ? t().adHide : t().adShow"><span class="material-symbols-outlined">{{ showClientSecret() ? 'visibility_off' : 'visibility' }}</span></button>
+                  <button type="button" class="btn-secondary btn-icon shrink-0" (click)="copyText(credentials()?.clientSecret, t().adCredentials)" [attr.aria-label]="t().sysCopy"><span class="material-symbols-outlined">content_copy</span></button>
+                </div>
+              } @else {
+                <p class="text-[13px] text-fg-2">{{ getSecretStatusDescription() }}</p>
+              }
+              <p class="text-xs text-fg-3">{{ t().adLastRotated }}: {{ credentials()?.lastClientSecretRotatedAt ? when(credentials()!.lastClientSecretRotatedAt) : t().adNeverRotated }}</p>
+            }
+          </div>
+        </section>
+
+        <!-- Integration -->
+        <section class="card">
+          <div class="card-header"><div><h2 class="card-title">{{ t().adIntegration }}</h2><p class="card-desc">{{ t().adIntegrationDesc }}</p></div></div>
+          <div class="card-body space-y-3">
+            @for (row of integrationRows(); track row.label) {
+              <div>
+                <p class="text-xs font-medium text-fg-3">{{ row.label }}</p>
+                <div class="mt-1 flex items-center gap-1.5"><code class="min-w-0 flex-1 truncate font-mono text-[12px]">{{ row.value }}</code>
+                  <button type="button" class="btn-icon-sm" (click)="copyText(row.value, row.label)" [attr.aria-label]="t().sysCopy"><span class="material-symbols-outlined text-[16px]">content_copy</span></button></div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- Capabilities -->
+        @if (capabilities(); as c) {
+          <section class="card">
+            <div class="card-header"><div><h2 class="card-title">{{ t().adCapabilities }}</h2><p class="card-desc">{{ t().adCapabilitiesDesc }}</p></div></div>
+            <div class="card-body space-y-4">
+              <div><p class="mb-2 text-xs font-medium text-fg-3">{{ t().adFeatures }} · {{ capabilityFeatureCount() }}</p>
+                <div class="flex flex-wrap gap-1.5">@for (f of c.enabledFeatures; track f) { <span class="badge-ok">{{ f }}</span> } @empty { <span class="text-[13px] text-fg-3">{{ t().adNone }}</span> }</div></div>
+              <div><p class="mb-2 text-xs font-medium text-fg-3">{{ t().adPermissions }} · {{ capabilityPermissionCount() }}</p>
+                <div class="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">@for (p of c.enabledPermissions; track p) { <span class="badge-neutral font-mono">{{ p }}</span> } @empty { <span class="text-[13px] text-fg-3">{{ t().adNone }}</span> }</div></div>
+            </div>
+          </section>
+        }
+      </div>
     </div>
   }
-}
 
-@if (showAddRoleModal()) {
-  <app-drawer
-    title="Add application role"
-    [closing]="closingAddRole()"
-    [theme]="theme()"
-    (close)="closeAddRoleModal()"
-  >
-    <div class="space-y-5">
-      <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-600 bg-slate-900/30'">
-        <div class="mb-3 flex items-center justify-between gap-2">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em]" [ngClass]="theme() === 'light' ? 'text-slate-500' : 'text-slate-400'">
-            Pick from global roles
-          </p>
-          @if (appRoles().length > 0) {
-            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium" [ngClass]="theme() === 'light' ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'">
-              {{ appRoles().length }} current roles
-            </span>
-          }
+  @if (showAddUserModal()) {
+    <app-drawer [title]="t().adAddMember" [subtitle]="app()?.name ?? ''" [closing]="closingAddUser()" (close)="closeAddUserModal()">
+      <div class="space-y-4">
+        <div>
+          <label class="label" for="am-user">{{ t().adUser }}</label>
+          <select id="am-user" class="input" [ngModel]="addUserUserId()" (ngModelChange)="selectApiUser($event)">
+            <option value="">{{ t().adSelectUser }}</option>
+            @for (u of apiUsers(); track u.id) { <option [value]="u.id">{{ u.email || u.userName }}</option> }
+          </select>
         </div>
-        @if (loadingGlobalRoles()) {
-          <app-loading-state message="Loading global roles..." [theme]="theme()" />
-        } @else if (globalRoles().length === 0) {
-          <app-empty-state icon="shield" message="No global roles available." [theme]="theme()" />
-        } @else {
-          <app-dropdown
-            [options]="globalRoleOptions()"
-            [theme]="theme()"
-            [placeholder]="'-- Select global role --'"
-            [ngModel]="selectedGlobalRoleId()"
-            (ngModelChange)="selectGlobalRole($event)"
-          />
-          @if (selectedGlobalRole(); as selectedRole) {
-            <div class="mt-3 rounded-2xl border px-3 py-2 text-sm" [ngClass]="theme() === 'light' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-emerald-700/60 bg-emerald-900/15 text-emerald-300'">
-              Will add role: <span class="font-semibold">{{ selectedRole.name }}</span> - {{ selectedRole.description || 'No description' }}
-            </div>
-          }
-        }
+        <div>
+          <label class="label" for="am-role">{{ t().adRole }}</label>
+          <select id="am-role" class="input" [ngModel]="addUserRole()" (ngModelChange)="addUserRole.set($event)">
+            <option value="">{{ t().adSelectRole }}</option>
+            @for (r of appRoles(); track r.id) { <option [value]="r.name">{{ r.name }}</option> }
+          </select>
+        </div>
       </div>
-    </div>
-    <app-drawer-footer-actions
-      [theme]="theme()"
-      cancelLabel="Cancel"
-      saveLabel="Add role"
-      [loadingLabel]="'Saving...'"
-      [loading]="savingAddRole()"
-      (cancel)="closeAddRoleModal()"
-      (save)="saveAddRole()"
-    />
-  </app-drawer>
-}
+      <app-drawer-footer-actions [cancelLabel]="t().cancel" [saveLabel]="t().add" [loadingLabel]="t().adding" [loading]="savingAddUser()" [disabled]="!addUserUserId() || !addUserRole()" (cancel)="closeAddUserModal()" (save)="addUserToApp()" />
+    </app-drawer>
+  }
 
-@if (showAddUserModal()) {
-  <app-drawer
-    title="Assign user to application"
-    [closing]="closingAddUser()"
-    [theme]="theme()"
-    (close)="closeAddUserModal()"
-  >
-    <div class="space-y-5">
-      <div class="rounded-2xl border p-4" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50/70' : 'border-slate-600 bg-slate-900/30'">
-        <div class="mb-3 flex items-center justify-between gap-2">
-          <p class="text-sm" [ngClass]="theme() === 'light' ? 'text-slate-600' : 'text-slate-400'">
-            Select a user and one of this application's roles.
-          </p>
-          @if (!loadingUsers()) {
-            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium" [ngClass]="theme() === 'light' ? 'bg-sky-100 text-sky-700' : 'bg-sky-500/20 text-sky-300'">
-              {{ apiUsers().length }} users
-            </span>
-          }
-        </div>
-
-        <div class="flex items-end gap-2">
-          <div class="flex-1">
-            <app-dropdown
-              [options]="userOptions()"
-              [theme]="theme()"
-              [placeholder]="'-- Select user --'"
-              [ngModel]="addUserUserId()"
-              (ngModelChange)="selectApiUser($event)"
-            />
-          </div>
-          <button
-            type="button"
-            class="mb-[2px] rounded-2xl border px-3 py-2 text-sm font-medium transition"
-            [ngClass]="theme() === 'light' ? 'border-slate-200 text-slate-700 hover:bg-slate-50' : 'border-slate-600 text-slate-200 hover:bg-slate-700'"
-            (click)="loadApiUsers()"
-          >
-            {{ loadingUsers() ? 'Loading...' : 'Reload' }}
-          </button>
-        </div>
-        <div class="mt-3">
-          <app-dropdown
-            [options]="appRoleOptions()"
-            [theme]="theme()"
-            [placeholder]="'-- Select application role --'"
-            [ngModel]="addUserRole()"
-            (ngModelChange)="addUserRole.set($event)"
-          />
-        </div>
-
-        @if (loadingUsers()) {
-          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-600 bg-slate-900/50 text-slate-400'">
-            Loading users...
-          </div>
-        }
-
-        @if (selectedApiUser(); as selectedUser) {
-          <div class="mt-3 rounded-2xl border px-3 py-2 text-sm" [ngClass]="theme() === 'light' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-emerald-700/60 bg-emerald-900/15 text-emerald-300'">
-            Selected: <span class="font-semibold">{{ selectedUser.email || selectedUser.userName || selectedUser.id }}</span>
-            <span class="ml-1 font-mono opacity-80">({{ selectedUser.id }})</span>
-          </div>
-        } @else if (!loadingUsers() && apiUsers().length === 0) {
-          <div class="mt-3 rounded-2xl border p-3 text-sm" [ngClass]="theme() === 'light' ? 'border-slate-200 bg-slate-50 text-slate-500' : 'border-slate-600 bg-slate-900/50 text-slate-400'">
-            No users available.
-          </div>
-        }
+  @if (showAddRoleModal()) {
+    <app-drawer [title]="t().adAddRole" [subtitle]="app()?.name ?? ''" [closing]="closingAddRole()" (close)="closeAddRoleModal()">
+      <div>
+        <label class="label" for="ar-role">{{ t().adGlobalRole }}</label>
+        <select id="ar-role" class="input" [ngModel]="selectedGlobalRoleId()" (ngModelChange)="selectGlobalRole($event)" [disabled]="loadingGlobalRoles()">
+          <option value="">{{ t().adSelectRole }}</option>
+          @for (r of globalRoles(); track r.id) { <option [value]="r.id">{{ r.name }}</option> }
+        </select>
+        @if (selectedGlobalRole()?.description) { <p class="hint">{{ selectedGlobalRole()!.description }}</p> }
       </div>
-    </div>
-    <app-drawer-footer-actions
-      [theme]="theme()"
-      cancelLabel="Cancel"
-      saveLabel="Add user"
-      [loadingLabel]="'Saving...'"
-      [loading]="savingAddUser()"
-      (cancel)="closeAddUserModal()"
-      (save)="addUserToApp()"
-    />
-  </app-drawer>
-}
+      <app-drawer-footer-actions [cancelLabel]="t().cancel" [saveLabel]="t().add" [loadingLabel]="t().adding" [loading]="savingAddRole()" [disabled]="!selectedGlobalRoleId()" (cancel)="closeAddRoleModal()" (save)="saveAddRole()" />
+    </app-drawer>
+  }
+</div>

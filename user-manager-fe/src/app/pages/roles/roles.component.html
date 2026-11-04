@@ -1,172 +1,81 @@
-<div class="main main-layout main-layout--table-page flex min-h-0 flex-1 flex-col overflow-hidden">
-  <div class="app-toolbar-row flex shrink-0 flex-wrap items-center justify-end gap-2">
-    <a
-      routerLink="/role-permission"
-      class="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition"
-      [ngClass]="theme() === 'light'
-        ? 'border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-        : 'border-slate-600 text-slate-200 hover:bg-slate-700 hover:border-slate-500'"
-    >
-      <span class="material-symbols-outlined text-lg">verified_user</span>
-      {{ translate.t().rolesAssignPermissions }}
-    </a>
-    <app-icon-button
-      icon="add"
-      [theme]="theme()"
-      [title]="translate.t().rolesAddRole"
-      (click)="openCreate()"
-    />
+<div class="page">
+  <div class="page-header">
+    <div><h1 class="page-title">{{ t().rlTitle }}</h1><p class="page-subtitle">{{ t().rlSubtitle }}</p></div>
+    <button type="button" class="btn-primary" (click)="openCreate()"><span class="material-symbols-outlined">add</span>{{ t().rlNew }}</button>
   </div>
 
-  <div class="app-toolbar-row shrink-0">
-    <input
-      type="search"
-      [ngModel]="search()"
-      (ngModelChange)="onSearchChange($event)"
-      [placeholder]="translate.t().rolesSearchPlaceholder"
-      class="app-input-plain min-w-0 flex-1 text-[var(--app-text-primary)]"
-    />
-  </div>
-
-  @if (loading()) {
-    <app-loading-state class="shrink-0" [message]="translate.t().loading" [theme]="theme()" />
-  } @else if (error()) {
-    <div class="app-alert-error shrink-0">{{ error() }}</div>
-  } @else {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="app-table-shell app-table-shell--fill">
-      <table>
-        <thead>
-          <tr>
-            <th>{{ translate.t().rolesName }}</th>
-            <th>{{ translate.t().description }}</th>
-            <th>{{ translate.t().navPermissions }}</th>
-            <th>{{ translate.t().rolesSystem }}</th>
-            <th class="text-right">{{ translate.t().rolesActions }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of paginatedRoles(); track r.id) {
-            <tr>
-              <td class="text-sm font-medium text-[var(--app-text-primary)]">{{ r.name }}</td>
-              <td class="text-sm text-[var(--app-text-secondary)]">{{ r.description || '—' }}</td>
-              <td class="max-w-[200px] truncate text-xs text-[var(--app-text-secondary)]" [title]="r.permissions || ''">
-                {{ r.permissions || '—' }}
-              </td>
-              <td>
-                @if (r.isSystemRole) {
-                  <span class="app-badge-pill-warn">System</span>
-                } @else {
-                  <span class="text-[var(--app-text-secondary)]">—</span>
-                }
-              </td>
-              <td class="text-right">
-                <div class="flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition"
-                    [ngClass]="theme() === 'light'
-                      ? 'border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-400'
-                      : 'border-sky-500/50 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20 hover:border-sky-400/60'"
-                    (click)="openEdit(r)"
-                    [title]="translate.t().rolesEdit"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                    {{ translate.t().rolesEdit }}
-                  </button>
-                  @if (!r.isSystemRole) {
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition disabled:opacity-50 disabled:pointer-events-none"
-                      [ngClass]="theme() === 'light'
-                        ? 'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:border-rose-400'
-                        : 'border-rose-500/50 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 hover:border-rose-400/60'"
-                      [disabled]="deleting() === r.id"
-                      (click)="deleteRole(r)"
-                      [title]="translate.t().rolesDelete"
-                    >
-                      <span class="material-symbols-outlined text-[18px]">{{ deleting() === r.id ? 'progress_activity' : 'delete' }}</span>
-                      {{ deleting() === r.id ? translate.t().rolesDeleting : translate.t().rolesDelete }}
+  <section class="card">
+    <div class="flex flex-wrap items-center gap-3 border-b border-line p-4">
+      <div class="input-group min-w-[220px] flex-1 sm:max-w-sm">
+        <span class="material-symbols-outlined">search</span>
+        <input class="input" type="search" [placeholder]="t().rlSearch" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" [attr.aria-label]="t().rlSearch" />
+      </div>
+      <p class="ml-auto text-[13px] tabular-nums text-fg-3">{{ totalFiltered() }} {{ t().rlTitle.toLowerCase() }}</p>
+    </div>
+    @if (error()) { <div class="p-4"><div class="alert-bad"><span class="material-symbols-outlined">error</span><span>{{ error() }}</span></div></div> }
+    @if (loading()) {
+      <app-loading-state [rows]="5" />
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>{{ t().rlColRole }}</th><th>{{ t().rlColPermissions }}</th><th class="hidden lg:table-cell">{{ t().rlColUpdated }}</th><th></th></tr></thead>
+          <tbody>
+            @for (role of paginatedRoles(); track role.id) {
+              <tr>
+                <td class="min-w-[220px]">
+                  <div class="flex items-center gap-2"><span class="font-medium">{{ role.name }}</span>@if (role.isSystemRole) { <span class="badge-neutral"><span class="material-symbols-outlined text-[12px]">lock</span>{{ t().rlSystem }}</span> }</div>
+                  <p class="mt-0.5 max-w-md truncate text-xs text-fg-3">{{ role.description || '—' }}</p>
+                </td>
+                <td>
+                  <div class="flex max-w-xl flex-wrap gap-1">
+                    @for (code of permissionList(role).slice(0, 4); track code) { <span class="badge-neutral font-mono">{{ code }}</span> }
+                    @if (permissionList(role).length > 4) { <span class="badge-brand">{{ t().rlMore.replace('{{n}}', '' + (permissionList(role).length - 4)) }}</span> }
+                    @if (!permissionList(role).length) { <span class="text-xs text-fg-3">—</span> }
+                  </div>
+                </td>
+                <td class="hidden lg:table-cell whitespace-nowrap text-fg-2">{{ when(role.updatedAt || role.createdAt) }}</td>
+                <td class="whitespace-nowrap text-right">
+                  <button type="button" class="btn-ghost btn-sm" (click)="openEdit(role)"><span class="material-symbols-outlined">edit</span>{{ t().edit }}</button>
+                  @if (!role.isSystemRole) {
+                    <button type="button" class="btn-danger-ghost btn-sm" (click)="deleteRole(role)" [disabled]="deleting() === role.id">
+                      @if (deleting() === role.id) { <span class="spinner h-3 w-3"></span> } @else { <span class="material-symbols-outlined">delete</span> }
                     </button>
                   }
-                </div>
-              </td>
-            </tr>
-          } @empty {
-            <tr>
-              <td colspan="5" class="py-8 text-center text-sm text-[var(--app-text-secondary)]">
-                {{ translate.t().rolesEmpty }}
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="4"><app-empty-state icon="shield_person" [message]="t().rlEmpty" /></td></tr>
+            }
+          </tbody>
+        </table>
       </div>
-      <app-table-pagination
-        [totalItems]="totalFiltered()"
-        [page]="listPage()"
-        [pageSize]="pageSize()"
-        [pageSizeOptions]="listPageSizeSvc.options"
-        [theme]="theme()"
-        (pageChange)="setListPage($event)"
-        (pageSizeChange)="onListPageSizeChange($event)"
-      />
-    </div>
+      <app-table-pagination [totalItems]="totalFiltered()" [page]="listPage()" [pageSize]="pageSize()" [pageSizeOptions]="listPageSizeSvc.options" (pageChange)="setListPage($event)" (pageSizeChange)="onListPageSizeChange($event)" />
+    }
+  </section>
+
+  @if (showModal()) {
+    <app-drawer [title]="showModal() === 'create' ? t().rlNew : t().rlEdit" [subtitle]="editingRole()?.name ?? ''" [closing]="closing()" (close)="closeModal()">
+      <div class="space-y-4">
+        @if (editingRole()?.isSystemRole) { <div class="alert-info"><span class="material-symbols-outlined">lock</span><span>{{ t().rlSystemLocked }}</span></div> }
+        <div>
+          <label class="label" for="role-name">{{ t().rlName }} <span class="text-bad">*</span></label>
+          <input id="role-name" class="input" [(ngModel)]="form.name" [disabled]="!!editingRole()?.isSystemRole" autofocus />
+        </div>
+        <div>
+          <label class="label" for="role-desc">{{ t().rlDescription }}</label>
+          <textarea id="role-desc" class="input" rows="3" [(ngModel)]="form.description"></textarea>
+        </div>
+        <div>
+          <span class="label">{{ t().rlColPermissions }} <span class="ml-1 text-fg-3">{{ selectedPermissionCodes().length }}</span></span>
+          <app-searchable-multi-select [options]="permissionSelectOptions()" [placeholder]="t().rlPermissionsPick" [searchPlaceholder]="t().rlPermissionsSearch"
+                                       [disabled]="permissionsLoading()" [ngModel]="selectedPermissionCodes()" (ngModelChange)="selectedPermissionCodes.set($event)" />
+          @if (selectedPermissionCodes().length) {
+            <div class="mt-3 flex flex-wrap gap-1">@for (c of selectedPermissionCodes(); track c) { <span class="badge-neutral font-mono">{{ c }}</span> }</div>
+          }
+        </div>
+      </div>
+      <app-drawer-footer-actions [cancelLabel]="t().cancel" [saveLabel]="t().save" [loadingLabel]="t().saving" [loading]="saving()"
+                                 (cancel)="closeModal()" (save)="showModal() === 'create' ? saveCreate() : saveEdit()" />
+    </app-drawer>
   }
 </div>
-
-@if (showModal()) {
-  <app-drawer
-    [title]="(showModal() === 'create' ? translate.t().rolesAddModalTitle : translate.t().rolesEditModalTitle)"
-    [closing]="closing()"
-    [theme]="theme()"
-    (close)="closeModal()"
-  >
-    <div class="space-y-5">
-      <app-form-field
-        label="Tên"
-        [model]="form.name"
-        (modelChange)="form.name = $event"
-        placeholder="Admin"
-        [required]="true"
-        [readonly]="showModal() === 'edit'"
-        [theme]="theme()"
-      />
-      <app-form-field
-        [label]="translate.t().description"
-        [model]="form.description"
-        (modelChange)="form.description = $event"
-        placeholder="Administrator"
-        [theme]="theme()"
-      />
-      <div>
-        <label class="mb-2 block text-sm font-medium text-[var(--app-text-primary)]">Permissions</label>
-        <p class="mb-2 text-xs text-[var(--app-text-secondary)]">Gõ trên ô để lọc; click dòng để bật/tắt (không dùng tick). Có thể để trống.</p>
-        @if (permissionsLoading()) {
-          <p class="text-sm text-[var(--app-text-secondary)]">{{ translate.t().loading }}</p>
-        } @else if (permissionSelectOptions().length === 0) {
-          <p class="text-sm text-[var(--app-text-secondary)]">Chưa có permission trong hệ thống.</p>
-        } @else {
-          <app-searchable-multi-select
-            [options]="permissionSelectOptions()"
-            [theme]="theme()"
-            placeholder="Chọn permissions…"
-            searchPlaceholder="Tìm theo code, mô tả…"
-            [disabled]="permissionsLoading()"
-            [ngModel]="selectedPermissionCodes()"
-            (ngModelChange)="selectedPermissionCodes.set($event)"
-          />
-        }
-      </div>
-    </div>
-    <app-drawer-footer-actions
-      [theme]="theme()"
-      [cancelLabel]="translate.t().cancel"
-      [saveLabel]="translate.t().save"
-      [loadingLabel]="translate.t().rolesSaving"
-      [loading]="saving()"
-      (cancel)="closeModal()"
-      (save)="showModal() === 'create' ? saveCreate() : saveEdit()"
-    />
-  </app-drawer>
-}

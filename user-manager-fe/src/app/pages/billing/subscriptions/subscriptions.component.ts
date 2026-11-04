@@ -1,3 +1,5 @@
+import { PlanPriceVndPipe } from '../../../shared/pipes/plan-price-vnd.pipe';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { Component, DestroyRef, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,29 +9,20 @@ import { SubscriptionsService } from '../../../core/services/subscriptions.servi
 import { ApplicationsService } from '../../../core/services/applications.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { NotificationService } from '../../../core/services/notification.service';
-import { ThemeService } from '../../../core/services/theme.service';
+import { formatDateTime } from '../../../shared/utils/format';
+import { apiErrorMessage } from '../../../core/utils/http-error.utils';
 import { PageToolbarService } from '../../../core/services/page-toolbar.service';
 import { TranslateService } from '../../../core/services/translate.service';
 import { LoadingStateComponent } from '../../../shared/components/loading-state/loading-state.component';
-import { DropdownComponent, type DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
+import type { DropdownOption } from '../../../shared/components/dropdown/dropdown.component';
 import { DrawerComponent } from '../../../shared/components/drawer/drawer.component';
-import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { DrawerFooterActionsComponent } from '../../../shared/components/drawer-footer-actions/drawer-footer-actions.component';
 import type { ApplicationListItem, SubscriptionDto, ApplicationUserDto, SubscriptionPlanCatalogDto, SubscriptionType } from '../../../core/models';
 
 @Component({
   selector: 'app-subscriptions',
   standalone: true,
-  host: { class: 'app-host-fill' },
-  imports: [
-    CommonModule,
-    FormsModule,
-    LoadingStateComponent,
-    DropdownComponent,
-    DrawerComponent,
-    FormFieldComponent,
-    DrawerFooterActionsComponent
-  ],
+  imports: [CommonModule, FormsModule, DrawerComponent, DrawerFooterActionsComponent, LoadingStateComponent, EmptyStateComponent, PlanPriceVndPipe],
   templateUrl: './subscriptions.component.html'
 })
 export class SubscriptionsComponent implements OnInit {
@@ -40,7 +33,14 @@ export class SubscriptionsComponent implements OnInit {
   private readonly notify = inject(NotificationService);
   private readonly pageToolbar = inject(PageToolbarService);
   readonly translate = inject(TranslateService);
-  readonly theme = inject(ThemeService).theme;
+  readonly t = this.translate.t;
+  readonly subscriptionTypes: SubscriptionType[] = ['Free', 'Premium', 'Family', 'Student'];
+
+  planName(planId: string | null | undefined): string {
+    return this.plans().find(p => p.id === planId)?.name ?? '—';
+  }
+
+  when(iso: string | null | undefined) { return formatDateTime(iso, this.translate.locale()); }
 
   // Signals for Step 1 & 2
   readonly applications = signal<ApplicationListItem[]>([]);
@@ -130,7 +130,7 @@ export class SubscriptionsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: list => this.applications.set(list),
-        error: (err: any) => this.notify.error('Không thể tải danh sách ứng dụng')
+        error: (err: any) => this.notify.error(apiErrorMessage(err))
       });
   }
 
@@ -143,7 +143,7 @@ export class SubscriptionsComponent implements OnInit {
       )
       .subscribe({
         next: list => this.users.set(list),
-        error: (err: any) => this.notify.error('Không thể tải danh sách thành viên ứng dụng')
+        error: (err: any) => this.notify.error(apiErrorMessage(err))
       });
   }
 
@@ -160,7 +160,7 @@ export class SubscriptionsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res => this.active.set(res.data || null),
-        error: (err: any) => this.error.set('Không thể tải active subscription')
+        error: (err: any) => this.error.set(apiErrorMessage(err))
       });
 
     // Load history
@@ -171,7 +171,7 @@ export class SubscriptionsComponent implements OnInit {
       )
       .subscribe({
         next: list => this.history.set(list),
-        error: (err: any) => this.notify.error('Không thể tải lịch sử subscription')
+        error: (err: any) => this.notify.error(apiErrorMessage(err))
       });
   }
 
@@ -184,7 +184,7 @@ export class SubscriptionsComponent implements OnInit {
       )
       .subscribe({
         next: res => this.plans.set(res.data || []),
-        error: (err: any) => this.notify.error('Không thể tải danh sách plan')
+        error: (err: any) => this.notify.error(apiErrorMessage(err))
       });
   }
 
@@ -225,7 +225,7 @@ export class SubscriptionsComponent implements OnInit {
 
   doActivate() {
     if (!this.activateForm.subscriptionPlanId) {
-      this.notify.warning('Vui lòng chọn một plan');
+      this.notify.warning(this.t().sbPickPlan);
       return;
     }
 
@@ -238,16 +238,16 @@ export class SubscriptionsComponent implements OnInit {
     }).subscribe({
       next: res => {
         if (res.success) {
-          this.notify.success('Kích hoạt subscription thành công');
+          this.notify.success(this.t().sbActivated);
           this.closeActivateModal();
           this.loadSubscriptions();
         } else {
-          this.notify.error(res.message || 'Kích hoạt thất bại');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.saving.set(false);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || 'Kích hoạt thất bại');
+        this.notify.error(apiErrorMessage(err));
         this.saving.set(false);
       }
     });
@@ -255,9 +255,9 @@ export class SubscriptionsComponent implements OnInit {
 
   async doCancel() {
     const confirmed = await this.confirm.confirm({
-      title: 'Hủy Subscription',
-      message: 'Bạn có chắc chắn muốn hủy gói dịch vụ hiện tại? User sẽ mất quyền truy cập nâng cao ngay lập tức.',
-      confirmText: 'Xác nhận hủy',
+      title: this.t().sbCancel,
+      message: this.t().sbCancelConfirm,
+      confirmText: this.t().sbCancel,
       variant: 'danger'
     });
 
@@ -270,15 +270,15 @@ export class SubscriptionsComponent implements OnInit {
     }).subscribe({
       next: res => {
         if (res.success) {
-          this.notify.success('Đã hủy subscription');
+          this.notify.success(this.t().sbCancelled);
           this.loadSubscriptions();
         } else {
-          this.notify.error(res.message || 'Hủy thất bại');
+          this.notify.error(res.message || this.t().authFailed);
         }
         this.saving.set(false);
       },
       error: (err: any) => {
-        this.notify.error(err.error?.message || 'Hủy thất bại');
+        this.notify.error(apiErrorMessage(err));
         this.saving.set(false);
       }
     });

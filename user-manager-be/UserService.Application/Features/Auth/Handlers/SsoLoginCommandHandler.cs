@@ -1,104 +1,66 @@
 using MediatR;
-using UserService.Application.Common;
-using UserService.Application.DTOs.Users;
 using UserService.Application.Features.Auth.Commands;
 using UserService.Application.Interfaces.Services;
+using UserService.Application.Interfaces.Services.Security;
+using UserService.Application.Services.Auth;
 using UserService.Domain.Constants;
+using UserService.Domain.Entities;
 using UserService.Domain.Exceptions;
 using UserService.Domain.Repositories;
 
 namespace UserService.Application.Features.Auth.Handlers;
 
+/// <summary>Signs a user into the hosted SSO portal (used to authorize third-party applications).</summary>
 public sealed class SsoLoginCommandHandler : IRequestHandler<SsoLoginCommand, SsoLoginResponse>
 {
     private readonly IIdentityService _identityService;
-    private readonly IUserRepository _userRepository;
     private readonly IApplicationMembershipRepository _membershipRepository;
-    private readonly ITokenService _tokenService;
+    private readonly AuthResponseFactory _responses;
+    private readonly IAuditLogger _audit;
 
     public SsoLoginCommandHandler(
         IIdentityService identityService,
-        IUserRepository userRepository,
         IApplicationMembershipRepository membershipRepository,
-        ITokenService tokenService)
+        AuthResponseFactory responses,
+        IAuditLogger audit)
     {
         _identityService = identityService;
-        _userRepository = userRepository;
         _membershipRepository = membershipRepository;
-        _tokenService = tokenService;
+        _responses = responses;
+        _audit = audit;
     }
 
     public async Task<SsoLoginResponse> Handle(SsoLoginCommand request, CancellationToken cancellationToken)
     {
-        // 1. Login via identity service
-        var (succeeded, identityUser, errors) = await _identityService.LoginAsync(
-            request.Email,
-            request.Password,
-            cancellationToken);
+        var result = await _identityService.LoginAsync(request.Email, request.Password, cancellationToken);
+        if (!result.Succeeded || result.User == null)
+        {
+            await _audit.LogAsync(AuditEventTypes.LoginFailed, false,
+                new AuditEntry(ActorEmail: request.Email, Reason: result.ErrorCode, Details: new { kind = UserSessionKinds.HostedSso }), cancellationToken);
+            throw new AuthenticationFlowException(result.ErrorCode ?? AuthErrorCodes.InvalidCredentials, result.Message ?? "Invalid email or password.");
+        }
 
-        if (!succeeded || identityUser == null)
-            throw new UnauthorizedException(string.Join(", ", errors));
+        var user = result.User;
+        if (!user.IsSSOAccount)
+        {
+            await _audit.LogAsync(AuditEventTypes.LoginFailed, false,
+                new AuditEntry(ActorUserId: user.Id, ActorEmail: request.Email, Reason: AuthErrorCodes.WrongLoginEndpoint), cancellationToken);
+            throw new AuthenticationFlowException(AuthErrorCodes.WrongLoginEndpoint,
+                "This account uses the administrator console. Please sign in from /login.");
+        }
 
-        // 2. Load domain user
-        var domainUser = await _userRepository.GetByIdAsync(identityUser.UserProfileId!.Value, cancellationToken);
-        if (domainUser == null)
-            throw new EntityNotFoundException(nameof(Domain.Entities.User), identityUser.UserProfileId!.Value);
+        var roles = await _identityService.GetUserRolesAsync(user.Id, cancellationToken);
+        if (!RoleNames.ContainsSystemAdministrator(roles))
+        {
+            var memberships = await _membershipRepository.GetByUserAsync(user.Id, cancellationToken);
+            if (!memberships.Any(m => m.IsActive))
+            {
+                await _audit.LogAsync(AuditEventTypes.LoginFailed, false,
+                    new AuditEntry(ActorUserId: user.Id, ActorEmail: request.Email, Reason: "no_application_access"), cancellationToken);
+                throw new UnauthorizedException("SSO user has no active application access.");
+            }
+        }
 
-        // 3. Validate SSO account
-        if (!domainUser.IsSSOAccount)
-            throw new InvalidDomainObjectException(
-                nameof(request.Email),
-                request.Email,
-                "This account uses the regular admin login. Please sign in from /login.");
-
-        // 4. Check if user is admin (admins can access all apps)
-        var roles = await _identityService.GetUserRolesAsync(identityUser.Id, cancellationToken);
-        var isAdmin = roles.Contains(RoleNames.Admin) || roles.Contains(RoleNames.SuperAdmin);
-
-        // 5. Get active application memberships
-        var memberships = await _membershipRepository.GetByUserAsync(identityUser.Id, cancellationToken);
-        var activeMemberships = memberships.Where(m => m.IsActive).ToList();
-        
-        if (!isAdmin && activeMemberships.Count == 0)
-            throw new UnauthorizedException("SSO user has no active application access.");
-
-        // 6. Generate auth-server session token only.
-        var tokenRequest = new DTOs.Auth.AccessTokenRequest(
-            identityUser.Id,
-            identityUser.Email,
-            domainUser.Name.DisplayName,
-            roles,
-            Permissions: new List<string>(),
-            ApplicationId: null,
-            Scope: null,
-            SSOAppIds: null,
-            OAuthScopes: null
-        );
-
-        var accessToken = _tokenService.GenerateAccessToken(tokenRequest);
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        // 7. Save refresh token
-        await _identityService.UpdateRefreshTokenAsync(
-            identityUser.Id,
-            refreshToken,
-            DateTime.UtcNow.AddDays(7),
-            cancellationToken);
-
-        // 8. Build response
-        var userDto = new SsoUserDto(
-            identityUser.Id,
-            identityUser.Email,
-            identityUser.UserName,
-            domainUser.Name.DisplayName,
-            roles.ToList(),
-            new List<string>() // No permissions in global SSO token
-        );
-
-        return new SsoLoginResponse(
-            accessToken,
-            refreshToken,
-            userDto
-        );
+        return await _responses.CompleteHostedSsoSignInAsync(user, AuthenticationMethods.Password, cancellationToken);
     }
 }

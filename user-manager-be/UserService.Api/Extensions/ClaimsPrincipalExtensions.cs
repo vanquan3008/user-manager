@@ -21,6 +21,9 @@ public static class ClaimsPrincipalExtensions
         return userId.Value;
     }
 
+    public static Guid? TryGetSessionId(this ClaimsPrincipal? principal)
+        => Guid.TryParse(principal?.FindFirst(JwtClaimNames.SessionId)?.Value, out var sid) ? sid : null;
+
     public static Guid? TryGetTokenApplicationId(this ClaimsPrincipal? principal)
     {
         var appIdRaw = principal?.FindFirst(JwtClaimNames.ApplicationId)?.Value;
