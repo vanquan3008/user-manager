@@ -65,9 +65,30 @@ jobs:
       - name: Vulnerability Scan
         run: dotnet list package --vulnerable --include-transitive
 
+      # Install Trivy from the official GitHub release and verify it against a pinned SHA-256.
+      # setup-trivy's install script now downloads from get.trivy.dev, which does not resolve from
+      # GitHub-hosted runners (curl exit 6), so it is bypassed with skip-setup-trivy below.
+      # To upgrade: change TRIVY_VERSION and TRIVY_SHA256 (from trivy_<version>_checksums.txt) together.
+      - name: Install Trivy
+        env:
+          TRIVY_VERSION: 0.70.0
+          TRIVY_SHA256: 8b4376d5d6befe5c24d503f10ff136d9e0c49f9127a4279fd110b727929a5aa9
+        run: |
+          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL --retry 3 --retry-all-errors -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${archive}"
+          echo "${TRIVY_SHA256}  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/trivy-bin"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/trivy-bin" trivy
+          echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/trivy-bin/trivy" --version
+
+      # Third-party action pinned to a release commit (v0.36.0, signed tag), never a moving branch:
+      # it runs with this job's token. Update the SHA and the comment together.
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
+          skip-setup-trivy: true
           scan-type: fs
           scan-ref: .
           severity: CRITICAL,HIGH
